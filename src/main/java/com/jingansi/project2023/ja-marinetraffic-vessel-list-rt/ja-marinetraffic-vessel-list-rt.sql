@@ -1,13 +1,13 @@
 --********************************************************************--
 -- author:      write your name here
 -- create time: 2023/7/11 11:40:47
--- description: write your description here
+-- description: marinetraffic网站的船舶数据入库单独的表
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-marinetraffic-vessel-list-rt';
 
 
-set 'parallelism.default' = '4';
+set 'parallelism.default' = '8';
 set 'execution.type' = 'streaming';
 set 'table.planner' = 'blink';
 -- set 'table.exec.state.ttl' = '600000';
@@ -52,10 +52,10 @@ create table marinetraffic_ship_list(
       'connector' = 'kafka',
       'topic' = 'marinetraffic_ship_list',
       'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.group.id' = 'ja-marineTraffic-ship-list-rt',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1690785128000',
+      'properties.group.id' = 'ja-marineTraffic-ship-list-rt111',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1701356400000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -100,8 +100,8 @@ create table dwd_vessel_list_all_rt (
       'password' = 'Jingansi@110',
       'doris.request.tablet.size'='1',
       'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='10000',
-      'sink.batch.interval'='10s',
+      'sink.batch.size'='50000',
+      'sink.batch.interval'='15s',
       'sink.properties.escape_delimiters' = 'flase',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -148,8 +148,8 @@ create table dws_vessel_list_status_rt (
       'password' = 'Jingansi@110',
       'doris.request.tablet.size'='1',
       'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='10000',
-      'sink.batch.interval'='10s',
+      'sink.batch.size'='50000',
+      'sink.batch.interval'='15s',
       'sink.properties.escape_delimiters' = 'flase',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思

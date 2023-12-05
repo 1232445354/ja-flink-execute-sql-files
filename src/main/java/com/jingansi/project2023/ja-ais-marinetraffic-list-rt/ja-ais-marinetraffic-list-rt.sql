@@ -1,15 +1,16 @@
 --********************************************************************--
 -- author:      write your name here
--- create time: 2023/5/14 14:27:58
--- description: fleetmon 的船舶ais的数据入库
+-- create time: 2023/7/6 21:50:17
+-- description: marinetraffic 网站船舶数据入库船舶融合表
 --********************************************************************--
-set 'pipeline.name' = 'ja-ais-vessel-list-rt';
+set 'pipeline.name' = 'ja-ais-marinetraffic-list-rt';
+
 
 set 'table.exec.state.ttl' = '500000';
-set 'parallelism.default' = '4';
+set 'parallelism.default' = '6';
 
 set 'execution.checkpointing.interval' = '300000';
-set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-ais-vessel-list-rt-checkpoint-test';
+set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-ais-marineTraffic-list-rt-checkpoint-test';
 -- 空闲分区不用等待
 -- set 'table.exec.source.idle-timeout' = '3s';
 
@@ -21,36 +22,33 @@ set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-ais-vessel-lis
  -----------------------
 
 
--- 创建kafka全量AIS数据来源的表（Source：kafka）
-drop table  if exists ais_fleetmon_collect_item_kafka;
-create table ais_fleetmon_collect_item_kafka(
-                                                vesselId             bigint       comment '船ID',
-                                                `timestamp`           bigint       comment '时间戳',
-                                                name                 string       comment '船名称',
-                                                rateOfTurn           double       comment '转向率',
-                                                orientation          double       comment '方向',
-                                                masterImageId        bigint       comment '主图像ID',
-                                                coordinates array <               -- 船只坐标
-                                                    double
-                                                    >,
-                                                source               string       comment '数据来源简称',
-                                                speed                double       comment '速度',
-                                                vesselClass          string       comment '船类别',
-                                                draught              double       comment '吃水深度',
-                                                cnIso2               string       comment '',
-                                                navStatus            bigint       comment '导航状态',
-                                                dimensions array<
-                                                    double
-                                                    >,
-                                                block_map_index      bigint      comment '图层层级',
-                                                block_range_x        double      comment '区域块x',
-                                                block_range_y        double      comment '区域块y',
-                                                proctime          as PROCTIME()
+-- 创建kafka全量marineTraffic数据来源的表（Source：kafka）
+create table marinetraffic_ship_list(
+                                        SHIP_ID              string, -- 船舶的唯一标识符
+                                        SHIPNAME             string, -- 船舶的名称
+                                        SPEED                string, -- 船舶的当前速度，以节（knots）为单位 10倍
+                                        ROT                  string, -- 船舶的旋转率
+                                        W_LEFT               string, -- 舶的左舷吃水线宽度
+                                        L_FORE               string, -- 船舶的前吃水线长度
+                                        `timeStamp`          bigint, -- 采集时间
+                                        DESTINATION          string, -- 船舶的目的地
+                                        LON                  string, -- 船舶当前位置的经度值
+                                        ELAPSED              string, -- 自上次位置报告以来经过的时间，以分钟为单位。
+                                        COURSE               string, -- 船舶的当前航向，以度数（degrees）表示，0度表示北方，90度表示东方，
+                                        GT_SHIPTYPE          string, -- 船舶的全球船舶类型码。
+                                        FLAG                 string, -- 船舶的国家或地区旗帜标识。
+                                        LAT                  string, -- 船舶当前位置的经度值。
+                                        SHIPTYPE             string, -- 船舶的类型码，表示船舶所属的船舶类型。
+                                        HEADING              string, -- 船舶的船首朝向
+                                        LENGTH               string, -- 船舶的长度，以米为单位
+                                        WIDTH                string, -- 船舶的宽度，以米为单位。
+                                        DWT                  string, -- 船舶的载重吨位。
+                                        proctime             as PROCTIME()
 ) with (
       'connector' = 'kafka',
-      'topic' = 'ais_fleetmon_collect_item',
+      'topic' = 'marinetraffic_ship_list',
       'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.group.id' = 'ais-fleetmon-collect-item-rt-test',
+      'properties.group.id' = 'ja-ais-marinetraffic-list-rt-test',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
       'scan.startup.timestamp-millis' = '1701471840000',
@@ -70,7 +68,7 @@ create table ais_all_info_doris(
                                    c_name                              string      comment '船中文名',
                                    imo                                 string      comment 'imo',
                                    mmsi                                string      comment 'mmsi',
-                                   callsign                             string      comment '呼号',
+                                   callsign                            string      comment '呼号',
                                    rate_of_turn						double  	comment '转向率',
                                    orientation							double 		comment '方向',
                                    master_image_id						bigint		comment '主图像ID',
@@ -128,7 +126,7 @@ create table ais_status_info_doris(
                                       c_name                              string      comment '船中文名',
                                       imo                                 string      comment 'imo',
                                       mmsi                                string      comment 'mmsi',
-                                      callsign                             string      comment '呼号',
+                                      callsign                            string      comment '呼号',
                                       rate_of_turn						double  	comment '转向率',
                                       orientation							double 		comment '方向',
                                       master_image_id						bigint		comment '主图像ID',
@@ -176,7 +174,6 @@ create table ais_status_info_doris(
      );
 
 
-
 -- 航行状态数据匹配库（Source：doris）
 drop table if exists dim_vessel_nav_status_list;
 create table dim_vessel_nav_status_list (
@@ -220,25 +217,6 @@ create table dim_vessel_country_code_list (
 
 
 
--- 船类型数据匹配库（Source：doris）
-drop table if exists dim_vessel_class_list;
-create table dim_vessel_class_list (
-                                       vessel_class              string        comment '船类型',
-                                       vessel_class_num_code     string        comment '列表接口返回的数字',
-                                       vessel_class_name         string        comment '注释名称',
-                                       primary key (vessel_class) NOT ENFORCED
-) with (
-      'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
-      'username' = 'root',
-      'password' = 'Jingansi@110',
-      'table-name' = 'dim_vessel_class_list',
-      'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
-      'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
-      );
-
 
 
 -- 位置所在的国家代码转换（Source：doris）
@@ -260,28 +238,47 @@ create table dim_country_info (
       );
 
 
--- 船静态属性信息
-drop table if exists dws_ais_vessel_detail_static_attribute;
-create table dws_ais_vessel_detail_static_attribute (
-                                                        vessel_id          bigint        comment '船舶ID',
-                                                        vessel_type        string        comment '船小类别',
-                                                        vessel_type_name   string        comment '船类型中文名-小类',
-                                                        c_name             string        comment '船中文名',
-                                                        imo                bigint        comment 'imo',
-                                                        mmsi               bigint        comment 'mmsi',
-                                                        callsign            string        comment '呼号',
-                                                        primary key (vessel_id) NOT ENFORCED
+create table dim_mt_fm_id_relation (
+                                       ship_id                        bigint        comment '船编号',
+                                       vessel_id                      bigint        comment '编号',
+                                       vessel_type                    string        comment 'FleetMon 船大类',
+                                       vessel_type_name               string        comment 'FleetMon 船大类中文',
+                                       vessel_class                   string        comment 'FleetMon 船小类',
+                                       vessel_class_name              string        comment 'FleetMon 船小类中文',
+                                       c_name                         string        comment '船中文名',
+                                       imo                            string        comment 'imo',
+                                       mmsi                           bigint        comment 'mmsi',
+                                       callsign                       string        comment '呼号',
+                                       primary key (ship_id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
       'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'admin',
       'password' = 'Jingansi@110',
-      'table-name' = 'dws_ais_vessel_detail_static_attribute',
+      'table-name' = 'dim_mt_fm_id_relation',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '400000',
       'lookup.cache.ttl' = '84000s',
       'lookup.max-retries' = '3'
       );
+
+create table dws_ais_vessel_status_info (
+                                            vessel_id                      bigint      comment 'mmsi',
+                                            acquire_timestamp_format	   TIMESTAMP   comment '时间戳格式化',
+                                            source						   string 		comment	'来源类型',
+                                            primary key (vessel_id) NOT ENFORCED
+) with (
+      'connector' = 'jdbc',
+      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'username' = 'admin',
+      'password' = 'Jingansi@110',
+      'table-name' = 'dws_ais_vessel_status_info',
+      'driver' = 'com.mysql.cj.jdbc.Driver',
+      'lookup.cache.max-rows' = '400000',
+      'lookup.cache.ttl' = '600s',
+      'lookup.max-retries' = '3'
+      );
+
 
 drop table if exists dim_sea_area;
 create table dim_sea_area (
@@ -301,7 +298,6 @@ create table dim_sea_area (
       'lookup.max-retries' = '1'
       );
 
-
 -----------------------
 
 -- 数据处理
@@ -309,9 +305,61 @@ create table dim_sea_area (
 -----------------------
 
 -- create function getCountry as 'GetCountryFromLngLat.getCountryFromLngLat' language python ;
-
 create function getCountry as 'com.jingan.udf.sea.GetCountryFromLngLat';
 create function getSeaArea as 'com.jingan.udf.sea.GetSeaArea';
+
+-- 字段转换
+drop table if exists tmp_marinetraffic_ship_list_01;
+create view tmp_marinetraffic_ship_list_01 as
+select
+    t2.vessel_id as vesselId                          , -- 船ID
+    from_unixtime(`timeStamp`-(cast(ELAPSED as int)*60),'yyyy-MM-dd HH:mm:00') as acquire_timestamp_format  , -- 数据产生时间，爬虫采集的时间减 ELAPSED 经过的时间 ，格式化到分钟
+    SHIPNAME as name                                  , -- 船名称
+    cast(ROT as double) as rateOfTurn                                 , -- 转向率
+    cast(COURSE as int) as orientation                             , -- 方向
+    case when 1=2 then 0 end as masterImageId        , -- 主图像ID
+    cast(LON as double) as lng,
+    cast(LAT as double) as lat,
+    case when 1=2 then '' end source                  , -- 数据来源简称
+    cast(SPEED as double)/10 as speed                                    , -- 速度
+    t2.vessel_class as vesselClass                    , -- 船类别,
+    t2.vessel_class_name as vessel_class_name ,
+    cast(L_FORE as double) as draught                                 , -- 吃水深度
+    case when FLAG <> '--' then FLAG end  as cnIso2   , -- 国家
+    case when 1=2 then 1.1 end as navStatus            , -- 导航状态
+    case when 1=2 then '' end as  dimensions,
+    t2.vessel_type as vessel_type,
+    t2.vessel_type_name as vessel_type_name   ,
+    t2.c_name           as c_name             ,
+    t2.imo              as imo                ,
+    cast(t2.mmsi as string)   as mmsi               ,
+    t2.callsign          as callsign            ,
+    case
+        when FLAG in('IN','US','JP','AU') and t2.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR') then 'ENEMY' -- 敌
+        when FLAG ='CN' and t2.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then 'OUR_SIDE' -- 我
+        when FLAG ='CN' and t2.vessel_type not in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then 'FRIENDLY_SIDE' -- 友
+        else 'NEUTRALITY'
+        end as friend_foe,
+    t1.proctime
+from (select * from marinetraffic_ship_list where `timeStamp` is not null) t1
+         left join dim_mt_fm_id_relation
+    FOR SYSTEM_TIME AS OF t1.proctime as t2
+                   on cast(t1.SHIP_ID as bigint) = t2.ship_id
+where t2.ship_id is not null
+  and ELAPSED < 60;
+
+-- 过滤fleetmon 感知的数据
+drop table if exists tmp_marinetraffic_ship_list_02;
+create view tmp_marinetraffic_ship_list_02 as
+select
+    a.*
+from tmp_marinetraffic_ship_list_01 a
+         left join dws_ais_vessel_status_info
+    FOR SYSTEM_TIME AS OF a.proctime as b
+                   on a.vesselId = b.vessel_id
+where b.source is null
+   or abs(timestampdiff(MINUTE,to_timestamp(a.acquire_timestamp_format),b.acquire_timestamp_format)) >10;
+
 
 
 -- 解析数据第1步
@@ -319,66 +367,56 @@ drop table if exists tem_ais_kafka_01_pre_00;
 create view tem_ais_kafka_01_pre_00 as
 select
     t1.vesselId        as vessel_id,
-    from_unixtime(t1.`timestamp`,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
-    t1.`timestamp`	 as acquire_timestamp,
+    t1.acquire_timestamp_format as acquire_timestamp_format,
+    unix_timestamp(t1.acquire_timestamp_format)	 as acquire_timestamp,
     t1.name            as vessel_name,
     t1.rateOfTurn      as rate_of_turn,
     t1.orientation     ,
     t1.masterImageId   as master_image_id,
-    t1.coordinates[1]  as lng,
-    t1.coordinates[2]  as lat,
+    t1.lng  as lng,
+    t1.lat  as lat,
     t1.source          ,
     t1.speed           ,
     t1.vesselClass as vessel_class,
-    t4.vessel_class_name        as vessel_class_name,
+    t1.vessel_class_name        as vessel_class_name,
     t1.draught,
     t1.cnIso2 as cn_iso2,
     t3.country_name as country_name,
     if(t3.minio_url_jpg is not null,t3.minio_url_jpg,'/ja-acquire-images/ja-vessels-nation-flag-jpg/none.jpg') as nation_flag_minio_url_jpg,
     t1.navStatus as nav_status      ,
-    t2.nav_status_name as nav_status_name,
-    t1.dimensions[1] as dimensions_01,
-    t1.dimensions[2] as dimensions_02,
-    t1.dimensions[3] as dimensions_03,
-    t1.dimensions[4] as dimensions_04,
-    t1.block_map_index               ,
-    t1.block_range_x                 ,
-    t1.block_range_y                 ,
+    t1.vessel_type as vessel_type,
+    t1.vessel_type_name as vessel_type_name   ,
+    t1.c_name           as c_name             ,
+    t1.imo              as imo                ,
+    t1.mmsi             as mmsi               ,
+    t1.callsign          as callsign            ,
+    case when 1=2 then '' end as nav_status_name,
+    case when 1=2 then 1.1 end as dimensions_01,
+    case when 1=2 then 1.1 end as dimensions_02,
+    case when 1=2 then 1.1 end as dimensions_03,
+    case when 1=2 then 1.1 end as dimensions_04,
+    case when 1=2 then 1 end as block_map_index               ,
+    case when 1=2 then 1.1 end as block_range_x                 ,
+    case when 1=2 then 1.1 end as block_range_y                 ,
     proctime                         ,
-    getCountry(t1.coordinates[1],t1.coordinates[2]) as country_code3, -- 经纬度位置转换国家
-    t5.vessel_type as vessel_type,
-    t5.vessel_type_name as vessel_type_name   ,
-    t5.c_name           as c_name             ,
-    cast(t5.imo as string)              as imo                ,
-    cast(t5.mmsi as string)            as mmsi               ,
-    t5.callsign          as callsign            ,
-    case
-        when cnIso2 in('IN','US','JP','AU') and t5.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR') then 'ENEMY' -- 敌
-        when cnIso2='CN' and t5.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then 'OUR_SIDE' -- 我
-        when cnIso2='CN' and t5.vessel_type not in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then 'FRIENDLY_SIDE' -- 友
-        else 'NEUTRALITY' end friend_foe -- 敌我类型
+    getCountry(t1.lng,t1.lat) as country_code3, -- 经纬度位置转换国家
+    t1.vessel_type as vessel_type,
+    t1.friend_foe as  friend_foe -- 敌我类型
     -- vessel_detail.data.vessels[1] as tmp_object_data
-from ais_fleetmon_collect_item_kafka as t1
+from tmp_marinetraffic_ship_list_02 as t1
 
-         left join dim_vessel_nav_status_list
-    FOR SYSTEM_TIME AS OF t1.proctime as t2
-                   on cast(t1.navStatus as string) = t2.nav_status_num_code
+         -- left join dim_vessel_nav_status_list
+-- FOR SYSTEM_TIME AS OF t1.proctime as t2
+-- on cast(t1.navStatus as string) = t2.nav_status_num_code
 
          left join dim_vessel_country_code_list
     FOR SYSTEM_TIME AS OF t1.proctime as t3
                    on t1.cnIso2  = t3.flag_country_code
                        and 'FLEETMON' = t3.belong_type
-
-         left join dim_vessel_class_list
-    FOR SYSTEM_TIME AS OF t1.proctime as t4
-                   on t1.vesselClass = t4.vessel_class_num_code
-
-         left join dws_ais_vessel_detail_static_attribute
-    FOR SYSTEM_TIME AS OF t1.proctime as t5
-                   on t1.vesselId = t5.vessel_id
-where t1.vesselId is not null;
+;
 
 
+-- select * from tem_ais_kafka_01_pre_00;
 
 -- 转换国家编码
 drop table if exists tem_ais_kafka_01_pre;
@@ -405,7 +443,6 @@ select
         ,'CN', position_country_2code) as position_country_code2
 from tem_ais_kafka_01_pre;
 
-
 drop table if exists tem_ais_kafka_01;
 create view tem_ais_kafka_01 as
 select
@@ -419,7 +456,6 @@ from (
      ) a left join dim_sea_area
     FOR SYSTEM_TIME AS OF a.proctime as b
                    on a.sea_id = b.id;
-
 
 -----------------------
 
@@ -517,4 +553,3 @@ select
 from tem_ais_kafka_01;
 
 end;
-
