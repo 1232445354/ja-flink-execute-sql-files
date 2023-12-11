@@ -400,7 +400,7 @@ select
      ,sea_name
      ,update_time
 from doris_ecs.sa.dwd_ais_vessel_all_info
-where acquire_timestamp_format between to_date(days_sub(now(),1)) and to_date(now())
+where update_time between to_date(days_sub(now(),1)) and to_date(now())
 ;
 
 
