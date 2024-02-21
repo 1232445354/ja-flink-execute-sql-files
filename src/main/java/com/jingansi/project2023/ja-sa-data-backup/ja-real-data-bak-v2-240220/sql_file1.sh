@@ -144,7 +144,111 @@ from doris_ecs.sa.dws_vessel_list_status_rt
 where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
-select sleep(10) as sleep6;
+select sleep(5) as sleep6;
+
+
+-- 表：dwd_ais_vessel_all_info -- 船舶全量表 update_time
+insert into sa.dwd_ais_vessel_all_info
+select
+    vessel_id
+     ,acquire_timestamp_format
+     ,acquire_timestamp
+     ,vessel_name
+     ,c_name
+     ,imo
+     ,mmsi
+     ,callsign
+     ,rate_of_turn
+     ,orientation
+     ,master_image_id
+     ,lng
+     ,lat
+     ,source
+     ,speed
+     ,speed_km
+     ,vessel_class
+     ,vessel_class_name
+     ,vessel_type
+     ,vessel_type_name
+     ,draught
+     ,cn_iso2
+     ,country_name
+     ,nav_status
+     ,nav_status_name
+     ,dimensions_01
+     ,dimensions_02
+     ,dimensions_03
+     ,dimensions_04
+     ,block_map_index
+     ,block_range_x
+     ,block_range_y
+     ,position_country_code2
+     ,friend_foe
+     ,sea_id
+     ,sea_name
+     ,update_time
+from doris_ecs.sa.dwd_ais_vessel_all_info
+where update_time between '${start_time} 00:00:00' and '${start_time} 12:00:00';
+
+
+select sleep(10) as sleep7;
+
+
+insert into sa.dwd_ais_vessel_all_info
+select
+    vessel_id
+     ,acquire_timestamp_format
+     ,acquire_timestamp
+     ,vessel_name
+     ,c_name
+     ,imo
+     ,mmsi
+     ,callsign
+     ,rate_of_turn
+     ,orientation
+     ,master_image_id
+     ,lng
+     ,lat
+     ,source
+     ,speed
+     ,speed_km
+     ,vessel_class
+     ,vessel_class_name
+     ,vessel_type
+     ,vessel_type_name
+     ,draught
+     ,cn_iso2
+     ,country_name
+     ,nav_status
+     ,nav_status_name
+     ,dimensions_01
+     ,dimensions_02
+     ,dimensions_03
+     ,dimensions_04
+     ,block_map_index
+     ,block_range_x
+     ,block_range_y
+     ,position_country_code2
+     ,friend_foe
+     ,sea_id
+     ,sea_name
+     ,update_time
+from doris_ecs.sa.dwd_ais_vessel_all_info
+where update_time between '${start_time} 12:00:00' and '${end_time} 00:00:00';
+
+
+select sleep(10) as sleep8;
+
+
+-- 表：dwd_vessel_list_all_rt -- marinetraffic船舶全量数据  acquire_timestamp_format
+insert into sa.dwd_vessel_list_all_rt
+select
+    *
+from doris_ecs.sa.dwd_vessel_list_all_rt
+where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+
+
+select sleep(10) as sleep9;
 
 
 -- 表：dwd_satellite_all_info -- 卫星 current_date
@@ -155,7 +259,43 @@ from doris_ecs.sa.dwd_satellite_all_info
 where current_date between to_date(days_sub('${start_time}',2)) and to_date(days_add('${start_time}',1));
 
 
-select sleep(10) as sleep7;
+select sleep(10) as sleep10;
+
+
+-- 表：dwd_adsbexchange_aircraft_list_rt -- adsbexchange飞机全量数据  acquire_timestamp_format
+insert into sa.dwd_adsbexchange_aircraft_list_rt
+select
+    *
+from doris_ecs.sa.dwd_adsbexchange_aircraft_list_rt
+where acquire_timestamp_format
+between '${start_time} 00:00:00' and '${start_time} 08:00:00';
+
+
+select sleep(20) as sleep11;
+
+
+-- 表：dwd_adsbexchange_aircraft_list_rt -- adsbexchange飞机全量数据  acquire_timestamp_format
+insert into sa.dwd_adsbexchange_aircraft_list_rt
+select
+    *
+from doris_ecs.sa.dwd_adsbexchange_aircraft_list_rt
+where acquire_timestamp_format
+between '${start_time} 08:00:00' and '${start_time} 16:00:00';
+
+
+select sleep(20) as sleep12;
+
+
+-- 表：dwd_adsbexchange_aircraft_list_rt -- adsbexchange飞机全量数据  acquire_timestamp_format
+insert into sa.dwd_adsbexchange_aircraft_list_rt
+select
+    *
+from doris_ecs.sa.dwd_adsbexchange_aircraft_list_rt
+where acquire_timestamp_format
+between '${start_time} 16:00:00' and '${end_time} 00:00:00';
+
+
+select sleep(20) as sleep13;
 
 
 -- 表：dws_aircraft_combine_status_rt -- 飞机融合状态数据表  update_time
@@ -167,7 +307,7 @@ where update_time
 between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
-select sleep(10) as sleep8;
+select sleep(10) as sleep14;
 
 
 -- 表：dws_flight_segment_rt -- 飞机融合航班表 update_time

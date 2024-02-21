@@ -1,7 +1,7 @@
 --********************************************************************--
 -- author:      write your name here
 -- create time: 2023/5/14 14:27:58
--- description: fleetmon 的船舶ais的数据入库
+-- description: ais的数据入库
 --********************************************************************--
 set 'pipeline.name' = 'ja-ais-vessel-list-rt';
 
@@ -49,11 +49,12 @@ create table ais_fleetmon_collect_item_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'ais_fleetmon_collect_item',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
       'properties.group.id' = 'ais-fleetmon-collect-item-rt-test',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1701471840000',
+      'scan.startup.timestamp-millis' = '1702992989000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -302,6 +303,26 @@ create table dim_sea_area (
       );
 
 
+
+drop table if exists dws_vessle_nato_malitary;
+create table dws_vessle_nato_malitary (
+                                          id 			bigint     ,
+                                          navy_class 		string COMMENT '名称',
+                                          primary key (id) NOT ENFORCED
+) with (
+      'connector' = 'jdbc',
+      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'username' = 'root',
+      'password' = 'Jingansi@110',
+      'table-name' = 'dws_vessle_nato_malitary',
+      'driver' = 'com.mysql.cj.jdbc.Driver',
+      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.ttl' = '86400s',
+      'lookup.max-retries' = '1'
+      );
+
+
+
 -----------------------
 
 -- 数据处理
@@ -321,7 +342,7 @@ select
     t1.vesselId        as vessel_id,
     from_unixtime(t1.`timestamp`,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
     t1.`timestamp`	 as acquire_timestamp,
-    t1.name            as vessel_name,
+    if(t6.id is not null,t6.navy_class,t1.name) as vessel_name,
     t1.rateOfTurn      as rate_of_turn,
     t1.orientation     ,
     t1.masterImageId   as master_image_id,
@@ -376,6 +397,11 @@ from ais_fleetmon_collect_item_kafka as t1
          left join dws_ais_vessel_detail_static_attribute
     FOR SYSTEM_TIME AS OF t1.proctime as t5
                    on t1.vesselId = t5.vessel_id
+
+         left join dws_vessle_nato_malitary
+    FOR SYSTEM_TIME AS OF t1.proctime as t6
+                   on t1.vesselId = t6.id
+
 where t1.vesselId is not null;
 
 
