@@ -15,8 +15,7 @@ insert into sa.dwd_adsbexchange_aircraft_list_rt
 select
     *
 from doris_ecs.sa.dwd_adsbexchange_aircraft_list_rt
-where acquire_timestamp_format
-between '${start_time}' and '${start_time}';
+where acquire_timestamp_format between '${start_time}' and '${start_time}'
 
 "
 
