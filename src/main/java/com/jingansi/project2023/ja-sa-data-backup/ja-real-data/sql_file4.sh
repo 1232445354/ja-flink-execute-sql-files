@@ -11,11 +11,11 @@ source ${DIR}/config.sh
 
 sql="
 
-insert into sa.dwd_adsbexchange_aircraft_list_rt
+insert into sa.dwd_vessel_list_all_rt
 select
-    *
-from doris_ecs.sa.dwd_adsbexchange_aircraft_list_rt
-where acquire_timestamp_format between '${start_time}' and '${start_time}'
+  *
+from doris_ecs.sa.dwd_vessel_list_all_rt
+where acquire_timestamp_format between '${start_time}' and '${end_time}';
 
 "
 

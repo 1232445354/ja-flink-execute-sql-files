@@ -1,7 +1,7 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2023/3/21 14:06:19
--- description: 旌旗3.0设备接入日志、设备检测数据状态、轨迹等
+-- description: 旌旗3.0设备接入日志、设备检测数据状态、老版本的雷达数据
 -- version: 3.0.2.231116
 -- fix:新增望楼3.0
 --********************************************************************--
@@ -87,6 +87,7 @@ create table iot_device_message_kafka (
                                               )
                                               >,
                                               deviceName      string  -- 执法仪名称
+
                                               -- longitude       double , -- 执法仪经度，上面有
                                               -- latitude        double , -- 执法仪纬度，上面有
                                               -- ip,
@@ -96,11 +97,12 @@ create table iot_device_message_kafka (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.group.id' = 'iot-device-message-rt',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1701132554000',
+      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
+      'properties.group.id' = 'iot-device-message-rt-1',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1702443618000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -154,7 +156,7 @@ create table photoelectric_inspection_result_kafka(
       'properties.group.id' = 'photoelectric-inspection-result-rt',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1701132554000',
+      'scan.startup.timestamp-millis' = '1702308606000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -231,12 +233,12 @@ create table dwd_device_inspection_target_all_rt(
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
-     'sink.batch.interval'='10s'
--- 'sink.properties.escape_delimiters' = 'false'，
--- 'sink.properties.column_separator' = '\x01',	 -- 列分隔符
--- 'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
--- 'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+     'sink.batch.size'='50000',
+     'sink.batch.interval'='10s',
+     'sink.properties.escape_delimiters' = 'true',
+     'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
+     'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
 
@@ -276,8 +278,12 @@ create table dws_device_inspection_target_status_rt(
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
-     'sink.batch.interval'='2s'
+     'sink.batch.size'='50000',
+     'sink.batch.interval'='2s',
+     'sink.properties.escape_delimiters' = 'true',
+     'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
+     'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
 
@@ -330,7 +336,7 @@ create table dwd_device_history_record_vertical (
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
      'sink.batch.size'='5000',
-     'sink.batch.interval'='5s'
+     'sink.batch.interval'='10s'
      );
 
 
@@ -362,8 +368,8 @@ create table dwd_device_history_record_horizontal (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
-     'sink.batch.interval'='5s'
+     'sink.batch.size'='50000',
+     'sink.batch.interval'='10s'
      );
 
 
@@ -388,7 +394,7 @@ create table dwd_photoelectric_inspection_all_rt (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
+     'sink.batch.size'='50000',
      'sink.batch.interval'='5s'
      );
 
@@ -427,7 +433,7 @@ create table dwd_device_track_rt (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
+     'sink.batch.size'='50000',
      'sink.batch.interval'='5s'
      );
 
@@ -490,6 +496,7 @@ select
     productKey  as product_key,
     deviceId    as device_id,
     version     as version,
+    proctime,
     `timestamp` as acquire_timestamp,
     type,
     tid,
@@ -557,8 +564,9 @@ select
     targets
 from tmp_source_kafka_01
 where message_acquire_timestamp is not null
-  and message_method = 'event.targetInfo.info';
--- and message_product_key = 'k8dNIRut1q3';
+  and message_method = 'event.targetInfo.info'
+  and message_device_id is not null;
+
 
 
 -- 设备检测数据（雷达）数据进一步解析数组
@@ -586,9 +594,7 @@ select
     t2.distance,
     t2.utc_time,
     t2.tracked_times,
-    t2.loss_times,
-    'ja-flink' as create_by,
-    from_unixtime(unix_timestamp()) as update_time
+    t2.loss_times
 from tmp_source_kafka_02 as t1
          cross join unnest (targets) as t2 (
                                             targetId         ,
@@ -606,7 +612,6 @@ from tmp_source_kafka_02 as t1
                                             tracked_times    ,
                                             loss_times
     );
-
 
 -- 机库子设备/无人机/执法仪-数据筛选处理
 drop table if exists tmp_source_kafka_04;
@@ -638,8 +643,8 @@ select
     'gimbalHead'         , cast(gimbal_head as varchar)
     ] as index_key_value
 from tmp_source_kafka_01
-  where message_method = 'properties.state';
--- and product_key in('00000000002','zyrFih3kept','QptZJHOd1KD');
+  where message_method = 'properties.state'
+   and message_acquire_timestamp is not null;
 
 
 
@@ -681,7 +686,9 @@ from photoelectric_inspection_result_kafka as t1
 where t1.source_id is not null  -- 光电设备ID
   and t2.object_id is not null  -- 光电检测目标ID
   and t1.radar_id is not null   -- 雷达id  -- 雷达检测目标id
-  and t2.radar_target_id is not null;
+  and t2.radar_target_id is not null
+  and t1.ntp_timestamp is not null;
+
 
 
 
@@ -713,7 +720,7 @@ from (
              latitude,
              PROCTIME()  as proctime
          from tmp_source_kafka_01
-         where product_key in('QptZJHOd1KD','zyrFih3kept')  -- QptZJHOd1KD :执法仪，zyrFih3kept：无人机
+         where product_key in('QptZJHOd1KD','zyrFih3kept','00000000002')  -- QptZJHOd1KD :执法仪，zyrFih3kept、00000000002：无人机
            and device_id is not null
            and message_acquire_timestamp is not null
      ) as t1
@@ -721,8 +728,6 @@ from (
                    on t1.device_id = t2.device_id
          left join users FOR SYSTEM_TIME AS OF t1.proctime as t3
                    on t2.gmt_create_by = t3.username;
-
-
 
 -----------------------
 
@@ -852,8 +857,8 @@ select
     `method`,
     product_key,
     version,
-    create_by,
-    update_time
+    'ja-flink' as create_by,
+    from_unixtime(unix_timestamp()) as update_time
 from tmp_source_kafka_03;
 
 
@@ -883,8 +888,8 @@ select
     `method`,
     product_key,
     version,
-    create_by,
-    update_time
+    'ja-flink' as create_by,
+    from_unixtime(unix_timestamp()) as update_time
 from tmp_source_kafka_03;
 
 

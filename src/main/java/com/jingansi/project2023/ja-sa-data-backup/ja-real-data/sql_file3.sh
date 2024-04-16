@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# start_time:2023-12-01 00:00:00
-# end_time:2023-12-01 06:00:00
+# start_time:2023-12-01 01:00:00
+# end_time:2023-12-01 02:00:00
 start_time=${1}
 end_time=${2}
 
@@ -11,11 +11,13 @@ source ${DIR}/config.sh
 
 sql="
 
-insert into sa.dwd_vessel_list_all_rt
+-- 表：dws_aircraft_combine_list_rt -- 飞机融合全量数据表  update_time
+insert into sa.dws_aircraft_combine_list_rt
 select
-    *
-from doris_ecs.sa.dwd_vessel_list_all_rt
-where acquire_timestamp_format between '${start_time}' and '${end_time}';
+  *
+from doris_ecs.sa.dws_aircraft_combine_list_rt
+where acquire_time
+between '${start_time}' and '${end_time}';
 
 "
 

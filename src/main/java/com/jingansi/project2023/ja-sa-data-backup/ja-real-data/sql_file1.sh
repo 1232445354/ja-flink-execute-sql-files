@@ -12,7 +12,7 @@ source ${DIR}/config.sh
 
 sql="
 
--- 表：dws_ais_vessel_detail_static_attribute -- 全量静态属性表  update_time
+-- 船舶实体属性  update_time
 insert into sa.dws_ais_vessel_detail_static_attribute
 select
     vessel_id
@@ -49,13 +49,13 @@ select
      ,timestamp
      ,update_time
 from doris_ecs.sa.dws_ais_vessel_detail_static_attribute
-where update_time between to_date(days_sub('${start_time}',2)) and to_date(days_add('${start_time}',1));
+where update_time between days_sub('${start_time}',1) and '${end_time} 00:00:00';
 
 
 select sleep(5) as sleep1;
 
 
--- 表：dws_ais_vessel_status_info -- 船舶状态表  update_time
+-- 船舶融合状态表  update_time
 insert into sa.dws_ais_vessel_status_info
 select
     vessel_id
@@ -97,68 +97,35 @@ select
      ,sea_name
      ,update_time
 from doris_ecs.sa.dws_ais_vessel_status_info
-where update_time between '${start_time} 00:00:00' and '${start_time} 23:59:59';
+where update_time between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
 select sleep(5) as sleep2;
 
 
--- 表：dws_ais_vessel_all_info_day -- 船舶按天  acquire_timestamp_format
+-- 船舶按天的数据  acquire_timestamp_format
 insert into sa.dws_ais_vessel_all_info_day
 select
     *
 from doris_ecs.sa.dws_ais_vessel_all_info_day
-where acquire_timestamp_format between '${start_time} 00:00:00' and '${start_time} 23:59:59';
+where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
 select sleep(5) as sleep3;
 
 
--- 表：dwd_ais_vessel_port_all_info -- 船舶出发到达港口全量 acquire_timestamp_format
-insert into sa.dwd_ais_vessel_port_all_info
-select
-    *
-from doris_ecs.sa.dwd_ais_vessel_port_all_info
-where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
-
-
-select sleep(5) as sleep4;
-
-
--- 表：dws_ais_vessel_port_status_info -- 船舶出发到达港口状态  acquire_timestamp_format
-insert into sa.dws_ais_vessel_port_status_info
-select
-    *
-from doris_ecs.sa.dws_ais_vessel_port_status_info
-where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
-
-
-select sleep(5) as sleep5;
-
-
--- 表：dws_vessel_list_status_rt -- marinetraffic船舶状态数据 acquire_timestamp_format
+-- marinetraffic的船舶状态数据单独入库 update_time
 insert into sa.dws_vessel_list_status_rt
 select
     *
 from doris_ecs.sa.dws_vessel_list_status_rt
-where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+where update_time between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
-select sleep(10) as sleep6;
+select sleep(10) as sleep4;
 
 
--- 表：dwd_satellite_all_info -- 卫星 current_date
-insert into sa.dwd_satellite_all_info
-select
-    *
-from doris_ecs.sa.dwd_satellite_all_info
-where current_date between to_date(days_sub('${start_time}',2)) and to_date(days_add('${start_time}',1));
-
-
-select sleep(10) as sleep7;
-
-
--- 表：dws_aircraft_combine_status_rt -- 飞机融合状态数据表  update_time
+-- 飞机实体融合状态表  update_time
 insert into sa.dws_aircraft_combine_status_rt
 select
     *
@@ -167,16 +134,72 @@ where update_time
 between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
-select sleep(10) as sleep8;
+select sleep(10) as sleep5;
 
 
--- 表：dws_flight_segment_rt -- 飞机融合航班表 update_time
+-- 飞机航班表 update_time
 insert into sa.dws_flight_segment_rt
 select
   *
 from doris_ecs.sa.dws_flight_segment_rt
 where update_time
 between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+
+
+select sleep(10) as sleep6;
+
+
+-- marinetraffic的详情表 update_time
+insert into sa.dwd_mtf_ship_info
+select
+  *
+from doris_ecs.sa.dwd_mtf_ship_info
+where update_time between days_sub('${start_time}',1) and '${end_time} 00:00:00';
+
+
+select sleep(10) as sleep7;
+
+
+-- vt的船舶状态数据单独入库 update_time
+insert into sa.dws_vt_vessel_status_info
+select
+  *
+from doris_ecs.sa.dws_vt_vessel_status_info
+where update_time between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+
+
+select sleep(10) as sleep8;
+
+
+-- 卫星tle之前采集的 current_date
+insert into sa.dwd_satellite_all_info
+select
+  *
+from doris_ecs.sa.dwd_satellite_all_info
+where current_date between to_date(days_sub('${start_time}',2)) and '${end_time} 00:00:00';
+
+
+select sleep(10) as sleep9;
+
+
+-- 卫星tle融合表1 current_date
+insert into sa.dwd_satellite_tle_list
+select
+  *
+from doris_ecs.sa.dwd_satellite_tle_list
+where epoch_time between to_date(days_sub('${start_time}',2)) and '${end_time} 00:00:00';
+
+
+select sleep(10) as sleep10;
+
+
+-- 卫星tle融合表2 current_date
+insert into sa.dws_satellite_tle_info
+select
+  *
+from doris_ecs.sa.dws_satellite_tle_info
+where current_date between to_date(days_sub('${start_time}',2)) and '${end_time} 00:00:00';
+
 
 "
 

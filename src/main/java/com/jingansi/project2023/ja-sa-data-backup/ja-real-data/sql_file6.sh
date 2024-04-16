@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # start_time:2023-12-01 00:00:00
-# end_time:2023-12-01 06:00:00
+# end_time:2023-12-01 02:00:00
 start_time=${1}
 end_time=${2}
 
@@ -11,11 +11,11 @@ source ${DIR}/config.sh
 
 sql="
 
-insert into sa.dwd_ais_vessel_all_info
+insert into sa.dwd_vt_vessel_all_info
 select
   *
-from doris_ecs.sa.dwd_ais_vessel_all_info
-where acquire_timestamp_format between '${start_time}' and '${end_time}';
+from doris_ecs.sa.dwd_vt_vessel_all_info
+where acquire_timestamp_format between '${start_time}' and '${end_time}'
 
 "
 
