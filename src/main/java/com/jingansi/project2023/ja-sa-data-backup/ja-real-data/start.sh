@@ -27,8 +27,8 @@ end_timestamp=$(date -d "$yesterday_end_day" +%s)
 
 
 echo -en "序号2----dwd_ais_vessel_all_info----$(date)\n"
-interval_time2=21600
-sleep_time2=40
+interval_time2=7200
+sleep_time2=30
 
 # 遍历日期并输出
 current_timestamp1="${start_timestamp}"
@@ -51,7 +51,7 @@ done
 
 echo -en "序号3----dws_aircraft_combine_list_rt----$(date)\n"
 interval_time3=3600
-sleep_time3=20
+sleep_time3=30
 
 # 遍历日期并输出
 current_timestamp3="${start_timestamp}"
@@ -120,7 +120,7 @@ done
 
 echo -en "序号6----dwd_vt_vessel_all_info----$(date)\n"
 interval_time6=7200
-sleep_time6=30
+sleep_time6=40
 
 # 遍历日期并输出
 current_timestamp6="${start_timestamp}"
@@ -139,6 +139,50 @@ while [ "$current_timestamp6" -le "$end_timestamp" ]; do
   sleep ${sleep_time6}s
 done
 
+
+
+echo -en "序号7----dwd_fr24_aircraft_list_rt----$(date)\n"
+interval_time7=7200
+sleep_time7=30
+
+# 遍历日期并输出
+current_timestamp7="${start_timestamp}"
+current_timestamp7_1=$((current_timestamp7 + ${interval_time7}))
+
+while [ "$current_timestamp7" -le "$end_timestamp" ]; do
+  current_day7=$(date -d "@$current_timestamp7" "$date_format")
+  current_day7_1=$(date -d "@$current_timestamp7_1" "$date_format")
+
+  echo -en "${current_day7} + ${current_day7_1}\n"
+  sh ${DIR}/sql_file7.sh "$current_day7" "$current_day7_1"
+
+  current_timestamp7=$((current_timestamp7 + ${interval_time7}))
+  current_timestamp7_1=$((current_timestamp7_1 + ${interval_time7}))
+  echo -en "sleep中 时间: ${sleep_time7}s...\n"
+  sleep ${sleep_time7}s
+done
+
+
+echo -en "序号8----dwd_ais_landbased_vessel_list----$(date)\n"
+interval_time8=7200
+sleep_time8=20
+
+# 遍历日期并输出
+current_timestamp8="${start_timestamp}"
+current_timestamp8_1=$((current_timestamp8 + ${interval_time8}))
+
+while [ "$current_timestamp8" -le "$end_timestamp" ]; do
+  current_day8=$(date -d "@$current_timestamp8" "$date_format")
+  current_day8_1=$(date -d "@$current_timestamp8_1" "$date_format")
+
+  echo -en "${current_day8} + ${current_day8_1}\n"
+  sh ${DIR}/sql_file8.sh "$current_day8" "$current_day8_1"
+
+  current_timestamp8=$((current_timestamp8 + ${interval_time8}))
+  current_timestamp8_1=$((current_timestamp8_1 + ${interval_time8}))
+  echo -en "sleep中 时间: ${sleep_time8}s...\n"
+  sleep ${sleep_time8}s
+done
 
 
 echo -en "--备份数据SUCCESS--------$(date)\n"
