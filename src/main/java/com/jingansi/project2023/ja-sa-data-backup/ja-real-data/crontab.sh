@@ -56,7 +56,7 @@ dws_satellite_tle_info
 # 大表
 dwd_ais_vessel_all_info
 # 船舶全量表	acquire_timestamp_format
-# 2024-04-21 同步完成
+# 2024-04-22 同步完成
 
 dws_aircraft_combine_list_rt
 # 飞机融合全量数据表 update_time -> 换成acquire_time
