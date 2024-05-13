@@ -28,7 +28,7 @@ insert into sa.dws_ais_vessel_status_info
 select
     *
 from doris_ecs.sa.dws_ais_vessel_status_info
-where update_time between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
 select sleep(5) as sleep2;
@@ -50,7 +50,7 @@ insert into sa.dws_vessel_list_status_rt
 select
     *
 from doris_ecs.sa.dws_vessel_list_status_rt
-where update_time between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
 select sleep(10) as sleep4;
@@ -61,8 +61,7 @@ insert into sa.dws_aircraft_combine_status_rt
 select
     *
 from doris_ecs.sa.dws_aircraft_combine_status_rt
-where update_time
-between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+where acquire_time between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
 select sleep(10) as sleep5;
@@ -73,8 +72,7 @@ insert into sa.dws_flight_segment_rt
 select
   *
 from doris_ecs.sa.dws_flight_segment_rt
-where update_time
-between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+where start_time between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
 select sleep(10) as sleep6;
@@ -96,7 +94,7 @@ insert into sa.dws_vt_vessel_status_info
 select
   *
 from doris_ecs.sa.dws_vt_vessel_status_info
-where update_time between '${start_time} 00:00:00' and '${end_time} 00:00:00';
+where acquire_timestamp_format between '${start_time} 00:00:00' and '${end_time} 00:00:00';
 
 
 select sleep(10) as sleep8;
@@ -107,10 +105,10 @@ insert into sa.dwd_satellite_tle_list
 select
   *
 from doris_ecs.sa.dwd_satellite_tle_list
-where epoch_time between to_date(days_sub('${start_time}',2)) and '${end_time} 00:00:00';
+where update_time between to_date(days_sub('${start_time}',2)) and '${end_time} 00:00:00';
 
 
-select sleep(10) as sleep10;
+select sleep(10) as sleep9;
 
 
 -- 卫星tle融合表2，每日生成的表 current_date
@@ -119,6 +117,17 @@ select
   *
 from doris_ecs.sa.dws_satellite_tle_info
 where current_date between to_date(days_sub('${start_time}',2)) and '${end_time} 00:00:00';
+
+select sleep(10) as sleep10;
+
+
+-- 卫星实体表
+insert into sa.dws_satellite_entity_info
+select
+  *
+from doris_ecs.sa.dws_satellite_entity_info
+where update_time between days_sub('${start_time}',1) and '${end_time} 00:00:00';
+
 
 
 "

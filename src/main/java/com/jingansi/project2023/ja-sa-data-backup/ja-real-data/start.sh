@@ -27,7 +27,7 @@ end_timestamp=$(date -d "$yesterday_end_day" +%s)
 
 
 echo -en "序号2----dwd_ais_vessel_all_info----$(date)\n"
-interval_time2=7200
+interval_time2=3600
 sleep_time2=30
 
 # 遍历日期并输出
@@ -51,7 +51,7 @@ done
 
 echo -en "序号3----dws_aircraft_combine_list_rt----$(date)\n"
 interval_time3=3600
-sleep_time3=30
+sleep_time3=50
 
 # 遍历日期并输出
 current_timestamp3="${start_timestamp}"
