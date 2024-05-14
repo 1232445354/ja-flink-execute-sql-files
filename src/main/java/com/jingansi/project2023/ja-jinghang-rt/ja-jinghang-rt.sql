@@ -85,11 +85,12 @@ create table temp01_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'jinghang_detection_result',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
       'properties.group.id' = 'test-group',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'

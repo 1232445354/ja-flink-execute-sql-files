@@ -23,12 +23,21 @@
 
 
 
+# *******************************************
+
+# 部署:172.21.30.201
+
+# *******************************************
+  /data1/bigdata/apps/ja-radarbox-replace-icao-code
+
+启动:
+*/5 * * * *  sh /data1/bigdata/apps/ja-radarbox-replace-icao-code/start.sh > /data1/bigdata/apps/ja-radarbox-replace-icao-code/root.log &
 
 
 
 # *******************************************
 
-# 部署:172.21.30.201
+# 部署:server-1
 
 # *******************************************
   /data1/bigdata/apps/ja-radarbox-replace-icao-code

@@ -3,7 +3,7 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2023/5/13 11:09:25
--- description: radarbox网站的飞机数据 入库给信通使用
+-- description: radarbox网站的飞机数据
 -- version:
 --********************************************************************--
 set 'pipeline.name' = 'ja-radarbox-aircraft-list-rt';
@@ -70,12 +70,13 @@ create table radarbox_aircraft_list_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'radarbox_aircraft_list',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
       'properties.group.id' = 'radarbox-aircraft-list-rt-5',
       -- 'scan.startup.mode' = 'group-offsets',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1701356415000',
+      'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'

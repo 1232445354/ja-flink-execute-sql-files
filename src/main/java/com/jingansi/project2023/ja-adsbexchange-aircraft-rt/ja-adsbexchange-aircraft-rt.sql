@@ -72,11 +72,12 @@ create table adsb_exchange_aircraft_list_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'adsb-exchange-aircraft-list',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
       'properties.group.id' = 'adbs-exchange-aircraft-list-group',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1698732000000',
+      'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'

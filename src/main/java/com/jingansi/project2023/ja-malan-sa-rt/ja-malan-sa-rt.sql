@@ -1,8 +1,10 @@
 --********************************************************************--
--- author:      write your name here
--- create time: 2023/6/15 15:57:32
--- description: write your description here
+-- author:     yibo@jingan-inc.com
+-- create time: 2023/12/22 15:57:32
+-- description: 态势无人机的轨迹
 --********************************************************************--
+
+
 set 'pipeline.name' = 'ja-malan-sa-rt';
 
 SET 'execution.type' = 'streaming';
@@ -10,16 +12,21 @@ SET 'table.planner' = 'blink';
 SET 'table.exec.state.ttl' = '300000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
+
+
 -- SET 'parallelism.default' = '6';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-malan-sa-rt-checkpoint' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-malan-sa-rt' ;
 
 
- -----------------------
+-- 自定义函数，转换经纬度
+create function distance_udf as 'com.jingan.udf.geohash.DistanceUdf';
 
- -- 数据结构
+-----------------------
 
- -----------------------
+-- 数据结构
+
+-----------------------
 
 -- 设备轨迹数据（Source：kafka）
 drop table if exists iot_device_message_kafka;
@@ -77,15 +84,17 @@ create table iot_device_message_kafka (
                                               sarSystemMode                     string,   -- SAR系统模式
                                               sarEffectDistance                 int       -- SAR作用距离
                                               )
-                                              )
+                                              ),
+                                          rowtime as to_timestamp_ltz(message.`timestamp`,3),
+                                          watermark for rowtime as rowtime - interval '3' second
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.group.id' = 'iot-device-message-rt',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1687340400000',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'iot-device-message-rt1',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -150,15 +159,15 @@ create table dwd_device_all_rt(
                                   update_time        				  string    comment '数据入库时间'
 )WITH (
      'connector' = 'doris',
-     'fenodes' = '172.21.30.202:30030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
      'table.identifier' = 'ja_sa_malan.dwd_device_all_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
+     'sink.batch.size'='50000',
      'sink.batch.interval'='10s'
--- 'sink.properties.escape_delimiters' = 'false'，
+-- 'sink.properties.escape_delimiters' = 'true',
 -- 'sink.properties.column_separator' = '\x01',	 -- 列分隔符
 -- 'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
 -- 'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
@@ -184,8 +193,12 @@ select
     message.version      as version,
     message.`timestamp`  as acquire_timestamp,
     message.`method`     as `method`,
-    message.`data`       as message_data
+    message.`data`       as message_data,
+    lag(message.`data`.longitude) over(partition by deviceId order by rowtime) as pre_longitude,
+        lag(message.`data`.latitude) over(partition by deviceId order by rowtime) as pre_latitude,
+        lag(message.`timestamp`) over(partition by deviceId order by rowtime) as pre_timestamp
 from iot_device_message_kafka;
+
 
 
 -- 设备(雷达)检测数据筛选处理
@@ -241,13 +254,19 @@ select
     message_data.sarMode                         as sar_mode,
     message_data.sarResolution                   as sar_resolution,
     message_data.sarSystemMode                   as sar_system_mode,
-    message_data.sarEffectDistance               as sar_effect_distance
+    message_data.sarEffectDistance               as sar_effect_distance,
+    -- distance_udf(message_data.latitude,message_data.longitude,pre_latitude,pre_longitude)/((acquire_timestamp - pre_timestamp)/1000/3600) as speed -- 速度 km/h
+
+    if(abs((acquire_timestamp - pre_timestamp)/1000/3600) = 0,
+       distance_udf(message_data.latitude,message_data.longitude,pre_latitude,pre_longitude),
+       distance_udf(message_data.latitude,message_data.longitude,pre_latitude,pre_longitude)/abs((acquire_timestamp - pre_timestamp)/1000/3600)
+        ) as speed   -- 速度 km/h,不能除0异常
+
 from tmp_source_kafka_01
 where acquire_timestamp is not null
-  and product_key = '04OieygldKe';
--- and product_key = 'H5kf7Mgwl2S';
+  and product_key = 'jk0L2mCujQu';
 
--- select product_key,* from tmp_source_kafka_02;
+
 
 -----------------------
 
@@ -313,11 +332,10 @@ select
     sar_system_mode                   ,
     sar_effect_distance               ,
     from_unixtime(unix_timestamp()) as update_time
-from tmp_source_kafka_02;
+from tmp_source_kafka_02
+where speed < 500;
 
 end;
-
-
 
 
 

@@ -31,11 +31,12 @@ create table satellite_collect_list_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'satellite_collect_list',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
       'properties.group.id' = 'satellite-collect-list-kafka-rt',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1684242931000',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'

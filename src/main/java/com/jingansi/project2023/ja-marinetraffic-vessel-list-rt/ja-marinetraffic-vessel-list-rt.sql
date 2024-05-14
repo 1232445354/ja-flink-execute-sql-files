@@ -1,13 +1,13 @@
 --********************************************************************--
--- author:      write your name here
+-- author:      yibo@jingan-inc.com
 -- create time: 2023/7/11 11:40:47
--- description: marinetraffic网站的船舶数据入库单独的表
+-- description: marinetraffic数据单独入库
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-marinetraffic-vessel-list-rt';
 
 
-set 'parallelism.default' = '8';
+set 'parallelism.default' = '4';
 set 'execution.type' = 'streaming';
 set 'table.planner' = 'blink';
 -- set 'table.exec.state.ttl' = '600000';
@@ -47,15 +47,19 @@ create table marinetraffic_ship_list(
                                         INVALID_DIMENSIONS   string,    -- 无效_维度
                                         ROT                  string,    -- 船舶的旋转率
                                         W_LEFT               string,    -- 舶的左舷吃水线宽度
-                                        L_FORE               string    -- 船舶的前吃水线长度
+                                        L_FORE               string,    -- 船舶的前吃水线长度
+                                        block_map_index      int,       -- 地图层级
+                                        block_range_x        int,       -- 块x
+                                        block_range_y        int        -- 块y
 ) with (
       'connector' = 'kafka',
       'topic' = 'marinetraffic_ship_list',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
       'properties.group.id' = 'ja-marineTraffic-ship-list-rt111',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1701356400000',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -90,7 +94,10 @@ create table dwd_vessel_list_all_rt (
                                         rot                  		    string					, -- 船舶的旋转率
                                         w_left               			string					, -- 待定--舶的左舷吃水线宽度
                                         l_fore               			string					, -- 待定--船舶的前吃水线长度
-                                        update_time                     string  				 -- 数据入库时间
+                                        block_map_index                 int                     , -- 地图层级
+                                        block_range_x                   int                     , -- 块x
+                                        block_range_y                   int                     , -- 块y
+                                        update_time                     string  				  -- 数据入库时间
 
 ) with (
       'connector' = 'doris',
@@ -188,10 +195,14 @@ select
     INVALID_DIMENSIONS   as invalid_dimensions,
     ROT                  as rot,
     W_LEFT               as w_left,
-    L_FORE               as l_fore
+    L_FORE               as l_fore,
+    block_map_index      , -- 地图层级
+    block_range_x        , -- 块x
+    block_range_y         -- 块y
 from marinetraffic_ship_list
 where  `timeStamp` is not null
-  and CHAR_LENGTH(SHIP_ID) <= 30;
+  and CHAR_LENGTH(SHIP_ID) <= 30
+  and ELAPSED < 60;
 
 
 
@@ -230,6 +241,9 @@ select
     rot,
     w_left,
     l_fore,
+    block_map_index      , -- 地图层级
+    block_range_x        , -- 块x
+    block_range_y        , -- 块y
     from_unixtime(unix_timestamp()) as update_time
 from kafka_tmp_01;
 

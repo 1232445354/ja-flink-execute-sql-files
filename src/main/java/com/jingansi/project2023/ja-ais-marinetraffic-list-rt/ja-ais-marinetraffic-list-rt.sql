@@ -1,7 +1,7 @@
 --********************************************************************--
--- author:      write your name here
+-- author:      yibo@jingan-inc.com
 -- create time: 2023/7/6 21:50:17
--- description: marinetraffic 网站船舶数据入库船舶融合表
+-- description: marinetraffic数据入船舶融合表
 --********************************************************************--
 set 'pipeline.name' = 'ja-ais-marinetraffic-list-rt';
 
@@ -10,7 +10,8 @@ set 'table.exec.state.ttl' = '500000';
 set 'parallelism.default' = '6';
 
 set 'execution.checkpointing.interval' = '300000';
-set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-ais-marineTraffic-list-rt-checkpoint-test';
+set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-ais-marineTraffic-list-rt-checkpoint';
+
 -- 空闲分区不用等待
 -- set 'table.exec.source.idle-timeout' = '3s';
 
@@ -47,11 +48,11 @@ create table marinetraffic_ship_list(
 ) with (
       'connector' = 'kafka',
       'topic' = 'marinetraffic_ship_list',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.group.id' = 'ja-ais-marinetraffic-list-rt-test',
+      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-ais-marinetraffic-list-rt',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1701471840000',
+      'scan.startup.timestamp-millis' = '1708951969000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -59,49 +60,49 @@ create table marinetraffic_ship_list(
 
 
 -- 创建映射doris的全量数据表(Sink:doris)
-drop table  if exists ais_all_info_doris;
-create table ais_all_info_doris(
-                                   vessel_id      	 				    bigint		comment '船ID',
-                                   acquire_timestamp_format			string      comment '时间戳格式化',
-                                   acquire_timestamp					bigint		comment '时间戳',
-                                   vessel_name							string      comment '船名称',
-                                   c_name                              string      comment '船中文名',
-                                   imo                                 string      comment 'imo',
-                                   mmsi                                string      comment 'mmsi',
-                                   callsign                            string      comment '呼号',
-                                   rate_of_turn						double  	comment '转向率',
-                                   orientation							double 		comment '方向',
-                                   master_image_id						bigint		comment '主图像ID',
-                                   lng 					            double 		comment '经度',
-                                   lat 					            double 		comment '纬度',
-                                   source								string 		comment	'来源类型',
-                                   speed								double 		comment '速度',
-                                   speed_km		                    double      comment '速度 单位 km/h ',
-                                   vessel_class						string		comment '船类型',
-                                   vessel_class_name                   string      comment '船类型中文',
-                                   vessel_type                         string      comment '船小类别',
-                                   vessel_type_name                    string      comment '船类型中文名-小类',
-                                   draught								double 		comment '吃水深度',
-                                   cn_iso2								string		comment '国家code',
-                                   country_name                        string      comment '国家中文',
+drop table if exists dwd_ais_vessel_all_info;
+create table dwd_ais_vessel_all_info(
+                                        vessel_id      	 				    bigint		comment '船ID',
+                                        acquire_timestamp_format			string      comment '时间戳格式化',
+                                        acquire_timestamp					bigint		comment '时间戳',
+                                        vessel_name							string      comment '船名称',
+                                        c_name                              string      comment '船中文名',
+                                        imo                                 string      comment 'imo',
+                                        mmsi                                string      comment 'mmsi',
+                                        callsign                            string      comment '呼号',
+                                        rate_of_turn						double  	comment '转向率',
+                                        orientation							double 		comment '方向',
+                                        master_image_id						bigint		comment '主图像ID',
+                                        lng 					            double 		comment '经度',
+                                        lat 					            double 		comment '纬度',
+                                        source								string 		comment	'来源类型',
+                                        speed								double 		comment '速度',
+                                        speed_km		                    double      comment '速度 单位 km/h ',
+                                        vessel_class						string		comment '船类型',
+                                        vessel_class_name                   string      comment '船类型中文',
+                                        vessel_type                         string      comment '船小类别',
+                                        vessel_type_name                    string      comment '船类型中文名-小类',
+                                        draught								double 		comment '吃水深度',
+                                        cn_iso2								string		comment '国家code',
+                                        country_name                        string      comment '国家中文',
     -- nation_flag_minio_url_jpg           string      comment '国旗',
-                                   nav_status 							double 		comment '航行状态',
-                                   nav_status_name                     string      comment '航行状态中文',
-                                   dimensions_01						double 		comment '',
-                                   dimensions_02						double 		comment '',
-                                   dimensions_03						double 		comment '',
-                                   dimensions_04						double 		comment '',
-                                   block_map_index             		bigint      comment '图层层级',
-                                   block_range_x             			double      comment '块x',
-                                   block_range_y              			double      comment '块y',
-                                   position_country_code2              string      comment '位置所在的国家',
-                                   friend_foe 					        string      comment '敌我类型',
-                                   sea_id 					            string      comment '海域编号',
-                                   sea_name 					        string      comment '中文名称',
-                                   update_time             			string      comment '数据入库时间'
+                                        nav_status 							double 		comment '航行状态',
+                                        nav_status_name                     string      comment '航行状态中文',
+                                        dimensions_01						double 		comment '',
+                                        dimensions_02						double 		comment '',
+                                        dimensions_03						double 		comment '',
+                                        dimensions_04						double 		comment '',
+                                        block_map_index             		bigint      comment '图层层级',
+                                        block_range_x             			double      comment '块x',
+                                        block_range_y              			double      comment '块y',
+                                        position_country_code2              string      comment '位置所在的国家',
+                                        friend_foe 					        string      comment '敌我类型',
+                                        sea_id 					            string      comment '海域编号',
+                                        sea_name 					        string      comment '中文名称',
+                                        update_time             			string      comment '数据入库时间'
 )WITH (
      'connector' = 'doris',
-     'fenodes' = '172.27.95.211:30030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
      'table.identifier' = 'sa.dwd_ais_vessel_all_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -117,49 +118,49 @@ create table ais_all_info_doris(
 
 
 -- 创建映射doris的状态数据表(Sink:doris)
-drop table  if exists ais_status_info_doris;
-create table ais_status_info_doris(
-                                      vessel_id      	 				    bigint		comment '船ID',
-                                      acquire_timestamp_format			string      comment '时间戳格式化',
-                                      acquire_timestamp					bigint		comment '时间戳',
-                                      vessel_name							string      comment '船名称',
-                                      c_name                              string      comment '船中文名',
-                                      imo                                 string      comment 'imo',
-                                      mmsi                                string      comment 'mmsi',
-                                      callsign                            string      comment '呼号',
-                                      rate_of_turn						double  	comment '转向率',
-                                      orientation							double 		comment '方向',
-                                      master_image_id						bigint		comment '主图像ID',
-                                      lng 					            double 		comment '经度',
-                                      lat 					            double 		comment '纬度',
-                                      source								string 		comment	'来源类型',
-                                      speed								double 		comment '速度',
-                                      speed_km		                    double      comment '速度 单位 km/h ',
-                                      vessel_class						string		comment '船类别',
-                                      vessel_class_name                   string      comment '船类型中文',
-                                      vessel_type                         string      comment '船小类别',
-                                      vessel_type_name                    string      comment '船类型中文名-小类',
-                                      draught								double 		comment '吃水深度',
-                                      cn_iso2								string		comment '国家code',
-                                      country_name                        string      comment '国家中文',
-                                      nation_flag_minio_url_jpg           string      comment '国旗',
-                                      nav_status 							double 		comment '航行状态',
-                                      nav_status_name                     string      comment '航行状态中文',
-                                      dimensions_01						double 		comment '',
-                                      dimensions_02						double 		comment '',
-                                      dimensions_03						double 		comment '',
-                                      dimensions_04						double 		comment '',
-                                      block_map_index             		bigint      comment '图层层级',
-                                      block_range_x             			double      comment '块x',
-                                      block_range_y              			double      comment '块y',
-                                      position_country_code2              string      comment '位置所在的国家',
-                                      friend_foe 					        string      comment '敌我类型',
-                                      sea_id 					            string      comment '海域编号',
-                                      sea_name 					        string      comment '中文名称',
-                                      update_time             			string      comment '数据入库时间'
+drop table  if exists dws_ais_vessel_status_info;
+create table dws_ais_vessel_status_info(
+                                           vessel_id      	 				    bigint		comment '船ID',
+                                           acquire_timestamp_format			string      comment '时间戳格式化',
+                                           acquire_timestamp					bigint		comment '时间戳',
+                                           vessel_name							string      comment '船名称',
+                                           c_name                              string      comment '船中文名',
+                                           imo                                 string      comment 'imo',
+                                           mmsi                                string      comment 'mmsi',
+                                           callsign                            string      comment '呼号',
+                                           rate_of_turn						double  	comment '转向率',
+                                           orientation							double 		comment '方向',
+                                           master_image_id						bigint		comment '主图像ID',
+                                           lng 					            double 		comment '经度',
+                                           lat 					            double 		comment '纬度',
+                                           source								string 		comment	'来源类型',
+                                           speed								double 		comment '速度',
+                                           speed_km		                    double      comment '速度 单位 km/h ',
+                                           vessel_class						string		comment '船类别',
+                                           vessel_class_name                   string      comment '船类型中文',
+                                           vessel_type                         string      comment '船小类别',
+                                           vessel_type_name                    string      comment '船类型中文名-小类',
+                                           draught								double 		comment '吃水深度',
+                                           cn_iso2								string		comment '国家code',
+                                           country_name                        string      comment '国家中文',
+                                           nation_flag_minio_url_jpg           string      comment '国旗',
+                                           nav_status 							double 		comment '航行状态',
+                                           nav_status_name                     string      comment '航行状态中文',
+                                           dimensions_01						double 		comment '',
+                                           dimensions_02						double 		comment '',
+                                           dimensions_03						double 		comment '',
+                                           dimensions_04						double 		comment '',
+                                           block_map_index             		bigint      comment '图层层级',
+                                           block_range_x             			double      comment '块x',
+                                           block_range_y              			double      comment '块y',
+                                           position_country_code2              string      comment '位置所在的国家',
+                                           friend_foe 					        string      comment '敌我类型',
+                                           sea_id 					            string      comment '海域编号',
+                                           sea_name 					        string      comment '中文名称',
+                                           update_time             			string      comment '数据入库时间'
 )WITH (
      'connector' = 'doris',
-     'fenodes' = '172.27.95.211:30030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
      'table.identifier' = 'sa.dws_ais_vessel_status_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -182,7 +183,7 @@ create table dim_vessel_nav_status_list (
                                             primary key (nav_status_num_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'root',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_vessel_nav_status_list',
@@ -205,7 +206,7 @@ create table dim_vessel_country_code_list (
                                               primary key (country) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'root',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_vessel_country_code_list',
@@ -216,6 +217,28 @@ create table dim_vessel_country_code_list (
       );
 
 
+-- -- 船国家数据匹配库（Source：doris）
+-- drop table if exists dim_country_code_name_info;
+-- create table dim_country_code_name_info (
+--   id              string  comment 'id',
+--   source          string  comment '来源',
+--   e_name          string  comment '英文名称',
+--   c_name          string  comment '中文名称',
+--   country_code2   string  comment '国家2字代码',
+--   country_code3   string  comment '国家3字代码',
+--   flag_url        string  comment '国旗url',
+--     primary key (id) NOT ENFORCED
+-- ) with (
+--     'connector' = 'jdbc',
+--     'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+--     'username' = 'root',
+--     'password' = 'Jingansi@110',
+--     'table-name' = 'dim_country_code_name_info',
+--     'driver' = 'com.mysql.cj.jdbc.Driver',
+--     'lookup.cache.max-rows' = '10000',
+--     'lookup.cache.ttl' = '86400s',
+--     'lookup.max-retries' = '1'
+-- );
 
 
 
@@ -227,7 +250,7 @@ create table dim_country_info (
                                   primary key (code3) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'root',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_country_info',
@@ -238,6 +261,7 @@ create table dim_country_info (
       );
 
 
+-- fleetmon、marinetraffic的船舶对应关系
 create table dim_mt_fm_id_relation (
                                        ship_id                        bigint        comment '船编号',
                                        vessel_id                      bigint        comment '编号',
@@ -252,7 +276,7 @@ create table dim_mt_fm_id_relation (
                                        primary key (ship_id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_mt_fm_id_relation',
@@ -262,6 +286,8 @@ create table dim_mt_fm_id_relation (
       'lookup.max-retries' = '3'
       );
 
+
+
 create table dws_ais_vessel_status_info (
                                             vessel_id                      bigint      comment 'mmsi',
                                             acquire_timestamp_format	   TIMESTAMP   comment '时间戳格式化',
@@ -269,7 +295,7 @@ create table dws_ais_vessel_status_info (
                                             primary key (vessel_id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dws_ais_vessel_status_info',
@@ -280,6 +306,8 @@ create table dws_ais_vessel_status_info (
       );
 
 
+
+-- 海域
 drop table if exists dim_sea_area;
 create table dim_sea_area (
                               id 			varchar(5) COMMENT '海域编号',
@@ -288,7 +316,7 @@ create table dim_sea_area (
                               primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'root',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_sea_area',
@@ -297,6 +325,28 @@ create table dim_sea_area (
       'lookup.cache.ttl' = '86400s',
       'lookup.max-retries' = '1'
       );
+
+
+
+-- 军事船舶
+drop table if exists dws_vessle_nato_malitary;
+create table dws_vessle_nato_malitary (
+                                          id 			bigint     ,
+                                          navy_class 		string COMMENT '名称',
+                                          primary key (id) NOT ENFORCED
+) with (
+      'connector' = 'jdbc',
+      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'username' = 'root',
+      'password' = 'Jingansi@110',
+      'table-name' = 'dws_vessle_nato_malitary',
+      'driver' = 'com.mysql.cj.jdbc.Driver',
+      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.ttl' = '86400s',
+      'lookup.max-retries' = '1'
+      );
+
+
 
 -----------------------
 
@@ -341,12 +391,20 @@ select
         else 'NEUTRALITY'
         end as friend_foe,
     t1.proctime
-from (select * from marinetraffic_ship_list where `timeStamp` is not null) t1
+from (
+         select
+             *
+         from marinetraffic_ship_list
+         where `timeStamp` is not null
+     ) t1
          left join dim_mt_fm_id_relation
     FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on cast(t1.SHIP_ID as bigint) = t2.ship_id
+
 where t2.ship_id is not null
   and ELAPSED < 60;
+
+
 
 -- 过滤fleetmon 感知的数据
 drop table if exists tmp_marinetraffic_ship_list_02;
@@ -369,7 +427,10 @@ select
     t1.vesselId        as vessel_id,
     t1.acquire_timestamp_format as acquire_timestamp_format,
     unix_timestamp(t1.acquire_timestamp_format)	 as acquire_timestamp,
-    t1.name            as vessel_name,
+
+    if(t4.id is not null,t4.navy_class,t1.name) as vessel_name,
+    -- t1.name            as vessel_name,
+
     t1.rateOfTurn      as rate_of_turn,
     t1.orientation     ,
     t1.masterImageId   as master_image_id,
@@ -413,6 +474,11 @@ from tmp_marinetraffic_ship_list_02 as t1
     FOR SYSTEM_TIME AS OF t1.proctime as t3
                    on t1.cnIso2  = t3.flag_country_code
                        and 'FLEETMON' = t3.belong_type
+
+         left join dws_vessle_nato_malitary
+    FOR SYSTEM_TIME AS OF t1.proctime as t4
+                   on t1.vesselId  = t4.id
+
 ;
 
 
@@ -466,7 +532,7 @@ from (
 begin statement set;
 
 -- ais的全量数据入库
-insert into ais_all_info_doris
+insert into dwd_ais_vessel_all_info
 select
     vessel_id      	 					    ,
     acquire_timestamp_format				,
@@ -488,7 +554,7 @@ select
     vessel_class_name                       ,
     vessel_type							    ,
     vessel_type_name                        ,
-    draught									,
+    cast(null as double) as draught			,
     cn_iso2									,
     country_name                            ,
     -- nation_flag_minio_url_jpg               ,
@@ -510,7 +576,7 @@ from tem_ais_kafka_01;
 
 
 -- ais的全量状态数据入库
-insert into ais_status_info_doris
+insert into dws_ais_vessel_status_info
 select
     vessel_id      	 					    ,
     acquire_timestamp_format				,
@@ -532,7 +598,7 @@ select
     vessel_class_name                       ,
     vessel_type							    ,
     vessel_type_name                        ,
-    draught									,
+    cast(null as double) as draught			,
     cn_iso2									,
     country_name                            ,
     nation_flag_minio_url_jpg               ,

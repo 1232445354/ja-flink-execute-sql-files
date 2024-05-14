@@ -6,7 +6,7 @@
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
-SET 'pipeline.name' = 'coast-defence-target-ship-all-rt';
+SET 'pipeline.name' = 'ja-haiphong-target-ship-all-rt';
 SET 'table.exec.state.ttl' = '300000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
@@ -66,6 +66,8 @@ create table ja_target_ais_kafka (
   'json.fail-on-missing-field' = 'false',
   'json.ignore-parse-errors' = 'true'
 );
+
+
 
 
 -- 雷达数据来源表（Source：kakfa）

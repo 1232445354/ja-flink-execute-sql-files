@@ -220,7 +220,9 @@ select
   t2.icao_code,
   t1.username,
   count(1) as cnt
-from (select * from ja_sa.entity_custom_info where target_type = 'AIRCRAFT') as t1
+from (
+  select * from ja_sa.entity_custom_info
+  where target_type = 'AIRCRAFT' and gmt_modified >= DATE_SUB(now(),INTERVAL 10 day)) as t1
 inner join ja_sa.temp_radarbox_aircraft_mysql_01 as t2
 on t1.target_id = t2.src_pk
 or t1.target_id = t2.icao_code
@@ -253,7 +255,8 @@ select
   ,t1.deleted
   ,t1.gmt_create_by
   ,t1.gmt_modified_by
-from (select * from ja_sa.entity_custom_info where target_type = 'AIRCRAFT') as t1
+from (select * from ja_sa.entity_custom_info
+where target_type = 'AIRCRAFT' and gmt_modified >= DATE_SUB(now(),INTERVAL 10 day) ) as t1
 inner join ja_sa.temp_radarbox_aircraft_mysql_01 as t2
 on t1.target_id = t2.src_pk;
 
@@ -275,7 +278,8 @@ select
   t2.icao_code,
   t1.username,
   count(1) as cnt
-from (select * from ja_sa.follow_target where target_type = 'AIRCRAFT') as t1
+from (select * from ja_sa.follow_target
+where target_type = 'AIRCRAFT' and gmt_modified >= DATE_SUB(now(),INTERVAL 10 day) ) as t1
 inner join ja_sa.temp_radarbox_aircraft_mysql_01 as t2
 on t1.target_id = t2.src_pk
 or t1.target_id = t2.icao_code
@@ -321,7 +325,8 @@ select
 	,t1.gmt_modified_by_name
 	,t1.follow_group_id
 from (
-select * from ja_sa.follow_target where target_type = 'AIRCRAFT') as t1
+select * from ja_sa.follow_target
+where target_type = 'AIRCRAFT' and gmt_modified >= DATE_SUB(now(),INTERVAL 10 day) ) as t1
 left join ja_sa.temp_radarbox_aircraft_mysql_01 as t2  -- innser join 有问题
 on t1.target_id = t2.src_pk
 ) as tt1

@@ -6,11 +6,11 @@ set 'table.planner' = 'blink';
 set 'sql-client.execution.result-mode' = 'TABLEAU';
 
 set 'table.exec.state.ttl' = '500000';
-set 'parallelism.default' = '6';
+set 'parallelism.default' = '4';
 
 -- checkpoint的时间和位置
 set 'execution.checkpointing.interval' = '300000';
-set 'state.checkpoints.dir' = 's3://ja-bice1/flink-checkpoints/ship-marinetraffic-real-data';
+set 'state.checkpoints.dir' = 's3://ja-bice2/flink-checkpoints/ship-marinetraffic-real-data';
 
 
  -- 数据结构
@@ -44,7 +44,7 @@ create table marinetraffic_ship_list(
       'connector' = 'kafka',
       'topic' = 'marinetraffic_ship_list',
       'properties.bootstrap.servers' = '47.111.155.82:30097',
-      'properties.group.id' = 'marinetraffic_ship_list_bice1',
+      'properties.group.id' = 'marinetraffic_ship_list_bice2',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
       -- 'scan.startup.timestamp-millis' = '0',
@@ -55,27 +55,27 @@ create table marinetraffic_ship_list(
 
 
 -- 创建映射doris的全量数据表(Sink:doris)
-drop table if exists dwd_ship_full_data;
-create table dwd_ship_full_data(
-                                   id        string,
-                                   cjsj      string,
-                                   mc        string,
-                                   zxl       double,
-                                   fx        double,
-                                   jd        double,
-                                   wd        double,
-                                   sd        double,
-                                   cs        double,
-                                   gjdm      string,
-                                   gjmc      string,
-                                   hxzt      string,
-                                   rksj      string
+drop table if exists ods_ship_all_track;
+create table ods_ship_all_track(
+                                   id                      string,
+                                   time1                   string,
+                                   ship_name               string,
+                                   turning_rate            double,
+                                   heading                 double,
+                                   longitude02             double,
+                                   latitude02              double,
+                                   speed_kn                double,
+                                   draft                   double,
+                                   country_flag            string,
+                                   country_chinese_name    string,
+                                   navigation_status       string,
+                                   gmt_create              string
 )WITH (
      'connector' = 'doris',
-     'fenodes' = '47.92.158.88:8031',
-     'table.identifier' = 'situation.dwd_ship_full_data',
+     'fenodes' = '8.130.39.51:8030',
+     'table.identifier' = 'global_entity.ods_ship_all_track',
      'username' = 'admin',
-     'password' = 'dawu@110',
+     'password' = 'yshj@yshj',
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
@@ -87,27 +87,27 @@ create table dwd_ship_full_data(
 
 
 -- 创建映射doris的状态数据表(Sink:doris)
-drop table if exists dws_ship_real_data;
-create table dws_ship_real_data(
-                                   id          string,    -- id
-                                   cjsj        string, -- 采集时间
-                                   mc          string, -- 名称
-                                   zxl         double, -- 转向率
-                                   fx          double, -- 方向
-                                   jd          double, -- 经度
-                                   wd          double, -- 纬度
-                                   sd          double, -- 速度
-                                   cs          double, -- 吃水
-                                   gjdm        string, -- 国家代码
-                                   gjmc        string, -- 国家名称
-                                   hxzt        string, -- 航向状态
-                                   rksj        string -- 入库时间
+drop table if exists dwd_ship_all_track;
+create table dwd_ship_all_track(
+                                   id                      string,
+                                   time1                   string,
+                                   ship_name               string,
+                                   turning_rate            double,
+                                   heading                 double,
+                                   longitude02             double,
+                                   latitude02              double,
+                                   speed_kn                double,
+                                   draft                   double,
+                                   country_flag            string,
+                                   country_chinese_name    string,
+                                   navigation_status       string,
+                                   gmt_create              string
 )WITH (
      'connector' = 'doris',
-     'fenodes' = '47.92.158.88:8031',
-     'table.identifier' = 'situation.dws_ship_real_data',
+     'fenodes' = '8.130.39.51:8030',
+     'table.identifier' = 'global_entity.dwd_ship_all_track',
      'username' = 'admin',
-     'password' = 'dawu@110',
+     'password' = 'yshj@yshj',
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
@@ -119,18 +119,18 @@ create table dws_ship_real_data(
 
 
 -- 创建映射doris的实体表(Sink:doris)
-drop table if exists dim_ship_info;
-create table dim_ship_info(
-                              id        string,
-                              mc        string,
-                              gjdm      string,
-                              rksj      string
+drop table if exists dws_ship_entity_info;
+create table dws_ship_entity_info(
+                                     id                string,
+                                     ship_name         string,
+                                     country_flag      string,
+                                     gmt_create        string
 )WITH (
      'connector' = 'doris',
-     'fenodes' = '47.92.158.88:8031',
-     'table.identifier' = 'situation.dim_ship_info',
+     'fenodes' = '8.130.39.51:8030',
+     'table.identifier' = 'global_entity.dws_ship_entity_info',
      'username' = 'admin',
-     'password' = 'dawu@110',
+     'password' = 'yshj@yshj',
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
@@ -149,10 +149,10 @@ create table dim_mt_fm_id_relation (
                                        primary key (ship_id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'root',
-      'password' = 'dawu@110',
-      'table-name' = 'dim_mt_fm_id_relation',
+      'password' = 'yshj@yshj',
+      'table-name' = 'dim_reletion_1',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '3600s',
@@ -161,16 +161,16 @@ create table dim_mt_fm_id_relation (
 
 
 -- 实体表(Source:doris)
-drop table if exists dim_ship_info_source;
-create table dim_ship_info_source (
-                                      id    string  COMMENT '船编号',
-                                      primary key (id) NOT ENFORCED
+drop table if exists dws_ship_entity_info_source;
+create table dws_ship_entity_info_source (
+                                             id    string  COMMENT '船编号',
+                                             primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
       'username' = 'root',
-      'password' = 'dawu@110',
-      'table-name' = 'dim_ship_info',
+      'password' = 'yshj@yshj',
+      'table-name' = 'dws_ship_entity_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '3600s',
@@ -208,19 +208,19 @@ where `timeStamp` is not null
 drop view if exists temp_02;
 create view temp_02 as
 select
-    coalesce(cast(t2.vessel_id as varchar),t1.ship_id) as id,
-    acquire_timestamp_format as cjsj,
-    shipname as mc,
-    rate_of_turn as zxl,
-    orientation as fx,
-    lng as jd,
-    lat as wd,
-    speed as sd,
-    cast(null as double) as cs,
-    cn_iso2 as gjdm,
-    cast(null as varchar) as gjmc,
-    cast(null as varchar) as hxzt,
-    from_unixtime(unix_timestamp()) as rksj,
+    coalesce(t2.vessel_id,cast(t1.ship_id as bigint)) as id, -- bigint类型
+    acquire_timestamp_format as time1,
+    shipname as ship_name,
+    rate_of_turn as turning_rate,
+    orientation as heading,
+    lng as longitude02,
+    lat as latitude02,
+    speed as speed_kn,
+    cast(null as double) as draft,
+    cn_iso2 as country_flag,
+    cast(null as varchar) as country_chinese_name,
+    cast(null as varchar) as navigation_status,
+    from_unixtime(unix_timestamp()) as gmt_create,
     t2.vessel_id,
     proctime
 from temp_01 as t1
@@ -240,54 +240,54 @@ begin statement set;
 
 
 -- 实体表
-insert into dim_ship_info
+insert into dws_ship_entity_info
 select
-    concat('cs',t1.id) as id,
-    t1.mc,
-    t1.gjdm,
-    rksj
+    concat('v',cast((t1.id + 1000) as varchar)) as id,
+    t1.ship_name,
+    t1.country_flag,
+    gmt_create
 from temp_02 as t1
-         left join dim_ship_info_source
+         left join dws_ship_entity_info_source
     FOR SYSTEM_TIME AS OF t1.proctime as t2
-                   on t1.id = t2.id
+                   on cast(t1.id as varchar) = t2.id
 where t2.id is null;
 
 
 -- 全量表
-insert into dwd_ship_full_data
+insert into ods_ship_all_track
 select
-    concat('cs',id) as id,
-    cjsj,
-    mc,
-    zxl,
-    fx,
-    jd,
-    wd,
-    sd,
-    cs,
-    gjdm,
-    gjmc,
-    hxzt,
-    rksj
+    concat('v',cast((id + 1000) as varchar)) as id,
+    time1,
+    ship_name,
+    turning_rate,
+    heading,
+    longitude02,
+    latitude02,
+    speed_kn,
+    draft,
+    country_flag,
+    country_chinese_name,
+    navigation_status,
+    gmt_create
 from temp_02;
 
 
 -- 状态表
-insert into dws_ship_real_data
+insert into dwd_ship_all_track
 select
-    concat('cs',id) as id,
-    cjsj,
-    mc,
-    zxl,
-    fx,
-    jd,
-    wd,
-    sd,
-    cs,
-    gjdm,
-    gjmc,
-    hxzt,
-    rksj
+    concat('v',cast((id + 1000) as varchar)) as id,
+    time1,
+    ship_name,
+    turning_rate,
+    heading,
+    longitude02,
+    latitude02,
+    speed_kn,
+    draft,
+    country_flag,
+    country_chinese_name,
+    navigation_status,
+    gmt_create
 from temp_02;
 
 end;

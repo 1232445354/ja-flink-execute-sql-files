@@ -51,10 +51,10 @@ create table ais_fleetmon_collect_item_kafka(
       'topic' = 'ais_fleetmon_collect_item',
       -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
       'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
-      'properties.group.id' = 'ais-fleetmon-collect-item-rt-test',
+      'properties.group.id' = 'ais-fleetmon-collect-item-rt',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1702992989000',
+      'scan.startup.timestamp-millis' = '1703606400000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
