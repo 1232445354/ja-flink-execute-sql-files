@@ -13,62 +13,62 @@ nohup sh start.sh > /data1/bigdata/apps/ja-sa-data-backup/ja-real-data/root.log 
 # 小表
 dws_ais_vessel_detail_static_attribute
 # 船舶实体属性 update_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_ais_vessel_status_info
 # 船舶融合状态表  update_time -> acquire_timestamp_format
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_ais_vessel_all_info_day
 # 船舶按天的数据  acquire_timestamp_format
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_vessel_list_status_rt
 # marinetraffic船舶状态数据 update_time -> acquire_timestamp_format
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_aircraft_combine_status_rt
 # 飞机融合状态数据表  update_time -> acquire_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_flight_segment_rt
 # 飞机融合航班表 update_time -> start_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dwd_mtf_ship_info
 # marinetraffic的详情表 update_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_vt_vessel_status_info
 # vt的船舶状态数据单独入库 update_time -> acquire_timestamp_format
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dwd_satellite_tle_list
 # 卫星tle融合表1,卫星全量数据入库 epoch_time -> update_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_satellite_tle_info
 # 卫星tle融合表2，轨道表，由dwd_satellite_tle_list表离线生成的 current_date
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_satellite_entity_info
 # 卫星实体详情 update_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 
 
 # 大表
 dwd_ais_vessel_all_info
 # 船舶全量表	acquire_timestamp_format
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dws_aircraft_combine_list_rt
 # 飞机融合全量数据表 update_time -> 换成acquire_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dwd_vessel_list_all_rt
 # marinetraffic船舶全量数据  acquire_timestamp_format
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dwd_adsbexchange_aircraft_list_rt
 # adsbexchange飞机全量数据  acquire_timestamp_format
@@ -76,15 +76,15 @@ dwd_adsbexchange_aircraft_list_rt
 
 dwd_vt_vessel_all_info
 # vt的船舶全量数据单独入库 acquire_timestamp_format
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dwd_fr24_aircraft_list_rt
 # f24飞机轨迹表 acquire_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 dwd_ais_landbased_vessel_list
 # 船舶的岸基网站数据 acquire_time
-# 2024-05-12 同步完成
+# 2024-05-22 同步完成
 
 
 
