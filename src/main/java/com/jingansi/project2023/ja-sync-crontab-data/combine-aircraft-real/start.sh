@@ -6,16 +6,16 @@ source ${DIR}/config.sh
 
 sql="
 insert into sa.dws_aircraft_combine_list_rt
-select * from doris_ecs.sa.dws_aircraft_combine_list_rt
+select * from doris_idc.sa.dws_aircraft_combine_list_rt
 where acquire_time > date_sub(now(),interval 3 minute);
 
 insert into sa.dws_aircraft_combine_status_rt
-select * from doris_ecs.sa.dws_aircraft_combine_status_rt
+select * from doris_idc.sa.dws_aircraft_combine_status_rt
 where acquire_time > date_sub(now(),interval 3 minute);
 
 insert into sa.dws_flight_segment_rt
-select * from doris_ecs.sa.dws_flight_segment_rt
-where update_time > date_sub(now(),interval 2 minute);
+select * from doris_idc.sa.dws_flight_segment_rt
+where start_time > date_sub(now(),interval 2 minute);
 "
 
 echo -en "开始同步数据...$(date)\n"

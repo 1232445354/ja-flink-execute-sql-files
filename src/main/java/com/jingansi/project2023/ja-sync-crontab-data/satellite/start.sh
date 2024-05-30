@@ -6,8 +6,10 @@ echo ${DIR}
 source ${DIR}/config.sh
 
 sql="
-  insert into sa.dwd_satellite_all_info
-  select * from doris_202.sa.dwd_satellite_all_info
+  insert into sa.dws_satellite_tle_info
+  select
+    *
+  from doris_idc.sa.dws_satellite_tle_info
   where current_date = to_date(now());
 "
 

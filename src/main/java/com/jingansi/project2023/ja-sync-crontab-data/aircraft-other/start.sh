@@ -12,7 +12,7 @@ select
   ,remark
   ,create_by
   ,update_time
-from doris_ecs.sa.dws_aircraft_list_base_info_rt
+from doris_idc.sa.dws_aircraft_list_base_info_rt
 where acquire_timestamp_format > DATE_SUB(now(),interval 1 day);
 
 
@@ -68,7 +68,7 @@ select
   ,sea_id
   ,sea_name
   ,update_time
-from doris_ecs.sa.dws_aircraft_search_rt
+from doris_idc.sa.dws_aircraft_search_rt
 where acquire_timestamp_format > DATE_SUB(now(),interval 1 day);
 
 
@@ -116,7 +116,7 @@ select
 	,position_country_code2
 	,friend_foe
 	,update_time
-from doris_ecs.sa.dws_aircraft_list_all_info_day
+from doris_idc.sa.dws_aircraft_list_all_info_day
 where acquire_timestamp_format > DATE_SUB(now(),interval 1 day);
 
 "

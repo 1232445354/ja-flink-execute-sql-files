@@ -46,7 +46,7 @@ select
   ,sea_id
   ,sea_name
   ,now() as update_time
-from doris_ecs.sa.dwd_aircraft_list_all_info
+from doris_idc.sa.dwd_aircraft_list_all_info
 where acquire_timestamp_format > DATE_SUB(now(),interval 3 minute);
 
 
@@ -96,7 +96,7 @@ select
   ,sea_id
   ,sea_name
   ,now() as update_time
-from doris_ecs.sa.dws_aircraft_list_status_info
+from doris_idc.sa.dws_aircraft_list_status_info
 where acquire_timestamp_format > DATE_SUB(now(),interval 3 minute);
 "
 echo $(date)

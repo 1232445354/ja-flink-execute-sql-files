@@ -8,7 +8,7 @@ sql="
 insert into sa.dws_ais_vessel_all_info_day
 select
 	*
-from doris_ecs.sa.dws_ais_vessel_all_info_day
+from doris_idc.sa.dws_ais_vessel_all_info_day
 where acquire_timestamp_format > DATE_SUB(now(),interval 1 day);
 "
 
