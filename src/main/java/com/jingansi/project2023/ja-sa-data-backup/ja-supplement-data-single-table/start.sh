@@ -26,7 +26,7 @@
 
 #   echo  "$current_day2" + "$current_day1"
 
-#   sh ${DIR}/sql_file1.sh "$current_day2" "$current_day1"
+#   sh ${DIR}/sql_file_1.sh "$current_day2" "$current_day1"
 
 #   current_timestamp1=$((current_timestamp1 - 3600))
 #   current_timestamp2=$((current_timestamp2 - 3600))
@@ -43,12 +43,11 @@
 
 #!/bin/bash
 # 升序
-
 start_day="2024-04-26 00:00:00"
 end_day="2024-04-27 23:59:59"
 date_format="+%Y-%m-%d %H:%M:%S"
-interval_time=21600
-sleep_time=60
+interval_time=3600
+sleep_time=5
 
 echo -en "开始刷新数据...$(date)\n"
 
@@ -76,6 +75,7 @@ while [ "$current_timestamp1" -le "$end_timestamp" ]; do
   echo -en "sleep中 时间: ${sleep_time}s...\n"
 done
 
+echo -en "-----------------------\n"
 echo -en "备份数据SUCCESS.......$(date)\n"
-echo -en "-----------------------"
+echo -en "-----------------------\n"
 

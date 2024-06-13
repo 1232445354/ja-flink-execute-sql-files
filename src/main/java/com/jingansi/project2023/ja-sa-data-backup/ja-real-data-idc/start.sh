@@ -4,186 +4,70 @@ DIR=$(cd `dirname $0`; pwd)
 source ${DIR}/config.sh
 echo -en "开始备份互联网态势数据...$(date)\n"
 
+# 检查是否提供了参数
+if [ $# -eq 0 ]; then
+    # 没有参数
+    start_time=$(date -d "yesterday" "+%Y-%m-%d 00:00:00")
+    end_time=$(date "+%Y-%m-%d 00:00:00")
+    echo "没有参数,则start_time = [${start_time}],end_time = [${end_time}]"
+else
+    # 有参数
+    start_time=$1
+    if [ $# -ge 2 ]; then
+        end_time=$2
+        echo "传入参数,则start_time = [${start_time}],end_time = [${end_time}]"
+    fi
+fi
+
+
 echo -en "开始同步小表数据....\n"
-# 当前：2024-02-21 05:30:00
-# yesterday_start_day 上一天年月日:2024-02-20
-# yesterday_end_day 上一天最后:2024-02-20 23:00:00
-# today_day 当前天:2024-02-21
-yesterday_start_day=$(date -d "yesterday" "+%Y-%m-%d")
-yesterday_end_day=$(date -d "yesterday" "+%Y-%m-%d 23:00:00")
-today_day=$(date "+%Y-%m-%d")
-echo -en "${yesterday_start_day} + ${today_day}\n"
-sh ${DIR}/sql_file1.sh "$yesterday_start_day" "$today_day"
-echo -en "小表数据同步完成,sleep20s同步单表----$(date)\n"
-sleep 20s
+sh ${DIR}/sql_file_1.sh "$start_time" "$end_time"
+sleep 30s
+echo -en "-----\n"
+echo -en "开始同步大表数据....\n"
 
 
+# 表名称、没一个小时的间隔、时间字段
+arrayList=(
+  "dwd_adsbexchange_aircraft_list_rt 5 acquire_timestamp_format"
+  "dwd_vessel_list_all_rt 5 acquire_timestamp_format"
+  "dwd_vt_vessel_all_info 5 acquire_timestamp_format"
+  "dwd_ais_vessel_all_info 10 acquire_timestamp_format"
+  "dws_aircraft_combine_list_rt 10 acquire_time"
+  "dwd_fr24_aircraft_list_rt 5 acquire_time"
+  "dwd_ais_landbased_vessel_list 5 acquire_time"
+)
 
-# 公共使用 | 将日期转换为时间戳,秒
-date_format="+%Y-%m-%d %H:%M:%S"
-start_timestamp=$(date -d "$yesterday_start_day" +%s)
-end_timestamp=$(date -d "$yesterday_end_day" +%s)
+# 将时间格式转换为 Unix 时间戳
+start_timestamp=$(date -d "$start_time" +"%s")
+end_timestamp=$(date -d "$end_time" +"%s")
 
 
+for item in "${arrayList[@]}"
+do
+    current_timestamp=$start_timestamp
+    # 切分元素为多个值
+    table_name=$(echo $item | awk '{print $1}')
+    sleep_time=$(echo $item | awk '{print $2}')
+    time_column=$(echo $item | awk '{print $3}')
+    echo "..............备份表${table_name}.............."
 
-echo -en "序号2----dwd_ais_vessel_all_info----$(date)\n"
-interval_time2=3600
-sleep_time2=40
+    while [ $current_timestamp -lt $end_timestamp ];
+    do
+      # 将当前时间戳转换为可读时间格式
+      current_time1=$(date -d "@$current_timestamp" +"%Y-%m-%d %H:%M:%S")
+      current_timestamp=$((current_timestamp + 3600))
+      next_time1=$(date -d "@$current_timestamp" +"%Y-%m-%d %H:%M:%S")
 
-# 遍历日期并输出
-current_timestamp1="${start_timestamp}"
-current_timestamp1_1=$((current_timestamp1 + ${interval_time2}))
+      echo -en "${current_time1} + ${next_time1}\n"
+      sh ${DIR}/sql_file_2.sh "$table_name" "$time_column" "$current_time1" "$next_time1"
+      echo "sleep中,时间：${sleep_time}s"
+      sleep ${sleep_time}s
+    done
 
-while [ "$current_timestamp1" -le "$end_timestamp" ]; do
-  current_day1=$(date -d "@$current_timestamp1" "$date_format")
-  current_day1_1=$(date -d "@$current_timestamp1_1" "$date_format")
-
-  echo -en "${current_day1} + ${current_day1_1}\n"
-  sh ${DIR}/sql_file2.sh "$current_day1" "$current_day1_1"
-
-  current_timestamp1=$((current_timestamp1 + ${interval_time2}))
-  current_timestamp1_1=$((current_timestamp1_1 + ${interval_time2}))
-  echo -en "sleep中 时间: ${sleep_time2}s...\n"
-  sleep ${sleep_time2}s
 done
 
+echo -en "+++++++++++++++++++++++++++++++++++++\n"
+echo -en "执行SUCCESS--------$(date)\n"
+echo -en "+++++++++++++++++++++++++++++++++++++\n"
 
-
-echo -en "序号3----dws_aircraft_combine_list_rt----$(date)\n"
-interval_time3=3600
-sleep_time3=50
-
-# 遍历日期并输出
-current_timestamp3="${start_timestamp}"
-current_timestamp3_1=$((current_timestamp3 + ${interval_time3}))
-
-while [ "$current_timestamp3" -le "$end_timestamp" ]; do
-  current_day3=$(date -d "@$current_timestamp3" "$date_format")
-  current_day3_1=$(date -d "@$current_timestamp3_1" "$date_format")
-
-  echo -en "${current_day3} + ${current_day3_1}\n"
-  sh ${DIR}/sql_file3.sh "$current_day3" "$current_day3_1"
-
-  current_timestamp3=$((current_timestamp3 + ${interval_time3}))
-  current_timestamp3_1=$((current_timestamp3_1 + ${interval_time3}))
-  echo -en "sleep中 时间: ${sleep_time3}s...\n"
-  sleep ${sleep_time3}s
-done
-
-
-
-echo -en "序号4----dwd_vessel_list_all_rt----$(date)\n"
-interval_time4=7200
-sleep_time4=40
-
-# 遍历日期并输出
-current_timestamp4="${start_timestamp}"
-current_timestamp4_1=$((current_timestamp4 + ${interval_time4}))
-
-while [ "$current_timestamp4" -le "$end_timestamp" ]; do
-  current_day4=$(date -d "@$current_timestamp4" "$date_format")
-  current_day4_1=$(date -d "@$current_timestamp4_1" "$date_format")
-
-  echo -en "${current_day4} + ${current_day4_1}\n"
-  sh ${DIR}/sql_file4.sh "$current_day4" "$current_day4_1"
-
-  current_timestamp4=$((current_timestamp4 + ${interval_time4}))
-  current_timestamp4_1=$((current_timestamp4_1 + ${interval_time4}))
-  echo -en "sleep中 时间: ${sleep_time4}s...\n"
-  sleep ${sleep_time4}s
-done
-
-
-
-echo -en "序号5----dwd_adsbexchange_aircraft_list_rt----$(date)\n"
-interval_time5=3600
-sleep_time5=40
-
-# 遍历日期并输出
-current_timestamp5="${start_timestamp}"
-current_timestamp5_1=$((current_timestamp5 + ${interval_time5}))
-
-while [ "$current_timestamp5" -le "$end_timestamp" ]; do
-  current_day5=$(date -d "@$current_timestamp5" "$date_format")
-  current_day5_1=$(date -d "@$current_timestamp5_1" "$date_format")
-
-  echo -en "${current_day5} + ${current_day5_1}\n"
-  sh ${DIR}/sql_file5.sh "$current_day5" "$current_day5_1"
-
-  current_timestamp5=$((current_timestamp5 + ${interval_time5}))
-  current_timestamp5_1=$((current_timestamp5_1 + ${interval_time5}))
-  echo -en "sleep中 时间: ${sleep_time5}s...\n"
-  sleep ${sleep_time5}s
-done
-
-
-
-echo -en "序号6----dwd_vt_vessel_all_info----$(date)\n"
-interval_time6=7200
-sleep_time6=40
-
-# 遍历日期并输出
-current_timestamp6="${start_timestamp}"
-current_timestamp6_1=$((current_timestamp6 + ${interval_time6}))
-
-while [ "$current_timestamp6" -le "$end_timestamp" ]; do
-  current_day6=$(date -d "@$current_timestamp6" "$date_format")
-  current_day6_1=$(date -d "@$current_timestamp6_1" "$date_format")
-
-  echo -en "${current_day6} + ${current_day6_1}\n"
-  sh ${DIR}/sql_file6.sh "$current_day6" "$current_day6_1"
-
-  current_timestamp6=$((current_timestamp6 + ${interval_time6}))
-  current_timestamp6_1=$((current_timestamp6_1 + ${interval_time6}))
-  echo -en "sleep中 时间: ${sleep_time6}s...\n"
-  sleep ${sleep_time6}s
-done
-
-
-
-echo -en "序号7----dwd_fr24_aircraft_list_rt----$(date)\n"
-interval_time7=7200
-sleep_time7=30
-
-# 遍历日期并输出
-current_timestamp7="${start_timestamp}"
-current_timestamp7_1=$((current_timestamp7 + ${interval_time7}))
-
-while [ "$current_timestamp7" -le "$end_timestamp" ]; do
-  current_day7=$(date -d "@$current_timestamp7" "$date_format")
-  current_day7_1=$(date -d "@$current_timestamp7_1" "$date_format")
-
-  echo -en "${current_day7} + ${current_day7_1}\n"
-  sh ${DIR}/sql_file7.sh "$current_day7" "$current_day7_1"
-
-  current_timestamp7=$((current_timestamp7 + ${interval_time7}))
-  current_timestamp7_1=$((current_timestamp7_1 + ${interval_time7}))
-  echo -en "sleep中 时间: ${sleep_time7}s...\n"
-  sleep ${sleep_time7}s
-done
-
-
-echo -en "序号8----dwd_ais_landbased_vessel_list----$(date)\n"
-interval_time8=7200
-sleep_time8=25
-
-# 遍历日期并输出
-current_timestamp8="${start_timestamp}"
-current_timestamp8_1=$((current_timestamp8 + ${interval_time8}))
-
-while [ "$current_timestamp8" -le "$end_timestamp" ]; do
-  current_day8=$(date -d "@$current_timestamp8" "$date_format")
-  current_day8_1=$(date -d "@$current_timestamp8_1" "$date_format")
-
-  echo -en "${current_day8} + ${current_day8_1}\n"
-  sh ${DIR}/sql_file8.sh "$current_day8" "$current_day8_1"
-
-  current_timestamp8=$((current_timestamp8 + ${interval_time8}))
-  current_timestamp8_1=$((current_timestamp8_1 + ${interval_time8}))
-  echo -en "sleep中 时间: ${sleep_time8}s...\n"
-  sleep ${sleep_time8}s
-done
-
-
-echo -en "--备份数据SUCCESS--------$(date)\n"
-echo -en "----------------------------------\n"

@@ -12,7 +12,7 @@ sql="
 insert into sa.dws_aircraft_combine_list_rt
 select
 	*
-from doris_ecs.sa.dws_aircraft_combine_list_rt
+from doris_idc.sa.dws_aircraft_combine_list_rt
 where acquire_time between '${start_day}' and '${end_day}'
 
 "

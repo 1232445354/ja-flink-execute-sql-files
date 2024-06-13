@@ -1,8 +1,8 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/05/09 14:06:19
--- description: 旌旗、望楼
--- version: 新版本的望楼程序 3.2.0.240509
+-- description: 旌旗、望楼 - 公有云跑的版本
+-- version: 3.2.0.240509
 --********************************************************************--
 
 
@@ -15,7 +15,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 SET 'parallelism.default' = '2';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-chingchi-icos3.0-rt-new' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt-new' ;
 
 
 -- 设备检测数据上报，雷达数据（Source：kafka）
