@@ -57,9 +57,10 @@ create table radarbox_aircraft_list_kafka(
                                              proctime          as PROCTIME()
 ) with (
       'connector' = 'kafka',
-      'topic' = 'radarbox_aircraft_list',
-      'properties.bootstrap.servers' = '47.111.155.82:30097',
+      'topic' = 'radarbox_aircraft_list_bak',
+      'properties.bootstrap.servers' = '115.231.236.106:30090',
       'properties.group.id' = 'radarbox-ceshi1',
+      -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
       -- 'scan.startup.timestamp-millis' = '0',
@@ -110,7 +111,7 @@ create table dwd_fly_full_data (
       'username' = 'admin',
       'password' = 'dawu@110',
       'sink.enable.batch-mode'='true',
-      'sink.buffer-flush.max-rows'='10000',
+      'sink.buffer-flush.max-rows'='30000',
       'sink.buffer-flush.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
@@ -159,7 +160,7 @@ create table dws_fly_real_data (
       'username' = 'admin',
       'password' = 'dawu@110',
       'sink.enable.batch-mode'='true',
-      'sink.buffer-flush.max-rows'='10000',
+      'sink.buffer-flush.max-rows'='30000',
       'sink.buffer-flush.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
@@ -186,7 +187,7 @@ create table dws_flight_info1 (
       'username' = 'admin',
       'password' = 'dawu@110',
       'sink.enable.batch-mode'='true',
-      'sink.buffer-flush.max-rows'='10000',
+      'sink.buffer-flush.max-rows'='30000',
       'sink.buffer-flush.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
@@ -204,14 +205,14 @@ create table dim_aircraft_prefix_code (
                                           primary key (prefix_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'dawu@110',
       'table-name' = 'dim_aircraft_prefix_code',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 

@@ -6,7 +6,7 @@
 set 'pipeline.name' = 'ja-flightrader24-aircraft-rt';
 
 
-set 'parallelism.default' = '4';
+set 'parallelism.default' = '8';
 set 'execution.type' = 'streaming';
 set 'table.planner' = 'blink';
 set 'table.exec.state.ttl' = '600000';
@@ -14,43 +14,44 @@ set 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- checkpoint的时间和位置
 set 'execution.checkpointing.interval' = '120000';
+set 'execution.checkpointing.timeout' = '3600000';
 set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-flightrader24-aircraft-rt';
 
 
-create table flightradar24_aircraft_list(
-                                            id                   string,
-                                            ground_speed         double,
-                                            airline_iata         string,
-                                            number               string,
-                                            vertical_speed       double,
-                                            aircraft_code        string,
-                                            on_ground            int,
-                                            heading              double,
-                                            icao_24bit           string,
-                                            altitude             double,
-                                            longitude            double,
-                                            squawk               string,
-                                            `time`               bigint,
-                                            airline_icao         string,
-                                            callsign             string,
-                                            registration         string,
-                                            origin_airport_iata  string,
-                                            destination_airport_iata string,
-                                            latitude             double,
-                                            proctime          as PROCTIME()
-) with (
-      'connector' = 'kafka',
-      'topic' = 'flightradar24_aircraft_list',
-      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
-      'properties.group.id' = 'ja-flightrader24-aircraft-rt',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
-      'format' = 'json',
-      'json.fail-on-missing-field' = 'false',
-      'json.ignore-parse-errors' = 'true'
-      );
-
+create table if not exists flightradar24_aircraft_lis t(
+                                                           id                   string,
+                                                           ground_speed         double,
+                                                           airline_iata         string,
+                                                           number               string,
+                                                           vertical_speed       double,
+                                                           aircraft_code        string,
+                                                           on_ground            int,
+                                                           heading              double,
+                                                           icao_24bit           string,
+                                                           altitude             double,
+                                                           longitude            double,
+                                                           squawk               string,
+                                                           `time`               bigint,
+                                                           airline_icao         string,
+                                                           callsign             string,
+                                                           registration         string,
+                                                           origin_airport_iata  string,
+                                                           destination_airport_iata string,
+                                                           latitude             double,
+                                                           proctime          as PROCTIME()
+    ) with (
+          'connector' = 'kafka',
+          'topic' = 'flightradar24_aircraft_list',
+          'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+          'properties.group.id' = 'ja-flightrader24-aircraft-rt-idc',
+          'scan.startup.mode' = 'group-offsets',
+          -- 'scan.startup.mode' = 'latest-offset',
+          -- 'scan.startup.mode' = 'timestamp',
+          -- 'scan.startup.timestamp-millis' = '1716807514000',
+          'format' = 'json',
+          'json.fail-on-missing-field' = 'false',
+          'json.ignore-parse-errors' = 'true'
+          );
 
 
 
@@ -79,11 +80,11 @@ create table dwd_fr24_aircraft_list_rt (
                                            update_time                    string        comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = '172.27.95.211:30031',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dwd_fr24_aircraft_list_rt',
       'username' = 'admin',
       'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='1',
+      'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
       'sink.batch.size'='100000',
       'sink.batch.interval'='10s'
@@ -150,14 +151,14 @@ create table dws_aircraft_combine_list_rt (
                                               update_time										string 		    comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_aircraft_combine_list_rt',
       'username' = 'admin',
       'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='1',
+      'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='10000',
-      'sink.batch.interval'='10s',
+      'sink.batch.size'='50000',
+      'sink.batch.interval'='15s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -225,19 +226,20 @@ create table dws_aircraft_combine_status_rt (
                                                 update_time										string 		    comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_aircraft_combine_status_rt',
       'username' = 'admin',
       'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='1',
+      'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='10000',
+      'sink.batch.size'='15000',
       'sink.batch.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
+
 
 
 -- 飞机实体表（Source：doris）
@@ -250,14 +252,14 @@ create table dws_aircraft_info (
                                    primary key (icao_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dws_aircraft_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 机场名称
@@ -272,14 +274,14 @@ create table dws_airport_detail_info (
                                          primary key (icao) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dws_airport_detail_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 飞机类型
@@ -291,14 +293,14 @@ create table dim_aircraft_type_category (
                                             primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_aircraft_type_category',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 航空公司匹配库国家表（Source：doris）
@@ -310,14 +312,14 @@ create table dim_airline_list_info (
                                        primary key (icao) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_airline_list_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 位置所在的国家代码转换（Source：doris）
@@ -328,14 +330,14 @@ create table dim_country_info (
                                   primary key (code3) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_country_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 海域表
@@ -347,14 +349,14 @@ create table dim_sea_area (
                               primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_sea_area',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 国家数据匹配库（Source：doris）
@@ -368,15 +370,17 @@ create table dim_country_code_name_info (
                                             primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_country_code_name_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
+
+
 
 drop table if exists dim_aircraft_country_prefix_code;
 create table dim_aircraft_country_prefix_code (
@@ -385,7 +389,7 @@ create table dim_aircraft_country_prefix_code (
                                                   primary key (prefix_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_aircraft_country_prefix_code',
@@ -396,8 +400,58 @@ create table dim_aircraft_country_prefix_code (
       );
 
 
+
+-- ****************************规则引擎写入数据******************************** --
+
+drop table if exists aircraft_source;
+create table aircraft_source(
+                                id                         string, -- id
+                                srcCode                    bigint, --网站标识
+                                acquireTime                string, -- 采集事件年月日时分秒
+                                icaoCode                   string, -- icaoCode
+                                flightNo                   string, -- 航班号
+                                registration               string, -- 注册号
+                                countryCode                string, -- 国家代码
+                                countryName                string, -- 国家名称
+                                airlinesIcao               string, -- 航空公司icao
+                                originAirport3Code         string, -- 来源机场3字代码
+                                destAirport3Code           string, -- 目的机场3字代码
+                                flightCategory             string, -- 飞机类别
+                                flightCategoryName         string, -- 飞机类别名称
+                                flightType                 string, -- 飞机型号
+                                flightStatus               string, -- 飞机状态
+                                squawkCode                 string, -- 应答器代码
+                                flightDepartureTime        string, -- 飞机起飞时间
+                                expectedLandingTimeFormat  string, -- 预计降落时间
+                                toDestinationDistance      double, -- 距离目的地距离
+                                isMilitary                 bigint, -- 是否军用
+                                heading                    double, -- 方向
+                                altitudeBaroM              double, -- 高度
+                                lng                        double, -- 经度
+                                lat                        double, -- 纬度
+                                speedKm                    double, -- 速度 km
+                                friendFoe                  string, -- 敌我代码
+                                positionCountryCode2       string, -- 所处国家
+                                seaId                      string, -- 海域id
+                                seaName                    string, -- 海域名称
+                                targetType                 string, -- 实体类型 固定值 VESSEL
+                                updateTime                 string  -- flink处理时间
+) with (
+      'connector' = 'kafka',
+      'topic' = 'aircraft_source',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'f24_aircraft_source_idc1',
+      'format' = 'json',
+      'key.format' = 'json',
+      'key.fields' = 'id'
+      );
+
+
+
+
 create function getCountry as 'com.jingan.udf.sea.GetCountryFromLngLat';
 create function getSeaArea as 'com.jingan.udf.sea.GetSeaArea';
+
 
 
 drop table if exists tmp_fr24_aircraft_01;
@@ -425,7 +479,7 @@ select
     if(airline_icao='N/A',cast(null as string),airline_icao) as airline_icao                   , -- 航空公司的ICAO代码
     b.is_mil,      -- 是否军用
     if(longitude is not null, getCountry(cast(longitude as double),cast(latitude as double)),cast(null as string))                             as country_code3, -- 经纬度位置转换国家
-    getSeaArea(cast(longitude as double),cast(latitude as double)) as sea_id   ,-- 计算海域id
+    if(cast(longitude as double) is not null and cast(latitude as double) is not null, getSeaArea(cast(longitude as double),cast(latitude as double)),cast(null as string)) as sea_id   ,-- 计算海域id
     proctime
 from flightradar24_aircraft_list a
          left join dws_aircraft_info
@@ -737,6 +791,42 @@ select
     h3_code											, -- 位置h3编码
     extend_info										, -- 扩展信息 json 串
     from_unixtime(unix_timestamp()) as update_time	-- 更新时间
+from tmp_fr24_aircraft_05;
+
+
+insert into aircraft_source
+select
+    flight_id               as id,
+    src_code                as srcCode,
+    acquire_time            as acquireTime,
+    icao_code               as icaoCode,
+    flight_no               as flightNo,
+    registration,
+    country_code            as countryCode,
+    country_name            as countryName,
+    airlines_icao            as airlinesIcao,
+    origin_airport3_code     as originAirport3Code,
+    dest_airport3_code       as destAirport3Code,
+    flight_category          as flightCategory,
+    flight_category_name     as flightCategoryName,
+    flight_type              as flightType,
+    flight_status            as flightStatus,
+    squawk_code              as squawkCode,
+    flight_departure_time    as flightDepartureTime,
+    expected_landing_time    as expectedLandingTimeFormat,
+    to_destination_distance  as toDestinationDistance,
+    is_military              as isMilitary,
+    heading,
+    altitude_baro_m          as altitudeBaroM,
+    lng,
+    lat,
+    speed_km                 as speedKm,
+    friend_foe               as friendFoe,
+    position_country_code2   as positionCountryCode2,
+    sea_id                   as seaId,
+    sea_name                 as seaName,
+    'AIRCRAFT'               as targetType,
+    from_unixtime(unix_timestamp()) as updateTime
 from tmp_fr24_aircraft_05;
 
 

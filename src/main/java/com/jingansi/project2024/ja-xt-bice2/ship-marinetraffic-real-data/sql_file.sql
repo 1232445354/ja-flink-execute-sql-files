@@ -43,7 +43,7 @@ create table marinetraffic_ship_list(
 ) with (
       'connector' = 'kafka',
       'topic' = 'marinetraffic_ship_list',
-      'properties.bootstrap.servers' = '47.111.155.82:30097',
+      'properties.bootstrap.servers' = '115.231.236.106:30090',
       'properties.group.id' = 'marinetraffic_ship_list_bice2',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
@@ -69,6 +69,7 @@ create table ods_ship_all_track(
                                    country_flag            string,
                                    country_chinese_name    string,
                                    navigation_status       string,
+                                   source_type             string,
                                    gmt_create              string
 )WITH (
      'connector' = 'doris',
@@ -79,7 +80,7 @@ create table ods_ship_all_track(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -101,6 +102,7 @@ create table dwd_ship_all_track(
                                    country_flag            string,
                                    country_chinese_name    string,
                                    navigation_status       string,
+                                   source_type             string,
                                    gmt_create              string
 )WITH (
      'connector' = 'doris',
@@ -111,7 +113,7 @@ create table dwd_ship_all_track(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -124,6 +126,7 @@ create table dws_ship_entity_info(
                                      id                string,
                                      ship_name         string,
                                      country_flag      string,
+                                     source_type       string,
                                      gmt_create        string
 )WITH (
      'connector' = 'doris',
@@ -134,7 +137,7 @@ create table dws_ship_entity_info(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -149,14 +152,14 @@ create table dim_mt_fm_id_relation (
                                        primary key (ship_id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'yshj@yshj',
       'table-name' = 'dim_reletion_1',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '3600s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 
@@ -167,14 +170,14 @@ create table dws_ship_entity_info_source (
                                              primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'yshj@yshj',
       'table-name' = 'dws_ship_entity_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '3600s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 
@@ -222,6 +225,7 @@ select
     cast(null as varchar) as navigation_status,
     from_unixtime(unix_timestamp()) as gmt_create,
     t2.vessel_id,
+    'marinetraffic' as source_type,
     proctime
 from temp_01 as t1
          left join dim_mt_fm_id_relation
@@ -245,6 +249,7 @@ select
     concat('v',cast((t1.id + 1000) as varchar)) as id,
     t1.ship_name,
     t1.country_flag,
+    t1.source_type,
     gmt_create
 from temp_02 as t1
          left join dws_ship_entity_info_source
@@ -268,6 +273,7 @@ select
     country_flag,
     country_chinese_name,
     navigation_status,
+    source_type,
     gmt_create
 from temp_02;
 
@@ -287,6 +293,7 @@ select
     country_flag,
     country_chinese_name,
     navigation_status,
+    source_type,
     gmt_create
 from temp_02;
 

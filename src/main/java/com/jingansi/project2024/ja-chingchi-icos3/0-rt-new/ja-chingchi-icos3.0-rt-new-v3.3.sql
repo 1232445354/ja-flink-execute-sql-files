@@ -2,8 +2,7 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/05/09 14:06:19
 -- description: 旌旗、望楼、最新版本
--- version:3.3.0.240521
--- detail:这个是最新版的包含检测数据、属性回溯，也是公有云目前跑的版本
+-- version: 3.2.0.240509,3.3.0.240521
 --********************************************************************--
 
 
@@ -14,7 +13,7 @@ SET 'table.planner' = 'blink';
 SET 'table.exec.state.ttl' = '600000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
-SET 'parallelism.default' = '3';
+SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
 SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-chingchi-icos3.0-rt-new' ;
 
@@ -203,7 +202,7 @@ create table photoelectric_inspection_result_kafka(
 drop table if exists device_media_datasource;
 create table device_media_datasource (
                                          device_id                      string        comment '设备编码',
-                                         source_id                      int           comment '来源id/应用id',
+                                         source_id                      string        comment '来源,截图(SCREENSHOT)，拍照(PHOTOGRAPH)',
                                          source_name                    string        comment '来源名称/应用名称',
                                          type                           string        comment 'PICTURE/HISTORY_VIDEO',
                                          start_time                     string        comment '开始时间',
@@ -337,9 +336,9 @@ create table dwd_photoelectric_target_all_rt(
                                                 device_id                  string     , -- '设备id',
                                                 target_id                  bigint     , -- '目标id',
                                                 parent_id                  string     , -- 父设备的id,也就是望楼id
-                                                source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
-                                                acquire_timestamp_format   timestamp  , -- '上游程序上报时间戳-时间戳格式化',
+                                                acquire_timestamp_format   string     , -- '上游程序上报时间戳-时间戳格式化',
                                                 acquire_timestamp          bigint     , -- '采集时间戳毫秒级别，上游程序上报时间戳',
+                                                source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
                                                 device_name                string     , -- 设备名称
                                                 radar_id                   string     , -- 雷达id
                                                 radar_target_id            double     , -- 雷达检测的目标id
@@ -391,9 +390,9 @@ create table dwd_photoelectric_target_all_rt_source(
                                                        device_id                  string     , -- '设备id',
                                                        target_id                  bigint     , -- '目标id',
                                                        parent_id                  string     , -- 父设备的id,也就是望楼id
-                                                       source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
-                                                       acquire_timestamp_format   timestamp  , -- '上游程序上报时间戳-时间戳格式化',
+                                                       acquire_timestamp_format   string  , -- '上游程序上报时间戳-时间戳格式化',
                                                        acquire_timestamp          bigint     , -- '采集时间戳毫秒级别，上游程序上报时间戳',
+                                                       source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
                                                        device_name                string     , -- 设备名称
                                                        radar_id                   string     , -- 雷达id
                                                        radar_target_id            double     , -- 雷达检测的目标id
@@ -445,9 +444,9 @@ create table dws_photoelectric_target_status_rt(
                                                    device_id                  string     , -- '设备id',
                                                    target_id                  bigint     , -- '目标id',
                                                    parent_id                  string     , -- 父设备的id,也就是望楼id
-                                                   source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
-                                                   acquire_timestamp_format   timestamp  , -- '上游程序上报时间戳-时间戳格式化',
+                                                   acquire_timestamp_format   string  , -- '上游程序上报时间戳-时间戳格式化',
                                                    acquire_timestamp          bigint     , -- '采集时间戳毫秒级别，上游程序上报时间戳',
+                                                   source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
                                                    device_name                string     , -- 设备名称
                                                    radar_id                   string     , -- 雷达id
                                                    radar_target_id            double     , -- 雷达检测的目标id
@@ -775,6 +774,7 @@ from tmp_source_kafka_02
 where `method` = 'event.targetInfo.info';
 
 
+
 -- 设备检测数据（雷达）数据进一步解析数组
 drop view if exists tmp_source_kafka_04;
 create view tmp_source_kafka_04 as
@@ -810,6 +810,7 @@ select
            concat('"targetId":"',cast(t2.targetId as string),'",'),
            concat('"type":"',t2.sourceType,'"}]')
         ) as source
+
 from tmp_source_kafka_03 as t1
          cross join unnest (targets) as t2 (
                                             targetId         ,
@@ -939,7 +940,8 @@ select
     t1.record_path,                      -- 告警视频地址
     t1.source_id as device_id,           -- 设备id
     t1.ntp_timestamp as acquire_timestamp,
-    TO_TIMESTAMP_LTZ(t1.ntp_timestamp,3) as acquire_timestamp_format,
+    -- TO_TIMESTAMP_LTZ(t1.ntp_timestamp,3) as acquire_timestamp_format,
+    from_unixtime(t1.ntp_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
     t1.radar_id,
     t1.source_frame_height,
     t1.source_frame_width,
@@ -996,6 +998,7 @@ where t1.source_id is not null  -- 光电设备ID
   and t2.source_type is not null;
 
 
+
 -- 可见光红外数据关联设备表取出设备名称
 drop view if exists tmp_source_kafka_002;
 create view tmp_source_kafka_002 as
@@ -1005,22 +1008,23 @@ select
     t2.parent_id,
     t3.device_name as radar_device_name, -- 设备名称雷达
     cast(null as varchar) as flag,
-    if(source_type <> 'FUSION',
-       concat('[{',
-              concat('"deviceName":"',t2.device_name,'",'),
-              concat('"targetId":"',cast(target_id as string),'",'),
-              concat('"type":"',source_type,'"}]')
-           )
-        ,
-       concat('[{',
-              concat('"deviceName":"',t2.device_name,'",'),
-              concat('"targetId":"',cast(target_id as string),'",'),
-              concat('"type":"','"},{'),
-              concat('"deviceName":"',t3.device_name,'",'),
-              concat('"targetId":"',cast(radar_target_id as string),'",'),
-              concat('"type":"RADAR"}]')
-           )
-        ) as source
+    case when source_type in ('VISUAL','INFRARED') then
+             concat('[{',
+                    concat('"deviceName":"',t2.device_name,'",'),
+                    concat('"targetId":"',cast(target_id as string),'",'),
+                    concat('"type":"',source_type,'"}]')
+                 )
+         when source_type in ('FUSION') then
+             concat('[{',
+                    concat('"deviceName":"',t2.device_name,'",'),
+                    concat('"targetId":"',cast(target_id as string),'",'),
+                    concat('"type":"','"},{'),
+                    concat('"deviceName":"',t3.device_name,'",'),
+                    concat('"targetId":"',cast(radar_target_id as string),'",'),
+                    concat('"type":"RADAR"}]')
+                 )
+         else cast(null as varchar) end
+        as source
 
 from tmp_source_kafka_001 as t1
          left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2
@@ -1063,12 +1067,12 @@ from tmp_track_01;
 insert into device_media_datasource
 select
     device_id            as device_id,
-    1                    as source_id,
+    'SCREENSHOT'         as source_id,
     cast(null as string) as source_name,
     'PICTURE' as type,
     from_unixtime(acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as start_time,
     from_unixtime(acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as end_time,
-    picture_url          as url,
+    concat('/',picture_url)    as url,
     width,
     height,
     bid,
@@ -1084,11 +1088,12 @@ where acquire_timestamp is not null
   and `method` = 'platform.capture.post';
 
 
+
 -- 驾驶舱遥控器拍照
 insert into device_media_datasource
 select
     device_id,
-    cast(null as int)            as source_id,
+    'PHOTOGRAPH'                 as source_id,
     cast(null as string)         as source_name,
     'PICTURE'  as type,
     from_unixtime(acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as start_time,
@@ -1184,9 +1189,9 @@ select
     device_id,
     target_id,
     parent_id,
-    source_type,
     acquire_timestamp_format,
     acquire_timestamp,
+    source_type,
     device_name,
     radar_id,
     radar_target_id,
@@ -1224,9 +1229,9 @@ select
     device_id,
     target_id,
     parent_id,
-    source_type,
     acquire_timestamp_format,
     acquire_timestamp,
+    source_type,
     device_name,
     radar_id,
     radar_target_id,
@@ -1265,9 +1270,9 @@ select
     device_id,
     target_id,
     parent_id,
-    source_type,
     acquire_timestamp_format,
     acquire_timestamp,
+    source_type,
     device_name,
     radar_id,
     radar_target_id,

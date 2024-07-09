@@ -41,7 +41,7 @@ create table ais_vtexplorer_ship_list(
 ) with (
       'connector' = 'kafka',
       'topic' = 'ais_vtexplorer_ship_list2',
-      'properties.bootstrap.servers' = '47.111.155.82:30097',
+      'properties.bootstrap.servers' = '115.231.236.106:30090',
       'properties.group.id' = 'ja-vtexplore-ceshi2',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
@@ -69,6 +69,7 @@ create table ods_ship_all_track(
                                    country_flag            string,
                                    country_chinese_name    string,
                                    navigation_status       string,
+                                   source_type             string,
                                    gmt_create              string
 )WITH (
      'connector' = 'doris',
@@ -79,7 +80,7 @@ create table ods_ship_all_track(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -101,6 +102,7 @@ create table dwd_ship_all_track(
                                    country_flag            string,
                                    country_chinese_name    string,
                                    navigation_status       string,
+                                   source_type             string,
                                    gmt_create              string
 )WITH (
      'connector' = 'doris',
@@ -111,7 +113,7 @@ create table dwd_ship_all_track(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -130,6 +132,7 @@ create table dws_ship_entity_info(
                                      width                     double, -- 宽度
                                      country_flag              string, -- 国家代码
                                      country_chinese_name      string, -- 国家名称
+                                     source_type               string,
                                      gmt_create                string
 )WITH (
      'connector' = 'doris',
@@ -140,7 +143,7 @@ create table dws_ship_entity_info(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -156,14 +159,14 @@ create table dim_mtf_vt_reletion_info (
                                           primary key (vt_mmsi) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'yshj@yshj',
       'table-name' = 'dim_reletion_2',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 
@@ -181,14 +184,14 @@ create table dim_vt_country_code_info (
                                           primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'yshj@yshj',
       'table-name' = 'dim_reletion_3',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 
@@ -199,14 +202,14 @@ create table dws_ship_entity_info_source (
                                              primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'yshj@yshj',
       'table-name' = 'dws_ship_entity_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '3600s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 
@@ -243,6 +246,7 @@ select
                 as varchar)
 
         )as id, -- varchar
+    'vt' as source_type,
 
 
     from_unixtime(unix_timestamp()) as gmt_create,
@@ -278,6 +282,7 @@ select
     t1.width       , -- 宽度
     t1.country_flag     , -- 国家代码
     t1.country_chinese_name     , -- 国家名称
+    t1.source_type,
     t1.gmt_create
 from temp_01 as t1
          left join dws_ship_entity_info_source
@@ -301,6 +306,7 @@ select
     country_flag,
     country_chinese_name,
     navigation_status,
+    source_type,
     gmt_create
 from temp_01;
 
@@ -320,6 +326,7 @@ select
     country_flag,
     country_chinese_name,
     navigation_status,
+    source_type,
     gmt_create
 from temp_01;
 

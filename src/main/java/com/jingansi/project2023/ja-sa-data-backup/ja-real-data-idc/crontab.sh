@@ -60,7 +60,7 @@ dws_satellite_entity_info
 # 大表
 dwd_ais_vessel_all_info
 # 船舶全量表	acquire_timestamp_format
-# 2024-06-07 同步完成
+# 2024-06-30 同步完成
 
 dws_aircraft_combine_list_rt
 # 飞机融合全量数据表 update_time -> 换成acquire_time
@@ -68,23 +68,23 @@ dws_aircraft_combine_list_rt
 
 dwd_vessel_list_all_rt
 # marinetraffic船舶全量数据  acquire_timestamp_format
-# 2024-06-07 同步完成
+# 2024-06-30 同步完成
 
 dwd_adsbexchange_aircraft_list_rt
 # adsbexchange飞机全量数据  acquire_timestamp_format
-# 2024-06-07 同步完成
+# 2024-06-30 同步完成
 
 dwd_vt_vessel_all_info
 # vt的船舶全量数据单独入库 acquire_timestamp_format
-# 2024-06-07 同步完成
+# 2024-06-30 同步完成
 
 dwd_fr24_aircraft_list_rt
 # f24飞机轨迹表 acquire_time
-# 2024-06-07 同步完成
+# 2024-06-30 同步完成
 
 dwd_ais_landbased_vessel_list
 # 船舶的岸基网站数据 acquire_time
-# 2024-06-07 同步完成
+# 2024-06-30 同步完成
 
 
 

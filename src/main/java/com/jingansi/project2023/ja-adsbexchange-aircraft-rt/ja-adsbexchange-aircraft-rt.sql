@@ -6,7 +6,7 @@
 set 'pipeline.name' = 'ja-adsbexchange-aircraft-rt';
 
 
-set 'parallelism.default' = '4';
+set 'parallelism.default' = '10';
 set 'execution.type' = 'streaming';
 set 'table.planner' = 'blink';
 set 'table.exec.state.ttl' = '600000';
@@ -14,6 +14,7 @@ set 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- checkpoint的时间和位置
 set 'execution.checkpointing.interval' = '120000';
+set 'execution.checkpointing.timeout' = '3600000';
 set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-adsbexchange-aircraft-rt';
 
 
@@ -72,16 +73,17 @@ create table adsb_exchange_aircraft_list_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'adsb-exchange-aircraft-list',
-      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
-      'properties.group.id' = 'adbs-exchange-aircraft-list-group',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'adbs-exchange-aircraft-list-group-idc',
+      'scan.startup.mode' = 'group-offsets',
       -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1716807514000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
+
 
 
 -- 创建写入doris全量数据表（Sink：doris）
@@ -136,11 +138,11 @@ create table dwd_adsbexchange_aircraft_list_rt (
 
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dwd_adsbexchange_aircraft_list_rt',
       'username' = 'admin',
       'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='1',
+      'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
       'sink.batch.size'='10000',
       'sink.batch.interval'='10s',
@@ -212,11 +214,11 @@ create table dws_aircraft_combine_list_rt (
 
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_aircraft_combine_list_rt',
       'username' = 'admin',
       'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='1',
+      'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
       'sink.batch.size'='10000',
       'sink.batch.interval'='10s',
@@ -225,6 +227,8 @@ create table dws_aircraft_combine_list_rt (
       'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
+
+
 
 -- 飞机各个网站数据融合状态表
 drop table if exists dws_aircraft_combine_status_rt;
@@ -286,19 +290,21 @@ create table dws_aircraft_combine_status_rt (
                                                 update_time										string 		    comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_aircraft_combine_status_rt',
       'username' = 'admin',
       'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='1',
+      'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='10000',
-      'sink.batch.interval'='10s',
+      'sink.batch.size'='50000',
+      'sink.batch.interval'='15s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
+
+
 
 drop table if exists dim_aircraft_type_category;
 create table dim_aircraft_type_category (
@@ -308,14 +314,14 @@ create table dim_aircraft_type_category (
                                             primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.27.95.211:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_aircraft_type_category',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '50000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 
@@ -332,14 +338,14 @@ create table dws_aircraft_info (
                                    primary key (icao_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dws_aircraft_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '1000000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 国家数据匹配库（Source：doris）
@@ -353,15 +359,16 @@ create table dim_country_code_name_info (
                                             primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_country_code_name_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
+
 
 -- 位置所在的国家代码转换（Source：doris）
 drop table if exists dim_country_info;
@@ -371,15 +378,14 @@ create table dim_country_info (
                                   primary key (code3) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
-      -- 'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_country_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 航空器国籍登记代码表
@@ -390,14 +396,14 @@ create table dim_aircraft_country_prefix_code (
                                                   primary key (prefix_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_aircraft_country_prefix_code',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 海域表
@@ -409,15 +415,64 @@ create table dim_sea_area (
                               primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_sea_area',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
+
+
+
+
+-- ****************************规则引擎写入数据******************************** --
+
+drop table if exists aircraft_source;
+create table aircraft_source(
+                                id                         string, -- id
+                                srcCode                    bigint, -- 网站标识
+                                acquireTime                string, -- 采集事件年月日时分秒
+                                icaoCode                   string, -- icaoCode
+                                flightNo                   string, -- 航班号
+                                registration               string, -- 注册号
+                                countryCode                string, -- 国家代码
+                                countryName                string, -- 国家名称
+                                airlinesIcao               string, -- 航空公司icao
+                                originAirport3Code         string, -- 来源机场3字代码
+                                destAirport3Code           string, -- 目的机场3字代码
+                                flightCategory             string, -- 飞机类别
+                                flightCategoryName         string, -- 飞机类别名称
+                                flightType                 string, -- 飞机型号
+                                flightStatus               string, -- 飞机状态
+                                squawkCode                 string, -- 应答器代码
+                                flightDepartureTime        string, -- 飞机起飞时间
+                                expectedLandingTimeFormat  string, -- 预计降落时间
+                                toDestinationDistance      double, -- 距离目的地距离
+                                isMilitary                 bigint, -- 是否军用
+                                heading                    double, -- 方向
+                                altitudeBaroM              double, -- 高度
+                                lng                        double, -- 经度
+                                lat                        double, -- 纬度
+                                speedKm                    double, -- 速度 km
+                                friendFoe                  string, -- 敌我代码
+                                positionCountryCode2       string, -- 所处国家
+                                seaId                      string, -- 海域id
+                                seaName                    string, -- 海域名称
+                                targetType                 string, -- 实体类型 固定值 VESSEL
+                                updateTime                 string  -- flink处理时间
+) with (
+      'connector' = 'kafka',
+      'topic' = 'aircraft_source',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'adsbexchange_aircraft_source_idc1',
+      'format' = 'json',
+      'key.format' = 'json',
+      'key.fields' = 'id'
+      );
+
 
 
 
@@ -425,10 +480,6 @@ create function getCountry as 'com.jingan.udf.sea.GetCountryFromLngLat';
 create function getSeaArea as 'com.jingan.udf.sea.GetSeaArea';
 create function getH3CodeUber as 'com.jingan.udf.h3.H3CodeUber';
 create function passThrough as 'com.jingan.udtf.PassThroughUdtf';
-
-
-
-
 
 
 
@@ -448,7 +499,7 @@ select
     -- timestampadd(second,seen_pos,cast(nowtime as TIMESTAMP)) as acquire_timestamp_format,
     -- cast(cast(nowtime as TIMESTAMP) + INTERVAL seen_pos SECOND as string) as acquire_timestamp_format,
     seen_pos             ,
-    flight               ,
+    REGEXP_REPLACE(flight,'[^a-zA-Z0-9\-]','') as flight              ,
     alt_geom             ,
     nic                  ,
     emergency            ,
@@ -491,7 +542,9 @@ select
     nac_v                ,
     getH3CodeUber(lon,lat) as h3_code,
     if(lon is null or lat is null,cast(null as string),getCountry(lon,lat)) as country_code3,
+    -- cast(null as string) as country_code3,
     if(lon is null or lat is null,cast(null as string),getSeaArea(lon,lat)) as sea_id,
+    -- cast(null as string) as sea_id,
     PROCTIME()  as proctime
 from adsb_exchange_aircraft_list_kafka
 -- ,lateral table(passThrough(if(lon is null or lat is null,cast(null as string),getCountry(lon,lat)))) as t1(country_code3)
@@ -509,7 +562,8 @@ select
     upper(hex) as flight_id											, -- 飞机标识字段  1. 24位 icao编码 2. 来源站的标识如 a. radarbox flight_trace_id  b. adsbexchange ～开头的编码
     acquire_timestamp_format as acquire_time										, -- 采集时间
     2 as src_code											, -- 来源网站标识 1. radarbox 2. adsbexchange
-    if(left(hex,1)='~',cast(null as string),upper(hex)) as icao_code											, -- 24位 icao编码
+    -- if(left(hex,1)='~',cast(null as string),upper(hex)) as icao_code											, -- 24位 icao编码
+    upper(hex) as icao_code											, -- 24位 icao编码
     coalesce(if(r='',cast(null as string),r),c.registration) as registration										, -- 注册号
     flight as flight_no											, -- 航班号
     cast(null as string) callsign											, -- 呼号
@@ -546,7 +600,7 @@ select
   cast(null as string) as expected_landing_time						        , -- 预计降落时间
   cast(null as double) as to_destination_distance					        , -- 目的地距离
   cast(null as int) as estimated_landing_duration			            , -- 预计还要多久着陆
-  c.operator_icao as airlines_icao										, -- 航空公司的icao代码
+  if(CHAR_LENGTH(c.operator_icao)>10,cast(null as string),c.operator_icao) as airlines_icao										, -- 航空公司的icao代码
   c.operator as airlines_e_name									, -- 航空公司英文
   c.operator_c_name as airlines_c_name									, -- 航空公司中文
   -- country_code										, -- 飞机所属国家代码
@@ -612,6 +666,8 @@ select
     a.*,
     b.code2 as position_country_2code,  -- 当前所处的区域
     c.c_name as sea_name											, -- 海域名字
+    -- cast(null as string) as position_country_2code,  -- 当前所处的区域
+    -- cast(null as string) as sea_name											, -- 海域名字
     if(instr(registration,'-')>0,substring(registration,1,2),concat(substring(registration,1,1),'-')) as prefix_code2,
     if(instr(registration,'-')>0,substring(registration,1,3),concat(substring(registration,1,2),'-')) as prefix_code3,
     if(instr(registration,'-')>0,substring(registration,1,4),concat(substring(registration,1,3),'-')) as prefix_code4,
@@ -622,7 +678,8 @@ from tmp_dws_aircraft_combine_list_rt_02 a
                    on a.country_code3=b.code3
          left join dim_sea_area
     FOR SYSTEM_TIME AS OF a.proctime as c
-                   on a.sea_id = c.id;
+                   on a.sea_id = c.id
+;
 
 -- 1.注册号 前缀 转换国家 2.南海 东海 区域 划规中国
 drop view if exists tmp_dws_aircraft_combine_list_rt_04;
@@ -850,6 +907,44 @@ select
     extend_info										, -- 扩展信息 json 串
     from_unixtime(unix_timestamp()) as update_time	-- 更新时间
 from tmp_dws_aircraft_combine_list_rt_05;
+
+
+insert into aircraft_source
+select
+    flight_id               as id,
+    src_code                as srcCode,
+    acquire_time            as acquireTime,
+    icao_code               as icaoCode,
+    flight_no               as flightNo,
+    registration,
+    country_code            as countryCode,
+    country_name            as countryName,
+    airlines_icao            as airlinesIcao,
+    origin_airport3_code     as originAirport3Code,
+    dest_airport3_code       as destAirport3Code,
+    flight_category          as flightCategory,
+    flight_category_name     as flightCategoryName,
+    flight_type              as flightType,
+    flight_status            as flightStatus,
+    squawk_code              as squawkCode,
+    flight_departure_time    as flightDepartureTime,
+    expected_landing_time    as expectedLandingTimeFormat,
+    to_destination_distance  as toDestinationDistance,
+    is_military              as isMilitary,
+    heading,
+    altitude_baro_m          as altitudeBaroM,
+    lng,
+    lat,
+    speed_km                 as speedKm,
+    friend_foe               as friendFoe,
+    position_country_code2   as positionCountryCode2,
+    sea_id                   as seaId,
+    sea_name                 as seaName,
+    'AIRCRAFT'               as targetType,
+    from_unixtime(unix_timestamp()) as updateTime
+from tmp_dws_aircraft_combine_list_rt_05;
+
+
 
 end;
 

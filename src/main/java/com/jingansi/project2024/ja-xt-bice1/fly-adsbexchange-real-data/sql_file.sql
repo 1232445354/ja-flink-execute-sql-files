@@ -63,11 +63,12 @@ create table adsb_exchange_aircraft_list_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'adsb-exchange-aircraft-list',
-      'properties.bootstrap.servers' = '47.111.155.82:30097',
+      'properties.bootstrap.servers' = '115.231.236.106:30090',
       'properties.group.id' = 'adbs-exchange-ceshi1',
+      -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1703606400000',
+      -- 'scan.startup.timestamp-millis' = '1719384687000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -210,14 +211,14 @@ create table dim_aircraft_prefix_code (
                                           primary key (prefix_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'dawu@110',
       'table-name' = 'dim_aircraft_prefix_code',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 

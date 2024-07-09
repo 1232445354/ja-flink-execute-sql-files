@@ -13,10 +13,9 @@ set 'table.exec.state.ttl' = '600000';
 set 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- checkpoint的时间和位置
-set 'execution.checkpointing.interval' = '120000';
+set 'execution.checkpointing.interval' = '600000';
+set 'execution.checkpointing.timeout' = '3600000';
 set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-flight-segment-rt';
-
-
 
 
 
@@ -70,16 +69,17 @@ create table adsb_exchange_aircraft_list_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'adsb-exchange-aircraft-list',
-      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
-      'properties.group.id' = 'ja-flight-segment-rt',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-flight-segment-rt-idc',
+      'scan.startup.mode' = 'group-offsets',
       -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1717419622000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
+
 
 
 -- radarbox网站的飞机数据（Source：kafka）
@@ -126,18 +126,19 @@ create table radarbox_aircraft_list_kafka(
                                              proctime          as PROCTIME()
 ) with (
       'connector' = 'kafka',
-      'topic' = 'radarbox_aircraft_list',
-      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
-      'properties.group.id' = 'ja-flight-segment-rt',
-      -- 'scan.startup.mode' = 'group-offsets',
+      'topic' = 'radarbox_aircraft_list_bak',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-flight-segment-rt-idc',
+      'scan.startup.mode' = 'group-offsets',
       -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1717419622000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
+
+
 
 -- flightradar24网站的飞机数据
 create table flightradar24_aircraft_list(
@@ -164,11 +165,12 @@ create table flightradar24_aircraft_list(
 ) with (
       'connector' = 'kafka',
       'topic' = 'flightradar24_aircraft_list',
-      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
-      'properties.group.id' = 'ja-flightrader24-aircraft-rt',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-flightrader24-aircraft-rt-idc',
+      'scan.startup.mode' = 'group-offsets',
+      -- 'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1717419622000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -201,14 +203,14 @@ create table dws_flight_segment_rt (
                                        update_time             string        comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.245:8030,172.21.30.244:8030,172.21.30.246:8030',
       'table.identifier' = 'sa.dws_flight_segment_rt',
       'username' = 'admin',
       'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='1',
+      'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='10000',
-      'sink.batch.interval'='10s',
+      'sink.batch.size'='50000',
+      'sink.batch.interval'='20s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -228,14 +230,14 @@ create table dws_aircraft_info (
                                    primary key (icao_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030,172.21.30.244:9030,172.21.30.246:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dws_aircraft_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '700000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 航空器国籍登记代码表
@@ -246,14 +248,14 @@ create table dim_aircraft_country_prefix_code (
                                                   primary key (prefix_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030,172.21.30.244:9030,172.21.30.246:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_aircraft_country_prefix_code',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '84000s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 -- 国家数据匹配库（Source：doris）
@@ -267,14 +269,14 @@ create table dim_country_code_name_info (
                                             primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030,172.21.30.244:9030,172.21.30.246:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dim_country_code_name_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '10000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 
@@ -290,22 +292,24 @@ create table dws_airport_detail_info (
                                          primary key (icao) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://172.21.30.245:9030,172.21.30.244:9030,172.21.30.246:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'table-name' = 'dws_airport_detail_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '70000',
       'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
+
+
 
 drop view if exists tmp_exchange_aircraft_list_01;
 create view tmp_exchange_aircraft_list_01 as
 select
     upper(hex) as flight_id, -- 飞机标识字段  1. 24位 icao编码 2. 来源站的标识如 a. radarbox flight_trace_id  b. adsbexchange ～开头的编码
     coalesce(if(r='',cast(null as string),r),c.registration) as registration, -- 注册号
-    flight as flight_no, -- 航班号
+    REGEXP_REPLACE(flight,'[^a-zA-Z0-9\-]','')  as flight_no, -- 航班号
     cast(null as string) as flight_trace_id, -- 飞行记录号 没有的为空
     -- as start_time, -- 开始时间
     -- as end_time, -- 结束时间
@@ -711,6 +715,10 @@ group by
     flight_trace_id;
 
 
+
+begin statement set;
+
+
 insert into dws_flight_segment_rt
 select
     *
@@ -740,8 +748,8 @@ from (
              from_unixtime(unix_timestamp()) as update_time	-- 更新时间
          from tmp_dws_flight_segment_rt_03
      ) a
-where flight_duration>0
+where flight_duration>0;
 
 
-
+end;
 

@@ -41,8 +41,8 @@
 
 #!/bin/bash
 # 升序
-start_day="2024-04-26 00:00:00"
-end_day="2024-04-27 23:59:59"
+start_day="2024-06-08 00:00:00"
+end_day="2024-07-01 00:00:00"
 date_format="+%Y-%m-%d %H:%M:%S"
 interval_time=3600
 sleep_time=5
@@ -71,9 +71,10 @@ while [ "$current_timestamp1" -le "$end_timestamp" ]; do
   current_timestamp1=$((current_timestamp1 + $interval_time))
   current_timestamp2=$((current_timestamp2 + $interval_time))
   echo -en "sleep中 时间: ${sleep_time}s...\n"
+  sleep ${sleep_time}s
 done
 
-echo -en "-----------------------\n"
+echo -en "-------------------------------------------\n"
 echo -en "备份数据SUCCESS.......$(date)\n"
-echo -en "-----------------------\n"
+echo -en "-------------------------------------------\n"
 

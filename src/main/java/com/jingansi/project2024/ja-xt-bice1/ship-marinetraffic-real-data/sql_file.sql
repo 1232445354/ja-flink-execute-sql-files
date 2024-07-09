@@ -43,11 +43,12 @@ create table marinetraffic_ship_list(
 ) with (
       'connector' = 'kafka',
       'topic' = 'marinetraffic_ship_list',
-      'properties.bootstrap.servers' = '47.111.155.82:30097',
+      'properties.bootstrap.servers' = '115.231.236.106:30090',
       'properties.group.id' = 'marinetraffic_ship_list_bice1',
+      -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.timestamp-millis' = '1719384687000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -69,6 +70,7 @@ create table dwd_ship_full_data(
                                    gjdm      string,
                                    gjmc      string,
                                    hxzt      string,
+                                   ly        string,
                                    rksj      string
 )WITH (
      'connector' = 'doris',
@@ -79,7 +81,7 @@ create table dwd_ship_full_data(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -101,6 +103,7 @@ create table dws_ship_real_data(
                                    gjdm        string, -- 国家代码
                                    gjmc        string, -- 国家名称
                                    hxzt        string, -- 航向状态
+                                   ly           string,
                                    rksj        string -- 入库时间
 )WITH (
      'connector' = 'doris',
@@ -111,7 +114,7 @@ create table dws_ship_real_data(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -124,6 +127,7 @@ create table dim_ship_info(
                               id        string,
                               mc        string,
                               gjdm      string,
+                              ly        string,
                               rksj      string
 )WITH (
      'connector' = 'doris',
@@ -134,7 +138,7 @@ create table dim_ship_info(
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'false',
+     'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',     -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
@@ -149,14 +153,14 @@ create table dim_mt_fm_id_relation (
                                        primary key (ship_id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'dawu@110',
       'table-name' = 'dim_mt_fm_id_relation',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '3600s',
-      'lookup.max-retries' = '1'
+      'lookup.max-retries' = '10'
       );
 
 
@@ -167,15 +171,15 @@ create table dim_ship_info_source (
                                       primary key (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC',
+      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'dawu@110',
       'table-name' = 'dim_ship_info',
       'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '3600s',
-      'lookup.max-retries' = '1'
-      );
+      'lookup.max-retries' = '10'
+  );
 
 
 
@@ -222,6 +226,7 @@ select
     cast(null as varchar) as hxzt,
     from_unixtime(unix_timestamp()) as rksj,
     t2.vessel_id,
+    'marinetraffic' as ly,
     proctime
 from temp_01 as t1
          left join dim_mt_fm_id_relation
@@ -245,6 +250,7 @@ select
     concat('cs',t1.id) as id,
     t1.mc,
     t1.gjdm,
+    t1.ly as ly,
     rksj
 from temp_02 as t1
          left join dim_ship_info_source
@@ -268,6 +274,7 @@ select
     gjdm,
     gjmc,
     hxzt,
+    ly,
     rksj
 from temp_02;
 
@@ -287,6 +294,7 @@ select
     gjdm,
     gjmc,
     hxzt,
+    ly,
     rksj
 from temp_02;
 
