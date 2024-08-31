@@ -11,7 +11,7 @@ sleep 2s
 sh /data1/bigdata/apps/fly-flightrader24-real-data/start.sh
 
 #sleep 2s
-#sh /data1/bigdata/apps/ship-lb-real-data/start.sh
+#sh /data1/bigdata/apps/ship-lb-real-data/start-v1.sh
 
 echo -en "启动完成...$(date)\n"
 echo "--------------------------------\n"

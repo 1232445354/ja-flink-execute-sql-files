@@ -1,0 +1,23 @@
+
+update sa.dws_aircraft_combine_status_rt
+set filter_col = concat(
+	ifnull(lng,''),'¥',
+	ifnull(lat,''),'¥',
+	ifnull(speed_km,''),'¥',
+	ifnull(altitude_baro_m,''),'¥',
+	ifnull(heading,''),'¥',
+	ifnull(squawk_code,''),'¥',
+	ifnull(flight_status,''),'¥',
+	ifnull(origin_airport3_code,''),'¥',
+	ifnull(origin_airport_e_name,''),'¥',
+	ifnull(origin_airport_c_name,''),'¥',
+	ifnull(dest_airport3_code,''),'¥',
+	ifnull(dest_airport_e_name,''),'¥',
+	ifnull(dest_airport_c_name,''),'¥',
+	ifnull(flight_departure_time,''),'¥',
+	ifnull(expected_landing_time,''),'¥',
+	ifnull(position_country_code2,''),'¥',
+	ifnull(sea_id,'')
+	)
+where acquire_time >= '${start_day}'
+	and acquire_time <= '${end_day}';

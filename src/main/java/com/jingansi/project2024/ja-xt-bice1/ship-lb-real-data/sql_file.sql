@@ -13,7 +13,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
 SET 'execution.checkpointing.timeout' = '3600000';
-SET 'state.checkpoints.dir' = 's3://ja-bice1/flink-checkpoints/ship-lb-real-data';
+SET 'state.checkpoints.dir' = 's3://ja-bice2/flink-checkpoints/ship-lb-real-data';
 
 
 create table ais_landbased_list(
@@ -49,41 +49,41 @@ create table ais_landbased_list(
       'connector' = 'kafka',
       'topic' = 'ais-landbased-list',
       'properties.bootstrap.servers' = '115.231.236.106:30090',
-      'properties.group.id' = 'ja-lb-ceshi1',
+      'properties.group.id' = 'ja-lb-ceshi2',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1717516829000',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
-      );
+    );
 
 
 
 -- 创建映射doris的全量数据表(Sink:doris)
-drop table if exists dwd_ship_full_data;
-create table dwd_ship_full_data(
-    id        string,
-    cjsj      string,
-    mc        string,
-    zxl       double,
-    fx        double,
-    jd        double,
-    wd        double,
-    sd        double,
-    cs        double,
-    gjdm      string,
-    gjmc      string,
-    hxzt      string,
-    ly        string,
-    rksj      string
+drop table if exists ods_ship_all_track;
+create table ods_ship_all_track(
+    id                      string,
+    time1                   string,
+    ship_name               string,
+    turning_rate            double,
+    heading                 double,
+    longitude02             double,
+    latitude02              double,
+    speed_kn                double,
+    draft                   double,
+    country_flag            string,
+    country_chinese_name    string,
+    navigation_status       string,
+    source_type             string,
+    gmt_create              string
 )WITH (
      'connector' = 'doris',
-     'fenodes' = '47.92.158.88:8031',
-     'table.identifier' = 'situation.dwd_ship_full_data',
+     'fenodes' = '8.130.39.51:8030',
+     'table.identifier' = 'global_entity.ods_ship_all_track',
      'username' = 'admin',
-     'password' = 'dawu@110',
+     'password' = 'yshj@yshj',
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
@@ -95,28 +95,28 @@ create table dwd_ship_full_data(
 
 
 -- 创建映射doris的状态数据表(Sink:doris)
-drop table if exists dws_ship_real_data;
-create table dws_ship_real_data(
-    id          string,    -- id
-    cjsj        string, -- 采集时间
-    mc          string, -- 名称
-    zxl         double, -- 转向率
-    fx          double, -- 方向
-    jd          double, -- 经度
-    wd          double, -- 纬度
-    sd          double, -- 速度
-    cs          double, -- 吃水
-    gjdm        string, -- 国家代码
-    gjmc        string, -- 国家名称
-    hxzt        string, -- 航向状态
-    ly          string, -- 来源
-    rksj        string -- 入库时间
+drop table if exists dwd_ship_all_track;
+create table dwd_ship_all_track(
+    id                      string,
+    time1                   string,
+    ship_name               string,
+    turning_rate            double,
+    heading                 double,
+    longitude02             double,
+    latitude02              double,
+    speed_kn                double,
+    draft                   double,
+    country_flag            string,
+    country_chinese_name    string,
+    navigation_status       string,
+    source_type             string,
+    gmt_create              string
 )WITH (
      'connector' = 'doris',
-     'fenodes' = '47.92.158.88:8031',
-     'table.identifier' = 'situation.dws_ship_real_data',
+     'fenodes' = '8.130.39.51:8030',
+     'table.identifier' = 'global_entity.dwd_ship_all_track',
      'username' = 'admin',
-     'password' = 'dawu@110',
+     'password' = 'yshj@yshj',
      'sink.enable.batch-mode'='true',
      'sink.buffer-flush.max-rows'='50000',
      'sink.buffer-flush.interval'='15s',
@@ -128,53 +128,52 @@ create table dws_ship_real_data(
 
 
 -- 实体详情 - 合并的实体表
-create table dim_ship_info (
+create table dws_ship_entity_info (
         id      	 			string	    comment '船ID',
         imo      				string      comment 'IMO',
         mmsi                    string      comment 'mmsi',
-        hh 					    string      comment '呼号',
-        mc 						string      comment '船名',
-        cd                   	double      comment '长度',
-        kd                    	double      comment '宽度',
-        gjdm          	        string      comment '标志国家代码',
-        gjmc                    string      comment '国家中文',
-        dlx                     string      comment '船类型-大类中文',
-        xlx                     string      comment '船类别-小类中文',
-        ly         				string      comment '数据来源',
-        rksj                    string      comment '数据入库时间'
+        callsign 				string      comment '呼号',
+        ship_name 				string      comment '船名',
+        `length`                double      comment '长度',
+        width                   double      comment '宽度',
+        country_flag          	string      comment '标志国家代码',
+        country_chinese_name    string      comment '国家中文',
+        big_type                string      comment '船类型-大类中文',
+        small_type              string      comment '船类别-小类中文',
+        source_type         	string      comment '数据来源',
+        gmt_create              string      comment '数据入库时间'
 )WITH (
-     'connector' = 'doris',
-     'fenodes' = '47.92.158.88:8031',
-     'table.identifier' = 'situation.dim_ship_info',
-     'username' = 'admin',
-     'password' = 'dawu@110',
-     'sink.enable.batch-mode'='true',
-     'sink.buffer-flush.max-rows'='50000',
-     'sink.buffer-flush.interval'='15s',
-     'sink.properties.escape_delimiters' = 'true',
-     'sink.properties.column_separator' = '\x01',     -- 列分隔符
-     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
-     'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
-     );
-
+    'connector' = 'doris',
+    'fenodes' = '8.130.39.51:8030',
+    'table.identifier' = 'global_entity.dws_ship_entity_info',
+    'username' = 'admin',
+    'password' = 'yshj@yshj',
+    'sink.enable.batch-mode'='true',
+    'sink.buffer-flush.max-rows'='50000',
+    'sink.buffer-flush.interval'='15s',
+    'sink.properties.escape_delimiters' = 'true',
+    'sink.properties.column_separator' = '\x01',     -- 列分隔符
+    'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
+    'sink.properties.line_delimiter' = '\x02'         -- 行分隔符
+);
 
 
 -- 实体表(Source:doris)
-drop table if exists dim_ship_info_source;
-create table dim_ship_info_source (
-    id    string  COMMENT '船编号',
+drop table if exists dws_ship_entity_info_source;
+create table dws_ship_entity_info_source (
+    id         string  COMMENT '船编号',
     primary key (id) NOT ENFORCED
 ) with (
-      'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
-      'username' = 'root',
-      'password' = 'dawu@110',
-      'table-name' = 'dim_ship_info',
-      'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '100000',
-      'lookup.cache.ttl' = '3600s',
-      'lookup.max-retries' = '10'
-    );
+    'connector' = 'jdbc',
+    'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
+    'username' = 'root',
+    'password' = 'yshj@yshj',
+    'table-name' = 'dws_ship_entity_info',
+    'driver' = 'com.mysql.cj.jdbc.Driver',
+    'lookup.cache.max-rows' = '100000',
+    'lookup.cache.ttl' = '3600s',
+    'lookup.max-retries' = '10'
+);
 
 
 -- marinetraffic和vt的对应关系(Source:doris)
@@ -184,60 +183,59 @@ create table dim_mtf_vt_reletion_info (
     vessel_id    string        comment '编号',
     primary key (vt_mmsi) NOT ENFORCED
 ) with (
-      'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
-      'username' = 'root',
-      'password' = 'dawu@110',
-      'table-name' = 'dim_mtf_vt_reletion_info',
-      'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '100000',
-      'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '10'
-      );
+    'connector' = 'jdbc',
+    'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
+    'username' = 'root',
+    'password' = 'yshj@yshj',
+    'table-name' = 'dim_reletion_2',
+    'driver' = 'com.mysql.cj.jdbc.Driver',
+    'lookup.cache.max-rows' = '100000',
+    'lookup.cache.ttl' = '86400s',
+    'lookup.max-retries' = '10'
+);
 
 
 -- 类型对应关系
-create table dim_type_lb1_info (
-        `type1`     int     comment '船舶和货物类型id',
-        `xlxdm`     string  comment '类型代码',
-        `xlx`       string  comment '类型名称',
-        `dlxdm`     string  comment '类别代码',
-        `dlx`       string  comment '类别名称',
-        primary key (type1) NOT ENFORCED
+create table dim_data_type_rele_lb_info (
+        `type_code`           int     comment '船舶和货物类型id',
+        `small_type_code`     string  comment '类型代码',
+        `small_type`          string  comment '类型名称',
+        `big_type_code`       string  comment '类别代码',
+        `big_type`            string  comment '类别名称',
+        primary key (type_code) NOT ENFORCED
 ) with (
-      'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
-      'username' = 'root',
-      'password' = 'dawu@110',
-      'table-name' = 'dim_type_lb1_info',
-      'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '100000',
-      'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '10'
-      );
+        'connector' = 'jdbc',
+        'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
+        'username' = 'root',
+        'password' = 'yshj@yshj',
+        'table-name' = 'dim_data_type_rele_lb_info',
+        'driver' = 'com.mysql.cj.jdbc.Driver',
+        'lookup.cache.max-rows' = '100000',
+        'lookup.cache.ttl' = '86400s',
+        'lookup.max-retries' = '10'
+);
 
 
 -- 航行状态对应表
-create table dim_hxzt_info (
-        hxztnum          string        comment '航向状态代码code',
-        hxzt             string        comment '航行状态名称',
-        primary key (hxztnum) NOT ENFORCED
+create table dim_navigation_status_info (
+       navigation_status_code           string        comment '航向状态代码code',
+       navigation_status                string        comment '航行状态名称',
+        primary key (navigation_status_code) NOT ENFORCED
 ) with (
-      'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
-      'username' = 'root',
-      'password' = 'dawu@110',
-      'table-name' = 'dim_hxzt_info',
-      'driver' = 'com.mysql.cj.jdbc.Driver',
-      'lookup.cache.max-rows' = '100000',
-      'lookup.cache.ttl' = '86400s',
-      'lookup.max-retries' = '10'
-      );
+        'connector' = 'jdbc',
+        'url' = 'jdbc:mysql://8.130.39.51:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
+        'username' = 'root',
+        'password' = 'yshj@yshj',
+        'table-name' = 'dim_navigation_status_info',
+        'driver' = 'com.mysql.cj.jdbc.Driver',
+        'lookup.cache.max-rows' = '100000',
+        'lookup.cache.ttl' = '86400s',
+        'lookup.max-retries' = '10'
+    );
+
 
 -----------------------
-
 -- 数据处理
-
 -----------------------
 
 
@@ -246,43 +244,43 @@ create view temp_01 as
 select
     t1.mmsi                                                 as mmsi,-- mmsi
     if(t1.imo in ('0',''),cast(null as string),t1.imo)      as imo, -- imo
-    if(t1.callno <> '',t1.callno,cast(null as varchar))     as hh,-- 呼号
-    from_unixtime(receivetime/1000)                         as cjsj, -- 采集时间戳格式化
-    if(t1.shipname <> '',t1.shipname,cast(null as varchar)) as mc,  -- 船舶名称
-    t1.longitude                                            as jd,  -- 经度
-    t1.latitude                                             as wd,  -- 纬度
-    t1.sog/10                                               as sd,  -- 船舶的当前速度，以节（knots）为单位
-    t1.cog/10                                               as fx,  -- 船舶的当前航向
-    t1.draft/10                                             as cs,  -- 吃水
-    t5.dlx                                                  as dlx,-- 大类型名称
-    t5.xlx                                                  as xlx,-- 小类型名称
-    t1.rot                                                  as zxl,-- 转向率
-    length                                                  as cd,-- 船舶的长度，以米为单位
-    width                                                   as kd,-- 船舶的宽度，以米为单位
-    t6.hxzt                                                 as hxzt, --航行状态名称
-    cast(null as varchar)                                   as gjdm, --国家代码
-    cast(null as varchar)                                   as gjmc, -- 国家名称
+    if(t1.callno <> '',t1.callno,cast(null as varchar))     as callsign,-- 呼号
+    from_unixtime(receivetime/1000)                         as time1, -- 采集时间戳格式化
+    if(t1.shipname <> '',t1.shipname,cast(null as varchar)) as ship_name,  -- 船舶名称
+    t1.longitude                                            as longitude02,  -- 经度
+    t1.latitude                                             as latitude02,  -- 纬度
+    t1.sog/10                                               as speed_kn,  -- 船舶的当前速度，以节（knots）为单位
+    t1.cog/10                                               as heading,  -- 船舶的当前航向
+    t1.draft/10                                             as draft,  -- 吃水
+    t5.big_type                                             as big_type,-- 大类型名称
+    t5.small_type                                           as small_type,-- 小类型名称
+    t1.rot                                                  as turning_rate,-- 转向率
+    t1.length                                               as length,-- 船舶的长度，以米为单位
+    t1.width                                                as width,-- 船舶的宽度，以米为单位
+    t6.navigation_status                                    as navigation_status, --航行状态名称
+    cast(null as varchar)                                   as country_flag, --国家代码
+    cast(null as varchar)                                   as country_chinese_name, -- 国家名称
     t1.proctime,
-    from_unixtime(unix_timestamp()) as rksj,
+    from_unixtime(unix_timestamp()) as gmt_create,
     concat('cs',
            if(t2.vessel_id is not null,
               t2.vessel_id,
               cast((cast(t1.mmsi as bigint) + 4000000000) as varchar))
         ) as id,
-    'lb' as ly
+    'lb' as source_type
 
 from ais_landbased_list t1
          left join dim_mtf_vt_reletion_info   -- 对应关系
     FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.mmsi = t2.vt_mmsi
 
-         left join dim_type_lb1_info    -- 船舶类型转换
+         left join dim_data_type_rele_lb_info    -- 船舶类型转换
     FOR SYSTEM_TIME AS OF t1.proctime as t5
-                   on cast(t1.shipAndCargType as int) = t5.type1
+                   on cast(t1.shipAndCargType as int) = t5.type_code
 
-         left join dim_hxzt_info    -- 航行状态
+         left join dim_navigation_status_info    -- 航行状态
     FOR SYSTEM_TIME AS OF t1.proctime as t6
-                   on t6.hxztnum = cast(t1.navistat as string);
+                   on t6.navigation_status_code = cast(t1.navistat as string);
 
 
 -----------------------
@@ -295,66 +293,66 @@ begin statement set;
 
 
 -- 实体表
-insert into dim_ship_info
+insert into dws_ship_entity_info
 select
-    t1.id       , -- id
-    t1.imo      , -- imo
-    t1.mmsi     , -- mmsi
-    t1.hh       , -- 呼号
-    t1.mc       , -- 名称
-    t1.cd       , -- 长度
-    t1.kd       , -- 宽度
-    t1.gjdm     , -- 国家代码
-    t1.gjmc     , -- 国家名称
-    t1.dlx      , -- 船类型-大类中文
-    t1.xlx      , -- 船类别-小类中文
-    t1.ly       , -- 来源
-    t1.rksj
+    t1.id                    , -- id
+    t1.imo                   , -- imo
+    t1.mmsi                  , -- mmsi
+    t1.callsign              , -- 呼号
+    t1.ship_name             , -- 名称
+    t1.length                , -- 长度
+    t1.width                 , -- 宽度
+    t1.country_flag          , -- 国家代码
+    t1.country_chinese_name  , -- 国家名称
+    t1.big_type              , -- 船类型-大类中文
+    t1.small_type            , -- 船类别-小类中文
+    t1.source_type           , -- 来源
+    t1.gmt_create
 
 from temp_01 as t1
-         left join dim_ship_info_source
+         left join dws_ship_entity_info_source
     FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.id = t2.id
 where t2.id is null;
 
 
 -- 全量表
-insert into dwd_ship_full_data
+insert into ods_ship_all_track
 select
     id,
-    cjsj,
-    mc,
-    zxl,
-    fx,
-    jd,
-    wd,
-    sd,
-    cs,
-    gjdm,
-    gjmc,
-    hxzt,
-    ly,
-    rksj
+    time1,
+    ship_name,
+    turning_rate,
+    heading,
+    longitude02,
+    latitude02,
+    speed_kn,
+    draft,
+    country_flag,
+    country_chinese_name,
+    navigation_status,
+    source_type,
+    gmt_create
 from temp_01;
 
 
 -- 状态表
-insert into dws_ship_real_data
+insert into dwd_ship_all_track
 select
     id,
-    cjsj,
-    mc,
-    zxl,
-    fx,
-    jd,
-    wd,
-    sd,
-    cs,
-    gjdm,
-    gjmc,
-    hxzt,
-    ly,
-    rksj
+    time1,
+    ship_name,
+    turning_rate,
+    heading,
+    longitude02,
+    latitude02,
+    speed_kn,
+    draft,
+    country_flag,
+    country_chinese_name,
+    navigation_status,
+    source_type,
+    gmt_create
 from temp_01;
 
 end;

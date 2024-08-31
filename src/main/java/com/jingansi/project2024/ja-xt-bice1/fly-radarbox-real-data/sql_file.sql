@@ -10,7 +10,7 @@ SET 'parallelism.default' = '4';
 
 -- checkpoint的时间和位置
 set 'execution.checkpointing.interval' = '1200000';
-set 'state.checkpoints.dir' = 's3://ja-bice1/flink-checkpoints/fly-radarbox-real-data';
+set 'state.checkpoints.dir' = 's3://ja-bice2/flink-checkpoints/fly-radarbox-real-data';
 
 
 -- radarbox数据
@@ -53,14 +53,13 @@ create table radarbox_aircraft_list_kafka(
                                                  flag string,
                                                  `hour` string,
                                                  `minute` string
-                                                 ),
+                                                ),
                                              proctime          as PROCTIME()
 ) with (
       'connector' = 'kafka',
       'topic' = 'radarbox_aircraft_list_bak',
       'properties.bootstrap.servers' = '115.231.236.106:30090',
-      'properties.group.id' = 'radarbox-ceshi1',
-      -- 'scan.startup.mode' = 'group-offsets',
+      'properties.group.id' = 'radarbox-ceshi2',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
       -- 'scan.startup.timestamp-millis' = '0',
@@ -72,44 +71,44 @@ create table radarbox_aircraft_list_kafka(
 
 
 -- doris全量表
-drop table if exists dwd_fly_full_data;
-create table dwd_fly_full_data (
-                                   id      string  , -- 飞机id
-                                   bs      int  , --  标识
-                                   cjsj    string  , --  采集时间
-                                   sms     string  , --  s模式
-                                   zch     string  , --  注册号
-                                   hbh     string  , --  航班号
-                                   xh      string  , --  型号
-                                   lx      string  , --  类型
-                                   jd      double  , --  经度
-                                   wd      double  , --  纬度
-                                   sd      double  , --  速度
-                                   gd      double  , --  高度
-                                   fx      double  , --  方向
-                                   zt      string  , --   状态
-                                   gjdm    string  , --  国家代码
-                                   gjmc    string  , --  国家名称
-                                   ly      string  , --  来源
-                                   hkgsdm  string  , --  航空公司的icao代码
-                                   ydjdm   string  , --  应答机代码
-                                   lyjcdm  string  , --  起飞机场的iata代码
-                                   lyjcjd  double  , --  来源机场经度
-                                   lyjcwd  double  , --  来源机场纬度
-                                   mdjcdm  string  , --  目标机场的 iata 代码
-                                   mdjcjd  double  , --  目的地坐标经度
-                                   mdjcwd  double  , --  目的地坐标纬度
-                                   fjtp    string  , --  飞机的图片
-                                   qfsj    string  , --  航班起飞时间
-                                   jlsj    string  , --  预计降落时间
-                                   yjdjzl  string  , --  预计多久着陆
-                                   rksj    string   --  入库时间
+drop table if exists ods_flight_all_track;
+create table ods_flight_all_track (
+                                      id                      string  , -- 飞机id
+                                      flag                    int  , --  标识
+                                      time1                   string  , --  采集时间
+                                      s_mode                  string  , --  s模式
+                                      registration_number     string  , --  注册号
+                                      flight_number           string  , --  航班号
+                                      model                   string  , --  型号
+                                      `type`                  string  , --  类型
+                                      longitude02             double  , --  经度
+                                      latitude02              double  , --  纬度
+                                      speed_km                double  , --  速度
+                                      height                  double  , --  高度
+                                      heading                 double  , --  方向
+                                      fly_status              string  , --   状态
+                                      country_flag            string  , --  国家代码
+                                      country_chinese_name    string  , --  国家名称
+                                      origin                  string  , --  来源
+                                      airline_code            string  , --  航空公司的icao代码
+                                      responder_code          string  , --  应答机代码
+                                      take_off_code           string  , --  起飞机场的iata代码
+                                      origin_longitude02      double  , --  来源机场经度
+                                      origin_latitude02       double  , --  来源机场纬度
+                                      land_code               string  , --  目标机场的 iata 代码
+                                      destination_longitude02 double  , --  目的地坐标经度
+                                      destination_latitude02  double  , --  目的地坐标纬度
+                                      `image`                 string  , --  飞机的图片
+                                      take_off_time           string  , --  航班起飞时间
+                                      land_time               string  , --  预计降落时间
+                                      during                  string  , --  预计多久着陆
+                                      gmt_create              string   --  入库时间
 ) with (
       'connector' = 'doris',
-      'fenodes' = '47.92.158.88:8031',
-      'table.identifier' = 'situation.dwd_fly_full_data',
+      'fenodes' = '172.19.80.4:8030',
+      'table.identifier' = 'global_entity.ods_flight_all_track',
       'username' = 'admin',
-      'password' = 'dawu@110',
+      'password' = 'yshj@yshj',
       'sink.enable.batch-mode'='true',
       'sink.buffer-flush.max-rows'='30000',
       'sink.buffer-flush.interval'='10s',
@@ -121,44 +120,44 @@ create table dwd_fly_full_data (
 
 
 -- doris状态表
-drop table if exists dws_fly_real_data;
-create table dws_fly_real_data (
-                                   id      string  , -- 飞机id
-                                   bs      int     , --  标识
-                                   cjsj    string  , --  采集时间
-                                   sms     string  , --  s模式
-                                   zch     string  , --  注册号
-                                   hbh     string  , --  航班号
-                                   xh      string  , --  型号
-                                   lx      string  , --  类型
-                                   jd      double  , --  经度
-                                   wd      double  , --  纬度
-                                   sd      double  , --  速度
-                                   gd      double  , --  高度
-                                   fx      double  , --  方向
-                                   zt      string , --   状态
-                                   gjdm    string  , --  国家代码
-                                   gjmc    string  , --  国家名称
-                                   ly      string  , --  来源
-                                   hkgsdm  string  , --  航空公司的icao代码
-                                   ydjdm   string  , --  应答机代码
-                                   lyjcdm  string  , --  起飞机场的iata代码
-                                   lyjcjd  double  , --  来源机场经度
-                                   lyjcwd  double  , --  来源机场纬度
-                                   mdjcdm  string  , --  目标机场的 iata 代码
-                                   mdjcjd  double  , --  目的地坐标经度
-                                   mdjcwd  double  , --  目的地坐标纬度
-                                   fjtp    string  , --  飞机的图片
-                                   qfsj    string  , --  航班起飞时间
-                                   jlsj    string  , --  预计降落时间
-                                   yjdjzl  string  , --  预计多久着陆
-                                   rksj    string   --  入库时间
+drop table if exists dwd_flight_all_track;
+create table dwd_flight_all_track (
+                                      id                      string  , -- 飞机id
+                                      flag                    int  , --  标识
+                                      time1                   string  , --  采集时间
+                                      s_mode                  string  , --  s模式
+                                      registration_number     string  , --  注册号
+                                      flight_number           string  , --  航班号
+                                      model                   string  , --  型号
+                                      `type`                  string  , --  类型
+                                      longitude02             double  , --  经度
+                                      latitude02              double  , --  纬度
+                                      speed_km                double  , --  速度
+                                      height                  double  , --  高度
+                                      heading                 double  , --  方向
+                                      fly_status              string  , --   状态
+                                      country_flag            string  , --  国家代码
+                                      country_chinese_name    string  , --  国家名称
+                                      origin                  string  , --  来源
+                                      airline_code            string  , --  航空公司的icao代码
+                                      responder_code          string  , --  应答机代码
+                                      take_off_code           string  , --  起飞机场的iata代码
+                                      origin_longitude02      double  , --  来源机场经度
+                                      origin_latitude02       double  , --  来源机场纬度
+                                      land_code               string  , --  目标机场的 iata 代码
+                                      destination_longitude02 double  , --  目的地坐标经度
+                                      destination_latitude02  double  , --  目的地坐标纬度
+                                      `image`                 string  , --  飞机的图片
+                                      take_off_time           string  , --  航班起飞时间
+                                      land_time               string  , --  预计降落时间
+                                      during                  string  , --  预计多久着陆
+                                      gmt_create              string   --  入库时间
 ) with (
       'connector' = 'doris',
-      'fenodes' = '47.92.158.88:8031',
-      'table.identifier' = 'situation.dws_fly_real_data',
+      'fenodes' = '172.19.80.4:8030',
+      'table.identifier' = 'global_entity.dwd_flight_all_track',
       'username' = 'admin',
-      'password' = 'dawu@110',
+      'password' = 'yshj@yshj',
       'sink.enable.batch-mode'='true',
       'sink.buffer-flush.max-rows'='30000',
       'sink.buffer-flush.interval'='10s',
@@ -170,22 +169,22 @@ create table dws_fly_real_data (
 
 
 -- 飞机航班表1
-drop table if exists dws_flight_info1;
-create table dws_flight_info1 (
-                                  id      string  , -- 飞机id
-                                  sms     string  , --  s模式
-                                  zch     string  , --  注册号
-                                  hbh     string  , --  航班号
-                                  hb_id   string  , -- 航班id
-                                  xh      string  , --  型号
-                                  cjsj    string  , --  采集时间
-                                  rksj    string   --  入库时间
+drop table if exists dws_flight_number_info1;
+create table dws_flight_number_info1 (
+                                         id      string  , -- 飞机id
+                                         sms     string  , --  s模式
+                                         zch     string  , --  注册号
+                                         hbh     string  , --  航班号
+                                         hb_id   string  , -- 航班id
+                                         xh      string  , --  型号
+                                         cjsj    string  , --  采集时间
+                                         rksj    string   --  入库时间
 ) with (
       'connector' = 'doris',
-      'fenodes' = '47.92.158.88:8031',
-      'table.identifier' = 'situation.dws_flight_info1',
+      'fenodes' = '172.19.80.4:8030',
+      'table.identifier' = 'global_entity.dws_flight_number_info1',
       'username' = 'admin',
-      'password' = 'dawu@110',
+      'password' = 'yshj@yshj',
       'sink.enable.batch-mode'='true',
       'sink.buffer-flush.max-rows'='30000',
       'sink.buffer-flush.interval'='10s',
@@ -205,10 +204,10 @@ create table dim_aircraft_prefix_code (
                                           primary key (prefix_code) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://47.92.158.88:9031/situation?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
+      'url' = 'jdbc:mysql://172.19.80.4:9030/global_entity?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'admin',
-      'password' = 'dawu@110',
-      'table-name' = 'dim_aircraft_prefix_code',
+      'password' = 'yshj@yshj',
+      'table-name' = 'dim_prefix',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '100000',
       'lookup.cache.ttl' = '84000s',
@@ -288,10 +287,12 @@ drop view if exists tmp_radarbox_aircraft_03;
 create view tmp_radarbox_aircraft_03 as
 select
     t1.*,
-    if(estimated_landing_duration_format.flag = 'm',
-       cast(timestampadd(minute,cast(estimated_landing_duration_format.`minute` as int),acquire_timestamp_format_date)as string),
-       cast(timestampadd(hour,cast(estimated_landing_duration_format.`hour` as int),timestampadd(minute,cast(estimated_landing_duration_format.`minute` as int),acquire_timestamp_format_date)) as string)
-        ) as expected_landing_time_format,
+    case
+    when estimated_landing_duration_format.flag = 'm' and instr(estimated_landing_duration_format.`minute`,'s') = 0
+        then cast(timestampadd(minute,cast(estimated_landing_duration_format.`minute` as int),acquire_timestamp_format_date)as string)
+    when estimated_landing_duration_format.flag = 'h' and instr(estimated_landing_duration_format.`minute`,'s') = 0
+        then cast(timestampadd(hour,cast(estimated_landing_duration_format.`hour` as int),timestampadd(minute,cast(estimated_landing_duration_format.`minute` as int),acquire_timestamp_format_date)) as string)
+    else cast(null as varchar) end as expected_landing_time_format,
 
     case
         when flight_departure_time_hour < expected_landing_time_hour then concat(cast(CURRENT_DATE as string),' ',flight_departure_time,':00')
@@ -324,36 +325,36 @@ drop view if exists tmp_radarbox_aircraft_04;
 create view tmp_radarbox_aircraft_04 as
 select
     if(s_mode is null,flight_trace_id,s_mode)       as id,
-    acquire_timestamp_format                        as cjsj,
-    1                                               as bs,
-    s_mode                                          as sms,
-    registration                                    as zch,
-    flight_no                                       as hbh,
-    flight_trace_id                                 as hb_id,
-    flight_type                                     as xh,
-    cast(null as varchar)                           as lx,
-    cast(longitude as double)                       as jd,
-    cast(latitude as double)                        as wd,
-    cast(speed as double) * 1.852                   as sd,
-    cast(altitude as double) * 0.3048               as gd,
-    cast(heading as double)                         as fx,
-    flight_status                                   as zt,
-    if(registration is null,cast(null as varchar),coalesce(country_code7,country_code6,country_code5,country_code4))  as gjdm,
-    cast(null as varchar)                           as gjmc,
-    `data_source`                                   as ly,
-    airlines_icao                                   as hkgsdm,
-    squawk_code                                     as ydjdm,
-    origin_airport3_code                            as lyjcdm,
-    source_longitude                                as lyjcjd,
-    source_latitude                                 as lyjcwd,
-    destination_airport3_code                       as mdjcdm,
-    destination_longitude                           as mdjcjd,
-    destination_latitude                            as mdjcwd,
-    flight_photo                                    as fjtp,
-    flight_departure_time_format                    as qfsj,
-    expected_landing_time_format                    as jlsj,
-    estimated_landing_duration                      as yjdjzl,
-    from_unixtime(unix_timestamp())                 as rksj    -- 数据入库时间
+    acquire_timestamp_format                        as time1,
+    1                                               as flag,
+    s_mode                                          as s_mode,
+    registration                                    as registration_number,
+    flight_no                                       as flight_number,
+    flight_trace_id                                 as trace_id,
+    flight_type                                     as model,
+    cast(null as varchar)                           as `type`,
+    cast(longitude as double)                       as longitude02,
+    cast(latitude as double)                        as latitude02,
+    cast(speed as double) * 1.852                   as speed_km,
+    cast(altitude as double) * 0.3048               as height,
+    cast(heading as double)                         as heading,
+    flight_status                                   as fly_status,
+    if(registration is null,cast(null as varchar),coalesce(country_code7,country_code6,country_code5,country_code4))  as country_flag,
+    cast(null as varchar)                           as country_chinese_name,
+    `data_source`                                   as origin,
+    airlines_icao                                   as airline_code,
+    squawk_code                                     as responder_code,
+    origin_airport3_code                            as take_off_code,
+    source_longitude                                as origin_longitude02,
+    source_latitude                                 as origin_latitude02,
+    destination_airport3_code                       as land_code,
+    destination_longitude                           as destination_longitude02,
+    destination_latitude                            as destination_latitude02,
+    flight_photo                                    as `image`,
+    flight_departure_time_format                    as take_off_time,
+    expected_landing_time_format                    as land_time,
+    estimated_landing_duration                      as during,
+    from_unixtime(unix_timestamp())                 as gmt_create    -- 数据入库时间
 from tmp_radarbox_aircraft_03;
 
 
@@ -363,86 +364,88 @@ from tmp_radarbox_aircraft_03;
 
 begin statement set;
 
-insert into dwd_fly_full_data
+-- 轨迹表
+insert into ods_flight_all_track
 select
     id
-     ,bs
-     ,cjsj
-     ,sms
-     ,zch
-     ,hbh
-     ,xh
-     ,lx
-     ,jd
-     ,wd
-     ,sd
-     ,gd
-     ,fx
-     ,zt
-     ,gjdm
-     ,gjmc
-     ,ly
-     ,hkgsdm
-     ,ydjdm
-     ,lyjcdm
-     ,lyjcjd
-     ,lyjcwd
-     ,mdjcdm
-     ,mdjcjd
-     ,mdjcwd
-     ,fjtp
-     ,qfsj
-     ,jlsj
-     ,yjdjzl
-     ,rksj
+     ,flag
+     ,time1
+     ,s_mode
+     ,registration_number
+     ,flight_number
+     ,model
+     ,`type`
+     ,longitude02
+     ,latitude02
+     ,speed_km
+     ,height
+     ,heading
+     ,fly_status
+     ,country_flag
+     ,country_chinese_name
+     ,origin
+     ,airline_code
+     ,responder_code
+     ,take_off_code
+     ,origin_longitude02
+     ,origin_latitude02
+     ,land_code
+     ,destination_longitude02
+     ,destination_latitude02
+     ,`image`
+     ,take_off_time
+     ,land_time
+     ,during
+     ,gmt_create
 from tmp_radarbox_aircraft_04;
 
 
-
-insert into dws_fly_real_data
+-- 状态表
+insert into dwd_flight_all_track
 select
     id
-     ,bs
-     ,cjsj
-     ,sms
-     ,zch
-     ,hbh
-     ,xh
-     ,lx
-     ,jd
-     ,wd
-     ,sd
-     ,gd
-     ,fx
-     ,zt
-     ,gjdm
-     ,gjmc
-     ,ly
-     ,hkgsdm
-     ,ydjdm
-     ,lyjcdm
-     ,lyjcjd
-     ,lyjcwd
-     ,mdjcdm
-     ,mdjcjd
-     ,mdjcwd
-     ,fjtp
-     ,qfsj
-     ,jlsj
-     ,yjdjzl
-     ,rksj
+     ,flag
+     ,time1
+     ,s_mode
+     ,registration_number
+     ,flight_number
+     ,model
+     ,`type`
+     ,longitude02
+     ,latitude02
+     ,speed_km
+     ,height
+     ,heading
+     ,fly_status
+     ,country_flag
+     ,country_chinese_name
+     ,origin
+     ,airline_code
+     ,responder_code
+     ,take_off_code
+     ,origin_longitude02
+     ,origin_latitude02
+     ,land_code
+     ,destination_longitude02
+     ,destination_latitude02
+     ,`image`
+     ,take_off_time
+     ,land_time
+     ,during
+     ,gmt_create
 from tmp_radarbox_aircraft_04;
 
-insert into dws_flight_info1
+
+insert into dws_flight_number_info1
 select
     id,
-    sms,
-    zch,
-    hbh,
-    hb_id,
-    xh,
-    cjsj,
-    rksj
+    s_mode,
+    registration_number,
+    flight_number,
+    trace_id,
+    model,
+    time1,
+    gmt_create
 from tmp_radarbox_aircraft_04;
 
 end;

@@ -8,3 +8,6 @@ cd ${flink_path}
 
 
 
+#./bin/sql-client.sh -j ${task_path}/geo-udf-1.0-SNAPSHOT-jar-with-dependencies.jar -f ${task_path}/${sql_name}
+
+

@@ -74,163 +74,10 @@ create table radarbox_aircraft_list_kafka(
       'scan.startup.mode' = 'group-offsets',
       -- 'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1717419622000',
+      -- 'scan.startup.timestamp-millis' = '1720440028000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
-      );
-
-
-
--- 飞机各个网站数据融合表
-drop table if exists dws_aircraft_combine_list_rt;
-create table dws_aircraft_combine_list_rt (
-                                              flight_id											varchar(20) 	comment '飞机标识字段  1. 24位 icao编码 2. 来源站的标识如 a. radarbox flight_trace_id  b. adsbexchange ～开头的编码',
-                                              acquire_time										string 		    comment '采集时间',
-                                              src_code											int 			comment '来源网站标识 1. radarbox 2. adsbexchange',
-                                              icao_code											varchar(10) 	comment '24位 icao编码',
-                                              registration										varchar(20) 	comment '注册号',
-                                              flight_no											varchar(20) 	comment '航班号',
-                                              callsign											varchar(20) 	comment '呼号',
-                                              flight_type										string 	        comment '飞机型号',
-                                              is_military										int 			comment '是否军用飞机 0 非军用 1 军用',
-                                              pk_type											varchar(10) 	comment 'flight_id 主键的类型 hex： icao hex 24位编码 trace_id：radarbox 的追踪id non_icao: adsbexchange 不是真正的 hex',
-                                              src_pk											varchar(20) 	comment '源网站主键',
-                                              flight_category									varchar(10) 	comment '飞机类型',
-                                              flight_category_name						        varchar(50) 	comment '飞机类型名称',
-                                              lng												double 			comment '经度',
-                                              lat												double 			comment '纬度',
-                                              speed												double 			comment '飞行当时的速度（单位：节）',
-                                              speed_km											double 			comment '速度单位 km/h',
-                                              altitude_baro										double 			comment '气压高度 海拔 航班当前高度，单位为（ft）',
-                                              altitude_baro_m									double 			comment '气压高度 海拔 单位米',
-                                              altitude_geom										double 			comment '海拔高度 海拔 航班当前高度，单位为（ft）',
-                                              altitude_geom_m									double 			comment '海拔高度 海拔 单位米',
-                                              heading											double 			comment '方向  正北为0 ',
-                                              squawk_code										varchar(10) 	comment '当前应答机代码',
-                                              flight_status										varchar(20) 	comment '飞机状态： 已启程',
-                                              special											int 			comment '是否有特殊情况',
-                                              origin_airport3_code						        varchar(10) 	comment '起飞机场的iata代码',
-                                              origin_airport_e_name						        string 	        comment '来源机场英文',
-                                              origin_airport_c_name						        string 	        comment '来源机场中文',
-                                              origin_lng										double 			comment '来源机场经度',
-                                              origin_lat										double 			comment '来源机场纬度',
-                                              dest_airport3_code							    varchar(10) 	comment '目标机场的 iata 代码',
-                                              dest_airport_e_name							    string 	        comment '目的机场英文',
-                                              dest_airport_c_name							    string 	        comment '目的机场中文',
-                                              dest_lng											double 			comment '目的地坐标经度',
-                                              dest_lat											double 			comment '目的地坐标纬度',
-                                              flight_photo										varchar(200) 	comment '飞机的图片',
-                                              flight_departure_time						        string 		    comment '航班起飞时间',
-                                              expected_landing_time						        string 		    comment '预计降落时间',
-                                              to_destination_distance					        double 			comment '目的地距离',
-                                              estimated_landing_duration			            string 			comment '预计还要多久着陆',
-                                              airlines_icao										varchar(10) 	comment '航空公司的icao代码',
-                                              airlines_e_name									string 	        comment '航空公司英文',
-                                              airlines_c_name									varchar(100) 	comment '航空公司中文',
-                                              country_code										varchar(10) 	comment '飞机所属国家代码',
-                                              country_name										varchar(50) 	comment '国家中文',
-                                              data_source										varchar(20) 	comment '数据来源的系统',
-                                              source											varchar(20) 	comment '来源',
-                                              position_country_code2					        varchar(2) 		comment '位置所在国家简称',
-                                              position_country_name						        varchar(50) 	comment '位置所在国家名称',
-                                              friend_foe										varchar(20) 	comment '敌我',
-                                              sea_id											varchar(3) 		comment '海域id',
-                                              sea_name											varchar(100) 	comment '海域名字',
-                                              h3_code											varchar(20) 	comment '位置h3编码',
-                                              extend_info									    string          comment '扩展信息 json 串',
-                                              update_time										string 		    comment '更新时间'
-) with (
-      'connector' = 'doris',
-      'fenodes' = '172.21.30.245:8030',
-      'table.identifier' = 'sa.dws_aircraft_combine_list_rt',
-      'username' = 'admin',
-      'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='5',
-      'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='20000',
-      'sink.batch.interval'='10s',
-      'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
-      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
-      );
-
-
-
-
--- 飞机各个网站数据融合状态表
-drop table if exists dws_aircraft_combine_status_rt;
-create table dws_aircraft_combine_status_rt (
-                                                flight_id											varchar(20) 	comment '飞机标识字段  1. 24位 icao编码 2. 来源站的标识如 a. radarbox flight_trace_id  b. adsbexchange ～开头的编码',
-                                                src_code											int 			comment '来源网站标识 1. radarbox 2. adsbexchange',
-                                                acquire_time										string 		    comment '采集时间',
-                                                icao_code											varchar(10) 	comment '24位 icao编码',
-                                                registration										varchar(20) 	comment '注册号',
-                                                flight_no											varchar(20) 	comment '航班号',
-                                                callsign											varchar(20) 	comment '呼号',
-                                                flight_type										string 	        comment '飞机型号',
-                                                is_military										int 			comment '是否军用飞机 0 非军用 1 军用',
-                                                pk_type											varchar(10) 	comment 'flight_id 主键的类型 hex： icao hex 24位编码 trace_id：radarbox 的追踪id non_icao: adsbexchange 不是真正的 hex',
-                                                src_pk											varchar(20) 	comment '源网站主键',
-                                                flight_category									varchar(10) 	comment '飞机类型',
-                                                flight_category_name						        varchar(50) 	comment '飞机类型名称',
-                                                lng												double 			comment '经度',
-                                                lat												double 			comment '纬度',
-                                                speed												double 			comment '飞行当时的速度（单位：节）',
-                                                speed_km											double 			comment '速度单位 km/h',
-                                                altitude_baro										double 			comment '气压高度 海拔 航班当前高度，单位为（ft）',
-                                                altitude_baro_m									double 			comment '气压高度 海拔 单位米',
-                                                altitude_geom										double 			comment '海拔高度 海拔 航班当前高度，单位为（ft）',
-                                                altitude_geom_m									double 			comment '海拔高度 海拔 单位米',
-                                                heading											double 			comment '方向  正北为0 ',
-                                                squawk_code										varchar(10) 	comment '当前应答机代码',
-                                                flight_status										varchar(20) 	comment '飞机状态： 已启程',
-                                                special											int 			comment '是否有特殊情况',
-                                                origin_airport3_code						        varchar(10) 	comment '起飞机场的iata代码',
-                                                origin_airport_e_name						        string 	        comment '来源机场英文',
-                                                origin_airport_c_name						        string 	        comment '来源机场中文',
-                                                origin_lng										double 			comment '来源机场经度',
-                                                origin_lat										double 			comment '来源机场纬度',
-                                                dest_airport3_code							    varchar(10) 	comment '目标机场的 iata 代码',
-                                                dest_airport_e_name							    string 	        comment '目的机场英文',
-                                                dest_airport_c_name							    string 	        comment '目的机场中文',
-                                                dest_lng											double 			comment '目的地坐标经度',
-                                                dest_lat											double 			comment '目的地坐标纬度',
-                                                flight_photo										varchar(200) 	comment '飞机的图片',
-                                                flight_departure_time						        string 		    comment '航班起飞时间',
-                                                expected_landing_time						        string 		    comment '预计降落时间',
-                                                to_destination_distance					        double 			comment '目的地距离',
-                                                estimated_landing_duration			            string 			comment '预计还要多久着陆',
-                                                airlines_icao										varchar(10) 	comment '航空公司的icao代码',
-                                                airlines_e_name									string 	        comment '航空公司英文',
-                                                airlines_c_name									varchar(100) 	comment '航空公司中文',
-                                                country_code										varchar(10) 	comment '飞机所属国家代码',
-                                                country_name										varchar(50) 	comment '国家中文',
-                                                data_source										varchar(20) 	comment '数据来源的系统',
-                                                source											varchar(20) 	comment '来源',
-                                                position_country_code2					        varchar(2) 		comment '位置所在国家简称',
-                                                position_country_name						        varchar(50) 	comment '位置所在国家名称',
-                                                friend_foe										varchar(20) 	comment '敌我',
-                                                sea_id											varchar(3) 		comment '海域id',
-                                                sea_name											varchar(100) 	comment '海域名字',
-                                                h3_code											varchar(20) 	comment '位置h3编码',
-                                                extend_info									    string          comment '扩展信息 json 串',
-                                                update_time										string 		    comment '更新时间'
-) with (
-      'connector' = 'doris',
-      'fenodes' = '172.21.30.245:8030',
-      'table.identifier' = 'sa.dws_aircraft_combine_status_rt',
-      'username' = 'admin',
-      'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='5',
-      'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='20000',
-      'sink.batch.interval'='10s',
-      'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
-      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
 
@@ -314,6 +161,7 @@ create table dim_aircraft_country_prefix_code (
       'lookup.cache.ttl' = '84000s',
       'lookup.max-retries' = '10'
       );
+
 
 
 -- 国家数据匹配库（Source：doris）
@@ -403,7 +251,7 @@ create table dim_aircraft_type_category (
 
 
 
--- ****************************规则引擎写入数据******************************** --
+-- **************************** 规则引擎写入数据 aircraft_source ******************************** --
 
 drop table if exists aircraft_source;
 create table aircraft_source(
@@ -411,32 +259,57 @@ create table aircraft_source(
                                 srcCode                    bigint, --网站标识
                                 acquireTime                string, -- 采集事件年月日时分秒
                                 icaoCode                   string, -- icao
-                                flightNo                   string, -- 航班号
                                 registration               string, -- 注册号
-                                countryCode                string, -- 国家代码
-                                countryName                string, -- 国家名称
-                                airlinesIcao               string, -- 航空公司icao
-                                originAirport3Code         string, -- 来源机场3字代码
-                                destAirport3Code           string, -- 目的机场3字代码
+                                flightNo                   string, -- 航班号
+                                callsign                   string, -- 呼号
+                                flightType                 string, -- 飞机型号
+                                isMilitary                 bigint, -- 是否军用
+                                pkType                     string, -- flight_id 主键的类型 hex： icao hex 24位编码 trace_id：radarbox 的追踪id non_icao: adsbexchange 不是真正的 hex
+                                srcPk                      string, -- 源网站主键
                                 flightCategory             string, -- 飞机类别
                                 flightCategoryName         string, -- 飞机类别名称
-                                flightType                 string, -- 飞机型号
-                                flightStatus               string, -- 飞机状态
-                                squawkCode                 string, -- 应答器代码
-                                flightDepartureTime        string, -- 飞机起飞时间
-                                expectedLandingTimeFormat  string, -- 预计降落时间
-                                toDestinationDistance      double, -- 距离目的地距离
-                                isMilitary                 bigint, -- 是否军用
-                                heading                    double, -- 方向
-                                altitudeBaroM              double, -- 高度
                                 lng                        double, -- 经度
                                 lat                        double, -- 纬度
+                                speed                      double, -- 速度节
                                 speedKm                    double, -- 速度 km
-                                friendFoe                  string, -- 敌我代码
+                                altitudeBaro               double, -- 气压高度 海拔 航班当前高度，单位为（ft）
+                                altitudeBaroM              double, -- 气压高度 海拔 单位米
+                                altitudeGeom               double, -- 海拔高度 海拔 航班当前高度，单位为（ft）
+                                altitudeGeomM              double, -- 海拔高度 海拔 单位米
+                                heading                    double, -- 方向
+                                squawkCode                 string, -- 应答器代码
+                                flightStatus               string, -- 飞机状态
+                                special                    int,    -- 是否有特殊情况
+                                originAirport3Code         string, -- 起飞机场的iata代码
+                                originAirportEName         string, -- 来源机场英文
+                                originAirportCName         string, -- 来源机场中文
+                                originLng                  double, -- 来源机场经度
+                                originLat                  double, -- 来源机场纬度
+                                destAirport3Code           string, -- 目的机场3字代码
+                                destAirportEName           string, -- 目的机场英文
+                                destAirportCName           string, -- 目的机场中文
+                                destLng                    double, -- 目的地坐标经度
+                                destLat                    double, -- 目的地坐标纬度
+                                flightPhoto                string, -- 飞机的图片
+                                flightDepartureTime        string, -- 飞机起飞时间
+                                expectedLandingTime        string, -- 预计降落时间
+                                toDestinationDistance      double, -- 距离目的地距离
+                                estimatedLandingDuration   string, -- 预计还要多久着陆
+                                airlinesIcao               string, -- 航空公司icao
+                                airlinesEName              string, -- 航空公司英文
+                                airlinesCName              string, -- 航空公司中文
+                                countryCode                string, -- 国家代码
+                                countryName                string, -- 国家名称
+                                dataSource                 string, -- 数据来源的系统
+                                source                     string, -- 来源
                                 positionCountryCode2       string, -- 所处国家
+                                positionCountryName        string, -- 所处国家名称
+                                friendFoe                  string, -- 敌我代码
                                 seaId                      string, -- 海域id
                                 seaName                    string, -- 海域名称
-                                targetType                 string, -- 实体类型 固定值 VESSEL
+                                h3Code                     string, -- 位置h3编码
+                                extendInfo                 string, -- 扩展信息 json 串
+                                targetType                 string, -- 实体类型 固定值 AIRCRAFT
                                 updateTime                 string  -- flink处理时间
 ) with (
       'connector' = 'kafka',
@@ -462,21 +335,21 @@ create function getSeaArea as 'com.jingan.udf.sea.GetSeaArea';
 ---------------
 
 
--- 对数据字段进行处理筛选，关联飞机实体表，取部分注册号、机型、是否军用
+-- 筛选，关联飞机实体表，取部分注册号、机型、是否军用,字段转换
 drop table if exists tmp_radarbox_aircraft_01;
 create view tmp_radarbox_aircraft_01 as
 select
     flightTraceId                                                                              as flight_trace_id,
-    if(flightNo in ('BLOCKED','VARIOUS','TACTICAL',''),cast(null as varchar),flightNo)                                           as flight_no,
+    if(flightNo in ('BLOCKED','VARIOUS','TACTICAL',''),cast(null as varchar),flightNo)         as flight_no,
     from_unixtime(cast(acquireTimestamp as bigint)/1000,'yyyy-MM-dd HH:mm:ss')                 as acquire_timestamp_format, -- 时间戳格式化
     to_timestamp(from_unixtime(cast(acquireTimestamp as bigint)/1000,'yyyy-MM-dd HH:mm:ss'),'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format_date, -- 时间类型的年月日时分秒
     acquireTimestamp                                                                           as acquire_timestamp,
-    latitude                                                                                   as latitude,
-    longitude                                                                                  as longitude,
-    altitude                                                                                   as altitude,
+    cast(latitude as double)                                                                   as latitude,
+    cast(longitude as double)                                                                  as longitude,
+    cast(altitude as double)                                                                   as altitude,
     if(t1.flightType = '' or t1.flightType is null,t2.icao_type,t1.flightType)                 as flight_type,
-    if(speed = '',cast(null as varchar),speed)                                                 as speed,
-    if(heading = '',cast(null as varchar),heading)                                             as heading,
+    if(speed = '',cast(null as double),cast(speed as double))                                  as speed,
+    if(heading = '',cast(null as double),cast(heading as double))                              as heading,
     dataSource                                                                                 as data_source,
     if(t2.registration is not null,t2.registration,if(t1.registration in ('BLOCKED','VARIOUS','TACTICAL',''),cast(null as varchar),t1.registration)) as registration,
     if(originAirport3Code = '',cast(null as varchar),originAirport3Code)                       as origin_airport3_code,
@@ -491,10 +364,10 @@ select
     destinationPosition[1]                                                                     as destination_longitude,
     destinationPosition[2]                                                                     as destination_latitude,
     flightStatus                                                                               as flight_status,
-    if(num2 = '',cast(null as varchar),num2)                                                   as squawk_code, -- 当前应答机代码
-    expectedLandingTime                                                                        as expected_landing_time,  -- 到达
+    if(num2 = '',cast(null as varchar),num2)                                                   as squawk_code,      -- 当前应答机代码
+    expectedLandingTime                                                                        as expected_landing_time,  -- 到达时间
     if(flightPhoto='',cast(null as varchar),flightPhoto)                                       as flight_photo,
-    flightDepartureTime                                                                        as flight_departure_time,  -- 出发
+    flightDepartureTime                                                                        as flight_departure_time,  -- 出发时间
     unKonwn                                                                                    as un_konwn,
     toDestinationDistance                                                                      as to_destination_distance,
     estimatedLandingDuration                                                                   as estimated_landing_duration,
@@ -504,10 +377,8 @@ select
     split_index(expectedLandingTime,':',1)                                                     as expected_landing_time_minute,
     split_index(flightDepartureTime,':',0)                                                     as flight_departure_time_hour,
     split_index(flightDepartureTime,':',1)                                                     as flight_departure_time_minute,
-    if(longitude is not null, getCountry(cast(longitude as double),cast(latitude as double)),cast(null as string))                             as country_code3, -- 经纬度位置转换国家
-    --cast(null as varchar) as  country_code3,
-    proctime,
-    t2.is_mil      -- 是否军用
+    t2.is_mil,
+    proctime
 from radarbox_aircraft_list_kafka as t1
          left join dws_aircraft_info
     FOR SYSTEM_TIME AS OF t1.proctime as t2
@@ -518,11 +389,13 @@ where acquireTimestamp is not null
 
 
 
--- 切分注册号
+-- 切分注册号，并且计算国家、海域id
 drop view if exists tmp_radarbox_aircraft_02;
 create view tmp_radarbox_aircraft_02 as
 select
     *,
+    if(longitude is not null, getCountry(longitude,latitude),cast(null as string))    as country_code3, -- 经纬度位置转换国家
+    if(longitude is not null, getSeaArea(longitude,latitude),cast(null as string)) as sea_id,               -- 海域id
     if(instr(registration,'-')>0,substring(registration,1,2),concat(substring(registration,1,1),'-')) as prefix_code2,
     if(instr(registration,'-')>0,substring(registration,1,3),concat(substring(registration,1,2),'-')) as prefix_code3,
     if(instr(registration,'-')>0,substring(registration,1,4),concat(substring(registration,1,3),'-')) as prefix_code4,
@@ -531,7 +404,7 @@ from tmp_radarbox_aircraft_01;
 
 
 
--- 对数据进行处理，加减时间得到起飞时间和到达时间
+-- 对数据进行处理，加减时间得到起飞时间和到达时间，关联航空公司、所处国家3字转2字代码、注册号前缀,关联飞机类型表、关联海域表取出海域名称
 drop table if exists tmp_radarbox_aircraft_03;
 create view tmp_radarbox_aircraft_03 as
 select
@@ -548,9 +421,14 @@ select
         when flight_departure_time_hour > expected_landing_time_hour then concat(cast(timestampadd(day,-1,CURRENT_DATE) as string),' ',flight_departure_time,':00')
         end as flight_departure_time_format,
 
-    t2.e_name as airlines_e_name,  -- 航空公司英文名称
-    t2.c_name as airlines_c_name,  -- 航空公司中文名称
-    t3.code2 as position_country_2code,  -- 当前所处的区域
+    t2.e_name             as airlines_e_name,  -- 航空公司英文名称
+    t2.c_name             as airlines_c_name,  -- 航空公司中文名称
+    t3.code2              as position_country_2code,  -- 当前所处的区域
+    t8.c_name             as position_country_name,
+    t9.category_code      as flight_category,         -- 飞机类型
+    t9.category_c_name    as flight_category_name,     -- 飞机类型名称
+    t10.c_name            as sea_name,    -- 关联查询海域名称
+
     -- 这是一个flink bug 这样取不到值
     -- coalesce(t7.country_code,t6.country_code,t5.country_code,t4.country_code) as country_code,
     t7.country_code as country_code7,
@@ -558,138 +436,128 @@ select
     t5.country_code as country_code5,
     t4.country_code as country_code4
 from tmp_radarbox_aircraft_02 as t1
-         left join dim_airline_list_info
-    FOR SYSTEM_TIME AS OF t1.proctime as t2
+         left join dim_airline_list_info FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.airlines_icao = t2.icao
-         left join dim_country_info
-    FOR SYSTEM_TIME AS OF t1.proctime as t3
+
+         left join dim_country_info FOR SYSTEM_TIME AS OF t1.proctime as t3
                    on t1.country_code3=t3.code3
-         left join dim_aircraft_country_prefix_code
-    FOR SYSTEM_TIME AS OF t1.proctime as t4
+
+         left join dim_country_code_name_info FOR SYSTEM_TIME AS OF t1.proctime as t8
+                   on t3.code2 = t8.country_code2 and 'COMMON' = t8.source
+
+         left join dim_aircraft_country_prefix_code FOR SYSTEM_TIME AS OF t1.proctime as t4
                    on t1.prefix_code2=t4.prefix_code
-         left join dim_aircraft_country_prefix_code
-    FOR SYSTEM_TIME AS OF t1.proctime as t5
+
+         left join dim_aircraft_country_prefix_code FOR SYSTEM_TIME AS OF t1.proctime as t5
                    on t1.prefix_code3=t5.prefix_code
-         left join dim_aircraft_country_prefix_code
-    FOR SYSTEM_TIME AS OF t1.proctime as t6
+
+         left join dim_aircraft_country_prefix_code FOR SYSTEM_TIME AS OF t1.proctime as t6
                    on t1.prefix_code4=t6.prefix_code
-         left join dim_aircraft_country_prefix_code
-    FOR SYSTEM_TIME AS OF t1.proctime as t7
-                   on t1.prefix_code5=t7.prefix_code;
+
+         left join dim_aircraft_country_prefix_code FOR SYSTEM_TIME AS OF t1.proctime as t7
+                   on t1.prefix_code5=t7.prefix_code
+
+         left join dim_aircraft_type_category FOR SYSTEM_TIME AS OF t1.proctime as t9
+                   on t1.flight_type = t9.id
+
+         left join dim_sea_area FOR SYSTEM_TIME AS OF t1.proctime as t10
+                   on t1.sea_id = t10.id;
 
 
 
--- 判断当前位于哪个国家上空
+-- 判断当前位于哪个国家上空、注册号取值
 drop table if exists tmp_radarbox_aircraft_04;
 create view tmp_radarbox_aircraft_04 as
 select
     *,
+
     if(position_country_2code is null
-           and ((cast(longitude as double) between 107.491636 and 124.806089 and cast(latitude as double) between 20.522241 and 40.799277)
+           and ((longitude between 107.491636 and 124.806089 and latitude between 20.522241 and 40.799277)
             or
-                (cast(longitude as double) between 107.491636 and 121.433286 and cast(latitude as double) between 3.011639 and 20.522241)
+                (longitude between 107.491636 and 121.433286 and latitude between 3.011639 and 20.522241)
            )
         ,'CN', position_country_2code) as position_country_code2,
-    -- 这样才能取到值  'BLOCKED','VARIOUS','TACTICAL' 三个异常注册号不转换国家
+
+    -- 这样才能取到值
     if(registration is null,cast(null as varchar),coalesce(country_code7,country_code6,country_code5,country_code4)) as country_code
+
 from tmp_radarbox_aircraft_03;
 
 
-
--- 敌我识别
-drop table if exists tmp_radarbox_aircraft_05;
+-- 敌我识别、关联所属国家名称、所处国家名称
+drop view if exists tmp_radarbox_aircraft_05;
 create view tmp_radarbox_aircraft_05 as
 select
     t1.*,
     case
         when t1.country_code in('IN','US','JP','AU') and is_mil = 1 then 'ENENY'  -- 美日..军机 敌方
-        when t1.country_code = 'CN' and is_mil = 1 then 'OUR_SIDE' -- 中国的军机 我方
-        when t1.country_code = 'CN' and is_mil = 0 then 'FRIENDLY_SIDE' -- 中国的非军机 友方
-        else 'NEUTRALITY' end as friend_foe,  -- 由国家判断敌我
-    t2.c_name as country_name,  -- 所属国家中文名称
-    t3.c_name as position_country_name
+        when t1.country_code = 'CN' and is_mil = 1 then 'OUR_SIDE'                -- 中国的军机 我方
+        when t1.country_code = 'CN' and is_mil = 0 then 'FRIENDLY_SIDE'           -- 中国的非军机 友方
+        else 'NEUTRALITY' end as friend_foe,                                        -- 由国家判断敌我
+    t2.c_name as country_name          -- 所属国家中文名称
+
 from tmp_radarbox_aircraft_04 as t1
          left join dim_country_code_name_info FOR SYSTEM_TIME AS OF t1.proctime as t2
-                   on t1.country_code = t2.country_code2 and 'COMMON' = t2.source
-         left join dim_country_code_name_info FOR SYSTEM_TIME AS OF t1.proctime as t3
-                   on t1.position_country_code2 = t3.country_code2 and 'COMMON' = t3.source;
+                   on t1.country_code = t2.country_code2 and 'COMMON' = t2.source;
 
 
-
--- 计算海域
-drop table if exists tmp_radarbox_aircraft_06;
-create view tmp_radarbox_aircraft_06 as
-select
-    a.*,
-    b.c_name as sea_name    -- 关联查询海域名称
-from (
-         select
-             *,
-             getSeaArea(cast(longitude as double),cast(latitude as double)) as sea_id   -- 计算海域id
-         from tmp_radarbox_aircraft_05
-     ) a left join dim_sea_area
-    FOR SYSTEM_TIME AS OF a.proctime as b
-                   on a.sea_id = b.id;
-
-
-
--- 关联取机场名称，形成最后插入数据库的表
+-- 关联取机场名称
 drop table if exists tmp_radarbox_aircraft_07;
 create view tmp_radarbox_aircraft_07 as
 select
-    if(s_mode is null,flight_trace_id,s_mode)       as flight_id,
-    acquire_timestamp_format                        as acquire_time,
-    1                                               as src_code,
-    s_mode                                          as icao_code,
+    if(s_mode is null,flight_trace_id,s_mode)       as id,
+    1                                               as srcCode,
+    acquire_timestamp_format                        as acquireTime,
+    s_mode                                          as icaoCode,
     registration,
-    flight_no,
+    flight_no                                       as flightNo,
     cast(null as varchar)                           as callsign,
-    flight_type,
-    is_mil                                          as is_military,  -- 是否军用,
-    if(s_mode is null,'trace_id','hex')             as pk_type,
-    flight_trace_id                                 as src_pk,
-    g.category_code                                 as flight_category,         -- 飞机类型
-    g.category_c_name                               as flight_category_name,        -- 飞机类型名称
-    cast(longitude as double)                       as lng,
-    cast(latitude as double)                        as lat,
-    cast(speed as double)                           as speed,
-    cast(speed as double) * 1.852                   as speed_km,
-    cast(altitude as double)                        as altitude_baro ,
-    cast(altitude as double) * 0.3048               as altitude_baro_m,
-    cast(null as double)                            as altitude_geom,
-    cast(null as double)                            as altitude_geom_m,
-    cast(heading as double)                         as heading,
-    squawk_code,
-    flight_status,
+    flight_type                                     as flightType,
+    is_mil                                          as isMilitary,  -- 是否军用,
+    if(s_mode is null,'trace_id','hex')             as pkType,
+    flight_trace_id                                 as srcPk,
+    flight_category                                 as flightCategory,         -- 飞机类型
+    flight_category_name                            as flightCategoryName,        -- 飞机类型名称
+    longitude                                       as lng,
+    latitude                                        as lat,
+    speed,
+    speed * 1.852                                   as speedKm,
+    altitude                                        as altitudeBaro ,
+    altitude * 0.3048                               as altitudeBaroM,
+    cast(null as double)                            as altitudeGeom,
+    cast(null as double)                            as altitudeGeomM,
+    heading                                         as heading,
+    squawk_code                                     as squawkCode,
+    flight_status                                   as flightStatus,
     if(flight_special_flag = true,1,0)              as special, -- 是否有特殊情况
-    origin_airport3_code,
-    coalesce(b.airport,c.airport)                  as origin_airport_e_name , -- 来源机场英文,
-    coalesce(b.airport_name,c.airport_name)        as origin_airport_c_name , -- 来源机场中文,
-    source_longitude                               as origin_lng,
-    source_latitude                                as origin_lat,
-    destination_airport3_code                      as dest_airport3_code,
-    coalesce(d.airport,f.airport)                  as dest_airport_e_name,
-    coalesce(d.airport_name,f.airport_name)        as dest_airport_c_name,
-    destination_longitude                          as dest_lng,
-    destination_latitude                           as dest_lat,
-    flight_photo,
-    flight_departure_time_format                   as flight_departure_time,
-    expected_landing_time_format                   as expected_landing_time,
-    cast(to_destination_distance as double)        as to_destination_distance,
-    estimated_landing_duration,
-    airlines_icao,
-    airlines_e_name,
-    airlines_c_name,
-    country_code,
-    country_name,
-    data_source,
+    origin_airport3_code                            as originAirport3Code,
+    coalesce(b.airport,c.airport)                  as originAirportEName , -- 来源机场英文,
+    coalesce(b.airport_name,c.airport_name)        as originAirportCName , -- 来源机场中文,
+    source_longitude                               as originLng,
+    source_latitude                                as originLat,
+    destination_airport3_code                      as destAirport3Code,
+    coalesce(d.airport,f.airport)                  as destAirportEName,
+    coalesce(d.airport_name,f.airport_name)        as destAirportCName,
+    destination_longitude                          as destLng,
+    destination_latitude                           as destLat,
+    flight_photo                                   as flightPhoto,
+    flight_departure_time_format                   as flightDepartureTime,
+    expected_landing_time_format                   as expectedLandingTime,
+    cast(to_destination_distance as double)        as toDestinationDistance,
+    estimated_landing_duration                     as estimatedLandingDuration,
+    airlines_icao                                  as airlinesIcao,
+    airlines_e_name                                as airlinesEName,
+    airlines_c_name                                as airlinesCName,
+    country_code                                   as countryCode,
+    country_name                                   as countryName,
+    data_source                                    as dataSource,
     source,
-    position_country_code2,
-    position_country_name,
-    friend_foe,
-    sea_id,
-    sea_name,
-    cast(null as varchar)                         as h3_code,
+    position_country_code2                         as positionCountryCode2,
+    position_country_name                          as positionCountryName,
+    friend_foe                                     as friendFoe,
+    sea_id                                         as seaId,
+    sea_name                                       as seaName,
+    cast(null as varchar)                          as h3Code,
     concat(
             '{',
             '"num":"',if(num is not null,num,''),'",'
@@ -697,9 +565,9 @@ select
                 '"station":"',if(station is not null,station,''),'",',
             '"expected_landing_time":"',if(expected_landing_time is not null,expected_landing_time,''),'",'
                 '"flight_departure_time":"',if(flight_departure_time is not null,flight_departure_time,''),'"}'
-        )as extend_info,
-    from_unixtime(unix_timestamp())  as update_time -- 数据入库时间
-from tmp_radarbox_aircraft_06 a
+        )as extendInfo
+
+from tmp_radarbox_aircraft_05 a
          left join dws_airport_detail_info FOR SYSTEM_TIME AS OF a.proctime as b
                    on a.origin_airport3_code = b.icao
          left join dws_airport_detail_info FOR SYSTEM_TIME AS OF a.proctime as c
@@ -707,9 +575,8 @@ from tmp_radarbox_aircraft_06 a
          left join dws_airport_detail_info FOR SYSTEM_TIME AS OF a.proctime as d
                    on a.destination_airport3_code = d.icao
          left join dws_airport_detail_info FOR SYSTEM_TIME AS OF a.proctime as f
-                   on a.destination_airport3_code = f.iata
-         left join dim_aircraft_type_category FOR SYSTEM_TIME AS OF a.proctime as g
-                   on a.flight_type = g.id;
+                   on a.destination_airport3_code = f.iata;
+
 
 
 
@@ -721,161 +588,66 @@ from tmp_radarbox_aircraft_06 a
 
 begin statement set;
 
-insert into dws_aircraft_combine_list_rt
-select
-    flight_id,
-    acquire_time,
-    src_code,
-    icao_code,
-    registration,
-    flight_no,
-    callsign,
-    flight_type,
-    is_military,  -- 是否军用
-    pk_type,
-    src_pk,
-    flight_category,
-    flight_category_name,
-    lng,
-    lat,
-    speed,
-    speed_km,
-    altitude_baro ,
-    altitude_baro_m,
-    altitude_geom,
-    altitude_geom_m,
-    heading,
-    squawk_code,
-    flight_status,
-    special, -- 是否有特殊情况
-    origin_airport3_code,
-    origin_airport_e_name,
-    origin_airport_c_name,
-    origin_lng,
-    origin_lat,
-    dest_airport3_code,
-    dest_airport_e_name,
-    dest_airport_c_name,
-    dest_lng,
-    dest_lat,
-    flight_photo,
-    flight_departure_time,
-    expected_landing_time,
-    to_destination_distance,
-    estimated_landing_duration,
-    airlines_icao,
-    airlines_e_name,
-    airlines_c_name,
-    country_code,
-    country_name,
-    data_source,
-    source,
-    position_country_code2,
-    position_country_name,
-    friend_foe,
-    sea_id,
-    sea_name,
-    h3_code,
-    extend_info,
-    update_time
-from tmp_radarbox_aircraft_07;
-
-
-insert into dws_aircraft_combine_status_rt
-select
-    flight_id,
-    src_code,
-    acquire_time,
-    icao_code,
-    registration,
-    flight_no,
-    callsign,
-    flight_type,
-    is_military,  -- 是否军用
-    pk_type,
-    src_pk,
-    flight_category,
-    flight_category_name,
-    lng,
-    lat,
-    speed,
-    speed_km,
-    altitude_baro ,
-    altitude_baro_m,
-    altitude_geom,
-    altitude_geom_m,
-    heading,
-    squawk_code,
-    flight_status,
-    special, -- 是否有特殊情况
-    origin_airport3_code,
-    origin_airport_e_name,
-    origin_airport_c_name,
-    origin_lng,
-    origin_lat,
-    dest_airport3_code,
-    dest_airport_e_name,
-    dest_airport_c_name,
-    dest_lng,
-    dest_lat,
-    flight_photo,
-    flight_departure_time,
-    expected_landing_time,
-    to_destination_distance,
-    estimated_landing_duration,
-    airlines_icao,
-    airlines_e_name,
-    airlines_c_name,
-    country_code,
-    country_name,
-    data_source,
-    source,
-    position_country_code2,
-    position_country_name,
-    friend_foe,
-    sea_id,
-    sea_name,
-    h3_code,
-    extend_info,
-    update_time
-from tmp_radarbox_aircraft_07;
-
 
 insert into aircraft_source
 select
-    flight_id               as id,
-    src_code                as srcCode,
-    acquire_time            as acquireTime,
-    icao_code               as icaoCode,
-    flight_no               as flightNo,
+    id,
+    srcCode,
+    acquireTime,
+    icaoCode,
     registration,
-    country_code            as countryCode,
-    country_name            as countryName,
-    airlines_icao            as airlinesIcao,
-    origin_airport3_code     as originAirport3Code,
-    dest_airport3_code       as destAirport3Code,
-    flight_category          as flightCategory,
-    flight_category_name     as flightCategoryName,
-    flight_type              as flightType,
-    flight_status            as flightStatus,
-    squawk_code              as squawkCode,
-    flight_departure_time    as flightDepartureTime,
-    expected_landing_time    as expectedLandingTimeFormat,
-    to_destination_distance  as toDestinationDistance,
-    is_military              as isMilitary,
-    heading,
-    altitude_baro_m          as altitudeBaroM,
+    flightNo,
+    callsign,
+    flightType,
+    isMilitary,
+    pkType,
+    srcPk,
+    flightCategory,
+    flightCategoryName,
     lng,
     lat,
-    speed_km                 as speedKm,
-    friend_foe               as friendFoe,
-    position_country_code2   as positionCountryCode2,
-    sea_id                   as seaId,
-    sea_name                 as seaName,
-    'AIRCRAFT'               as targetType,
-    from_unixtime(unix_timestamp()) as updateTime
-from tmp_radarbox_aircraft_07
-where data_source <> 'ESTI' or  data_source is null;
+    speed,
+    speedKm,
+    altitudeBaro,
+    altitudeBaroM,
+    altitudeGeom,
+    altitudeGeomM,
+    heading,
+    squawkCode,
+    flightStatus,
+    special,
+    originAirport3Code,
+    originAirportEName,
+    originAirportCName,
+    originLng,
+    originLat,
+    destAirport3Code,
+    destAirportEName,
+    destAirportCName,
+    destLng,
+    destLat,
+    flightPhoto,
+    flightDepartureTime,
+    expectedLandingTime,
+    toDestinationDistance,
+    estimatedLandingDuration,
+    airlinesIcao,
+    airlinesEName,
+    airlinesCName,
+    countryCode,
+    countryName,
+    dataSource,
+    source,
+    positionCountryCode2,
+    positionCountryName,
+    friendFoe,
+    seaId,
+    seaName,
+    h3Code,
+    extendInfo,
+    'AIRCRAFT'                      as targetType,
+    from_unixtime(unix_timestamp()) as updateTime -- 数据入库时间
+from tmp_radarbox_aircraft_07;
 
 end;
 
