@@ -19,6 +19,7 @@ fi
 # 类型
 arrayList=(
   "aircraft"
+  "vessel"
 )
 
 sleep_time=1

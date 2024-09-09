@@ -1,4 +1,4 @@
-
+insert into dws_atr_vessel_image_info
 select
     t1.vessel_id,
     now() as acquire_time,
@@ -22,11 +22,10 @@ select
     null as creat_by,
     now() as update_time
 
-from dws_ais_vessel_detail_static_attribute as t1 	-- dws_et_vessel_info
+from dws_vessel_et_info_rt as t1 	-- dws_vessel_et_info_rt
          left join ads_vessel_image_info as t2
                    on t1.vessel_id = t2.id
          left join dws_vessel_image_info2 as t3
                    on t1.mmsi = t3.id
 where t2.id is not null
    or t3.id is not null
-    limit 10000

@@ -66,6 +66,7 @@ from (
     eta,dest_code,dest_name,block_map_index,block_range_x,block_range_y,position_country_code2,extend_info,query_cols,sea_id,update_time
   from sa.dws_vessel_bhv_track_rt
   where acquire_time between date_trunc(hours_sub('${cur_hour_time}',1),'hour') and date_trunc('${cur_hour_time}','hour')
+    and src_code in(1,2,3,4)
 
   union all
 

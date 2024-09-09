@@ -6,12 +6,12 @@ echo -en "开始按天聚合生成数据...$(date)\n"
 
 # 实体类型
 arrayList=(
-  "aircraft"
+  "vessel"
 )
 
-sleep_time=5
+sleep_time=2
 start_time="2023-05-19 00:00:00"
-end_time="2024-08-02 00:00:00"
+end_time="2024-07-01 00:00:00"
 
 start_timestamp=$(date -d "$start_time" +"%s")
 end_timestamp=$(date -d "$end_time" +"%s")

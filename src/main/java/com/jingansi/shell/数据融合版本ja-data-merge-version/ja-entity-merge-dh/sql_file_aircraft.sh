@@ -66,6 +66,8 @@ from (
     ,source,position_country_code2,friend_foe,filter_col,sea_id,sea_name,h3_code,update_time
   from sa.dwd_bhv_aircraft_combine_rt
   where acquire_time between date_trunc(hours_sub('${cur_hour_time}',1),'hour') and date_trunc('${cur_hour_time}','hour')
+    and src_code in(1,2,3)
+    and (data_source != 'ESTI' or  data_source is null)
 
   union all
 
