@@ -8,6 +8,8 @@
 
 nohup sh start.sh > /data1/bigdata/apps/ja-sa-data-backup/ja-real-data-idc/root.log &
 
+sh start.sh "2024-09-01"  "2024-09-02"
+
 <<comment
 同步记录以语雀文档为准：https://jingan.yuque.com/staff-ycgiyb/od1rat/phks427fr8n7wdnz
 
