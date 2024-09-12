@@ -15,6 +15,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '1200000';
+set 'execution.checkpointing.timeout' = '3600000';
 SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-radarbox-aircraft-list-rt-5';
 
 
@@ -24,6 +25,7 @@ SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-radarbox-aircr
 
  -----------------------
 
+select now();
 
 -- radarbox网站的飞机数据（Source：kafka）
 drop table if exists radarbox_aircraft_list_kafka;
@@ -76,7 +78,7 @@ create table radarbox_aircraft_list_kafka(
       -- 'scan.startup.mode' = 'group-offsets',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'scan.startup.timestamp-millis' = '1703606400000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -494,7 +496,7 @@ select
     if(speed = '',cast(null as varchar),speed)                                                 as speed,
     if(heading = '',cast(null as varchar),heading)                                             as heading,
     dataSource                                                                                 as data_source,
-    coalesce(t2.registration,t1.registration)                                                  as registration,
+    coalesce(t2.registration,if(t1.registration in ('BLOCKED','VARIOUS','TACTICAL'),cast(null as string),t1.registration))                                                  as registration,
     if(originAirport3Code = '',cast(null as varchar),originAirport3Code)                       as origin_airport3_code,
     if(destinationAirport3Code='',cast(null as varchar),destinationAirport3Code)               as destination_airport3_code,
     if(airlinesIcao = '',cast(null as varchar),airlinesIcao)                                   as airlines_icao,
@@ -605,7 +607,7 @@ select
            )
         ,'CN', position_country_2code) as position_country_code2,
     -- 这样才能取到值  'BLOCKED','VARIOUS','TACTICAL' 三个异常注册号不转换国家
-    if(registration is null,cast(null as varchar),coalesce(country_code7,country_code6,country_code5,country_code4)) as country_code
+    if(registration is null or registration in ('BLOCKED','VARIOUS','TACTICAL'),cast(null as varchar),coalesce(country_code7,country_code6,country_code5,country_code4)) as country_code
 from tmp_radarbox_aircraft_03;
 
 
