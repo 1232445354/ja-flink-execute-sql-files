@@ -3,14 +3,14 @@ echo -en "程序开始执行.....$(date)\n"
 
 DIR=$(cd `dirname $0`; pwd)
 
-start_day="2024-06-16 00:00:00"
+start_day="2023-06-16 00:00:00"
 end_day="2024-09-01 00:00:00"
 
 col="dws_bhv_aircraft_last_location_fd 1-2-3"
 #col="dws_bhv_vessel_last_location_fd 1-2-3-4"
 
 date_format="+%Y-%m-%d %H:%M:%S"
-sleep_time=30
+sleep_time=40
 IFS=' ' read -r table_name src_code <<< "$col" && IFS='-' read -ra src_codes <<< "$src_code"
 echo -en "表名：${table_name}...\n"
 
