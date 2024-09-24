@@ -7,7 +7,7 @@
 --********************************************************************--
 
 
-set 'pipeline.name' = 'ja-chingchi-icos3.0-rt-pre';
+set 'pipeline.name' = 'ja-chingchi-icos3.0-rt';
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
@@ -16,7 +16,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '6';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt-pre' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt' ;
 
 
 -- 设备检测数据上报（Source：kafka）
@@ -31,7 +31,7 @@ create table iot_device_message_kafka (
                                           bid           string     comment '长连接整个业务的ID',
                                           `method`      string     comment '服务&事件标识',
 
-    -- 截图数据
+    -- 拍照数据
                                           `data`  row(
                                               pictureUrl       string   , -- 拍照数据上报-图片url
                                               width            int      , -- 拍照数据上报-宽度
@@ -46,8 +46,8 @@ create table iot_device_message_kafka (
                                               `method`                string    , -- 服务&事件标识
                                               productKey              string    , -- 产品编码
                                               deviceId                string    , -- 设备编码
-                                              `data` row(
 
+                                              `data` row(
                                               -- 拍照数据
                                               photoUrl            string    , -- 媒体上报的拍照图片url
                                               longitude           double    , -- 机库子设备-无人机,经度
@@ -55,7 +55,7 @@ create table iot_device_message_kafka (
                                               height              double    , -- 机库子设备-无人机，高度
                                               isCapture           bigint    , -- 是否截图
 
-                                              deviceName         string,  -- 执法仪名称
+                                              deviceName          string,  -- 执法仪名称
 
                                               -- 雷达检测数据
                                               targets array<
@@ -76,18 +76,16 @@ create table iot_device_message_kafka (
                                               loss_times       double     -- 连续丢失次数
                                               )
                                               >
-
                                               )
                                               )
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = '135.100.11.103:9092',
-      'properties.group.id' = 'iot-device-message-rt-5',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'iot-device-message-rt-1',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1711537635000',
+      -- 'scan.startup.timestamp-millis' = '1722214800000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -142,8 +140,8 @@ create table photoelectric_inspection_result_kafka(
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'ja-ai-detection-output',
-      'properties.bootstrap.servers' = '135.100.11.103:9092',
-      'properties.group.id' = 'ja-ai-detection-output-group-id',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-output-group-id',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
@@ -156,35 +154,35 @@ create table photoelectric_inspection_result_kafka(
 
 
 -- 设备（可见光、红外）检测全量数据入库（Sink：doris）
-drop table  if exists dwd_photoelectric_target_all_rt_pre;
-create table dwd_photoelectric_target_all_rt_pre(
-                                                    device_id                  string     , -- 设备id,
-                                                    target_id                  bigint     , -- 目标id
-                                                    parent_id                  string     , -- 父设备id
-                                                    acquire_timestamp_format   string     , -- 上游程序上报时间戳-时间戳格式化,
-                                                    acquire_timestamp          bigint     , -- 采集时间戳毫秒级别，上游程序上报时间戳,
-                                                    source_type                string     , -- 设备来源
-                                                    device_name                string     , -- 设备名称
-                                                    source                     string     , -- 数据检测的来源拼接 示例：雷达（11）、可见光（22）
-                                                    bbox_height                double     , -- 长度
-                                                    bbox_left	               double     , -- 左
-                                                    bbox_top	               double     , -- 上
-                                                    bbox_width	               double     , -- 宽度
-                                                    source_frame_height        bigint     , -- 原视频高度
-                                                    source_frame_width         bigint     , -- 原视频宽度
-                                                    big_image_path             string     , -- 大图
-                                                    small_image_path           string     , -- 小图
-                                                    class_id                   double     ,
-                                                    confidence                 string     , -- 置信度
-                                                    infer_id                   double     ,
-                                                    object_label               string     , -- 目标的类型，人，车
-                                                    object_sub_label           string     , -- 目标的类型子类型
-                                                    create_by                  string     , -- 创建人
-                                                    update_time                string      -- 数据入库时间
+drop table  if exists dwd_photoelectric_target_all_rt;
+create table dwd_photoelectric_target_all_rt(
+                                                device_id                  string     , -- 设备id,
+                                                target_id                  bigint     , -- 目标id
+                                                parent_id                  string     , -- 父设备id
+                                                acquire_timestamp_format   string     , -- 上游程序上报时间戳-时间戳格式化,
+                                                acquire_timestamp          bigint     , -- 采集时间戳毫秒级别，上游程序上报时间戳,
+                                                source_type                string     , -- 设备来源
+                                                device_name                string     , -- 设备名称
+                                                source                     string     , -- 数据检测的来源拼接 示例：雷达（11）、可见光（22）
+                                                bbox_height                double     , -- 长度
+                                                bbox_left	               double     , -- 左
+                                                bbox_top	               double     , -- 上
+                                                bbox_width	               double     , -- 宽度
+                                                source_frame_height        bigint     , -- 原视频高度
+                                                source_frame_width         bigint     , -- 原视频宽度
+                                                big_image_path             string     , -- 大图
+                                                small_image_path           string     , -- 小图
+                                                class_id                   double     ,
+                                                confidence                 string     , -- 置信度
+                                                infer_id                   double     ,
+                                                object_label               string     , -- 目标的类型，人，车
+                                                object_sub_label           string     , -- 目标的类型子类型
+                                                create_by                  string     , -- 创建人
+                                                update_time                string      -- 数据入库时间
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     'table.identifier' = 'dushu.dwd_photoelectric_target_all_rt_pre',
+     'table.identifier' = 'dushu.dwd_photoelectric_target_all_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
@@ -201,36 +199,36 @@ create table dwd_photoelectric_target_all_rt_pre(
 
 
 -- 设备（可见光、红外）检测目标状态数据入库（Sink：doris）
-drop table  if exists dws_photoelectric_target_status_rt_pre;
-create table dws_photoelectric_target_status_rt_pre(
-                                                       device_id                  string     , -- 设备id,
-                                                       target_id                  bigint     , -- 目标id
-                                                       parent_id                  string     , -- 父设备id
-                                                       acquire_timestamp_format   string     , -- 上游程序上报时间戳-时间戳格式化,
-                                                       acquire_timestamp          bigint     , -- 采集时间戳毫秒级别，上游程序上报时间戳,
-                                                       source_type                string     , -- 设备来源
-                                                       device_name                string     , -- 设备名称
-                                                       source                     string     , -- 数据检测的来源拼接 示例：雷达（11）、可见光（22）
-                                                       bbox_height                double     , -- 长度
-                                                       bbox_left	               double     , -- 左
-                                                       bbox_top	               double     , -- 上
-                                                       bbox_width	               double     , -- 宽度
-                                                       source_frame_height        bigint     , -- 原视频高度
-                                                       source_frame_width         bigint     , -- 原视频宽度
-                                                       big_image_path             string     , -- 大图
-                                                       small_image_path           string     , -- 小图
-                                                       class_id                   double     ,
-                                                       confidence                 string     , -- 置信度
-                                                       infer_id                   double     ,
-                                                       object_label               string     , -- 目标的类型，人，车
-                                                       object_sub_label           string     , -- 目标的类型子类型
-                                                       create_by                  string     , -- 创建人
-                                                       update_time                string      -- 数据入库时间
+drop table  if exists dws_photoelectric_target_status_rt;
+create table dws_photoelectric_target_status_rt(
+                                                   device_id                  string     , -- 设备id,
+                                                   target_id                  bigint     , -- 目标id
+                                                   parent_id                  string     , -- 父设备id
+                                                   acquire_timestamp_format   string     , -- 上游程序上报时间戳-时间戳格式化,
+                                                   acquire_timestamp          bigint     , -- 采集时间戳毫秒级别，上游程序上报时间戳,
+                                                   source_type                string     , -- 设备来源
+                                                   device_name                string     , -- 设备名称
+                                                   source                     string     , -- 数据检测的来源拼接 示例：雷达（11）、可见光（22）
+                                                   bbox_height                double     , -- 长度
+                                                   bbox_left	               double     , -- 左
+                                                   bbox_top	               double     , -- 上
+                                                   bbox_width	               double     , -- 宽度
+                                                   source_frame_height        bigint     , -- 原视频高度
+                                                   source_frame_width         bigint     , -- 原视频宽度
+                                                   big_image_path             string     , -- 大图
+                                                   small_image_path           string     , -- 小图
+                                                   class_id                   double     ,
+                                                   confidence                 string     , -- 置信度
+                                                   infer_id                   double     ,
+                                                   object_label               string     , -- 目标的类型，人，车
+                                                   object_sub_label           string     , -- 目标的类型子类型
+                                                   create_by                  string     , -- 创建人
+                                                   update_time                string      -- 数据入库时间
 
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     'table.identifier' = 'dushu.dws_photoelectric_target_status_rt_pre',
+     'table.identifier' = 'dushu.dws_photoelectric_target_status_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
@@ -242,8 +240,6 @@ create table dws_photoelectric_target_status_rt_pre(
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
-
-
 
 
 
@@ -269,7 +265,7 @@ create table device_media_datasource (
                                          PRIMARY KEY (device_id,start_time,url) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://135.100.11.103:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8', -- ECS环境
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8', -- ECS环境
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -308,7 +304,7 @@ create table dwd_device_track_rt (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     'table.identifier' = 'dushu.dwd_device_track_rt_pre',
+     'table.identifier' = 'dushu.dwd_device_track_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
@@ -330,8 +326,7 @@ create table iot_device (
                             primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-     'url' = 'jdbc:mysql://135.100.11.103:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'iot_device',
@@ -340,7 +335,6 @@ create table iot_device (
      'lookup.cache.ttl' = '3600s',
      'lookup.max-retries' = '3'
      );
-
 
 
 -- 建立映射mysql的表（为了查询组织id）
@@ -354,7 +348,7 @@ create table users (
                        primary key (user_id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://135.100.11.103:3306/ja-4a?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/ja-4a?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'users',
@@ -372,6 +366,7 @@ create table users (
 
 -----------------------
 
+
 -- kafka来源的所有数据解析
 drop table if exists tmp_source_kafka_01;
 create view tmp_source_kafka_01 as
@@ -384,6 +379,7 @@ select
     tid,
     bid,
     `method`,
+
     -- 共有的
     message.tid as message_tid,
     message.bid as message_bid,
@@ -443,7 +439,7 @@ from (
              latitude,
              PROCTIME()  as proctime
          from tmp_source_kafka_01
-         where product_key in('QptZJHOd1KD','zyrFih3kept','00000000002','xmYA9WCWCtk')  -- QptZJHOd1KD :执法仪，zyrFih3kept、00000000002：无人机
+         where product_key in('QptZJHOd1KD','zyrFih3kept','00000000002', '0hcOWdhPRzy')  -- QptZJHOd1KD :执法仪，zyrFih3kept、00000000002：无人机
            and device_id is not null
            and message_acquire_timestamp is not null
      ) as t1
@@ -481,15 +477,6 @@ select
     t2.object_sub_label,
     t2.source_type,
     PROCTIME()  as proctime
-    -- t1.record_path,                      -- 告警视频地址
-    -- t1.radar_id,
-    -- t2.radar_target_id,
-    -- t2.longitude,
-    -- t2.latitude,
-    -- t2.altitude,
-    -- t2.speed,
-    -- t2.distance,
-    -- t2.yaw,
 
 from photoelectric_inspection_result_kafka as t1
          cross join unnest (object_list) as t2 (
@@ -537,8 +524,6 @@ from tmp_source_kafka_001 as t1
                    on t1.device_id = t2.device_id;
 
 
-
-
 -----------------------
 
 -- 数据插入
@@ -565,7 +550,9 @@ select
     device_name               ,
     'ja-flink' as create_by,
     from_unixtime(unix_timestamp()) as update_time
-from tmp_source_kafka_05;
+from tmp_source_kafka_05
+where longitude is not null
+  and latitude is not null;
 
 
 
@@ -623,8 +610,9 @@ where
 
 
 
+
 -- 设备(红外可见光)检测全量数据入库doris
-insert into dwd_photoelectric_target_all_rt_pre
+insert into dwd_photoelectric_target_all_rt
 select
     device_id,
     target_id,
@@ -654,7 +642,7 @@ from tmp_source_kafka_002;
 
 
 -- 设备(红外可见光)检测状态数据入库doris
-insert into dws_photoelectric_target_status_rt_pre
+insert into dws_photoelectric_target_status_rt
 select
     device_id,
     target_id,
@@ -682,8 +670,5 @@ select
 from tmp_source_kafka_002;
 
 
-
-
 end;
-
 

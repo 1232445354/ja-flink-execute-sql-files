@@ -47,6 +47,7 @@ declare -a small_table_infos=(
 "dwd_mtf_ship_info update_time 1 0"                         # marinetraffic的详情表
 "dws_vessel_list_status_rt acquire_timestamp_format 0 0"    # marinetraffic的船舶状态数据单独入库
 "dws_vt_vessel_status_info acquire_timestamp_format 0 0"    # vt的船舶状态数据单独入库
+"dws_ais_landbased_vessel_status acquire_time 0 0"          # lb岸基数据的状态数据入库
 "dwd_bhv_satellite_rt acquire_time 1 0"                     # 卫星全量数据表
 "dws_bhv_satellite_list_fd today_time 1 0"                  # 卫星每日聚合表
 "dws_et_satellite_info update_time 1 0"                     # 卫星实体表
@@ -58,7 +59,8 @@ declare -a small_table_infos=(
 "dws_atr_aircraft_image_id_info update_time 0 0"            # 飞机图片id表
 "dws_vessel_et_info_rt update_time 1 0"                     # 船舶实体表
 "dws_vessel_bhv_status_rt acquire_time 0 0"                 # 船舶最后位置状态表
-"dws_flight_segment_rt start_time 0 0"                      # 飞机航班表
+"dws_flight_segment_rt start_time 0 0"                      # 飞机航段表 - 自己计算的
+"dws_bhv_airport_weather_info acquire_time 0 0"             # 机场天气数据表
 
 #"dws_ais_vessel_all_info_day acquire_timestamp_format 0 0 - +"  # 船舶按天的数据
 #"dws_ais_vessel_detail_static_attribute update_time 1 0 - +"    # 船舶实体属性
