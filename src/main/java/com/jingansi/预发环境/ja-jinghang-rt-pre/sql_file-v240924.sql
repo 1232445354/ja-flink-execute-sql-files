@@ -280,4 +280,3 @@ from tmp_table01 as c
 
 
 
-
