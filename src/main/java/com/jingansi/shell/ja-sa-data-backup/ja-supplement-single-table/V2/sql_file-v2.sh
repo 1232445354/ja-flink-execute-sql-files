@@ -14,7 +14,7 @@ sql="
 
 insert into sa.${table_name}
 select
-	*
+        *
 from ${catalog_info}.sa.${table_name}
 where ${time_column} between '${start_day}' and '${end_day}'
 
@@ -25,4 +25,3 @@ mysql -h${host} \
 -u${username} \
 -p${password} \
 -e "${sql}"
-

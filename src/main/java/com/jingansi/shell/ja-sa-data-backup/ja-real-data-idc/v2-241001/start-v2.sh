@@ -92,8 +92,8 @@ echo -en "---------------------------------------\n"
 
 echo -en "同步船舶、飞机按天聚合数据......\n"
 declare -a table_infos=(
-"dws_bhv_aircraft_last_location_fd acquire_time 1-2-3"
-"dws_bhv_vessel_last_location_fd acquire_time 1-2-3-4"
+"dws_bhv_aircraft_last_location_fd merge_time 1-2-3"
+"dws_bhv_vessel_last_location_fd merge_time 1-2-3-4"
 )
 
 merge_start_time=$(date -d "${start_time}" "+%Y-%m-%d 00:00:00")
