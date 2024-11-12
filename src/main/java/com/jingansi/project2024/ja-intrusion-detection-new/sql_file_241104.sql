@@ -1,7 +1,8 @@
 --********************************************************************--
 -- author:     yibo@jingan-inc.com
 -- create time: 2024/06/28 16:28:19
--- description: 望楼检测告警
+-- description: 告警、区分object_label类型、并且合并车牌
+-- 公有云版本
 --********************************************************************--
 
 
@@ -313,8 +314,6 @@ where (flag = true and device_id is not null)    -- 人员和车都在区域内�
 
 
 
-
-
 drop view if exists tmp_frame_infer_data_03;
 create view tmp_frame_infer_data_03 as
 select
@@ -323,14 +322,20 @@ select
         when object_label in ('人员','Person') and flag = true then 'climbing'             -- device_id不为空 说明关联上video_area flag为true说明在区域内   攀爬告警
         when object_label in ('人员','Person') and device_id is null then 'person'         -- 人员不在区域内 人员告警
         when object_label in ('摩托车','车','MotorVehicle','NonMotorVehicle','机动车','非机动车') then 'car'                       -- 车辆告警
-        when object_label = '烟雾'      then 'smoke'
-        when object_label = '烟火'      then 'fire_detection'
+        when object_label = '交通事故'      then 'traffic_accident'
+        when object_label = '烟雾'         then 'smoke'
+        when object_label = '烟火'         then 'fire_detection'
 
         -- when object_label in ('MotorVehicle','NonMotorVehicle') and object_sub_label <> 'license_plate' then 'car'     -- 车辆告警
         end as eventType
     -- count(*) over(partition by object_id,device_id order by proctime ) as cnt
 from tmp_frame_infer_data_02
-where object_sub_label <> 'license_plate' or object_sub_label is null;
+where object_label in (
+                       '人员','Person','摩托车','车','MotorVehicle','NonMotorVehicle','机动车','非机动车','交通事故','烟雾','烟火'
+    )  ;
+-- （object_sub_label <> 'license_plate' or object_sub_label is null
+
+
 
 
 
@@ -345,15 +350,16 @@ select
     uuid()                           as eventId                   , -- 唯一编号 必填
     uuid()                           as eventNo                   , -- 事件编号 必填
     case eventType
-        when 'climbing' then '人员入侵'
-        when 'person'   then '人员告警'
-        when 'car'      then '车辆告警'
-        when 'smoke'          then '烟雾告警'
-        when 'fire_detection' then '烟火告警'
-        end                              as eventName                 , -- 事件名称
+        when 'climbing'          then '人员入侵'
+        when 'person'            then '人员告警'
+        when 'car'               then '车辆告警'
+        when 'smoke'             then '烟雾告警'
+        when 'fire_detection'    then '烟火告警'
+        when 'traffic_accident'  then '交通事故'
+        end                          as eventName                 , -- 事件名称
     source_id                        as deviceId                  , -- 设备id  必填
-    t4.name                           as deviceName                , -- 设备名称
-    t4.type                           as deviceType                , -- 设备类型
+    t4.name                          as deviceName                , -- 设备名称
+    t4.type                          as deviceType                , -- 设备类型
     eventType                        as eventType                 , -- 事件类型
     'High'                           as `level`                   , -- 防护区等级
     ntp_timestamp                    as eventTime                 , -- 事件时间
