@@ -1,7 +1,8 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/3/8 09:33:33
--- description: 饿了么数据存储、内部新版本测试的
+-- description: 饿了么数据存储、内部新版本测试的，现在已经是正式的了
+-- 2024-12-02
 --********************************************************************--
 set 'pipeline.name' = 'ja-hunger-project-test';
 
@@ -50,7 +51,7 @@ create table test_infer_result (
                                    user_meta
                                                            row(
                                        dateTime             string,
-                                       id                   string,
+                                       id                   string,    -- 摄像头id
                                        imageUrl             string,
                                        name                 string
                                        ),
@@ -61,9 +62,9 @@ create table test_infer_result (
       'topic' =  'test_infer_result2',
       'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
       'properties.group.id' = 'test-infer-result-rt',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -73,9 +74,10 @@ create table test_infer_result (
 -- 全量数据入库（Sink：doris）
 drop table if exists dwd_hunger_all_rt_test;
 create table dwd_hunger_all_rt_test (
-                                        pts                     bigint      	comment 'pts 值',
-                                        ntp_timestamp           bigint      	comment '时间戳',
+                                        object_id               bigint          comment '目标ID',
                                         ntp_timestamp_format    timestamp       comment '时间戳格式化',
+                                        ntp_timestamp           bigint      	comment '时间戳',
+                                        pts                     bigint      	comment 'pts 值',
                                         batch_id                bigint      	comment '批处理ID',
                                         frame_num               int         	comment '帧编号',
                                         source_id               string          comment '数据源ID',
@@ -84,7 +86,7 @@ create table dwd_hunger_all_rt_test (
                                         infer_done              boolean		    comment '',
                                         full_image_path         string          comment '大图图片存储路径',
                                         frame_tensor_list       string          comment '输出基于帧的特征向量',
-                                        object_id               bigint          comment '目标ID',
+
                                         object_label            string          comment '目标类型(cat,dog,mouse,smoke,naked)',
                                         infer_id                int             comment '推理算子ID',
                                         class_id                int             comment '',
@@ -101,8 +103,7 @@ create table dwd_hunger_all_rt_test (
                                         is_cover                boolean,
                                         uncover_confidence      string,
                                         cover_confidence 	    string,
-                                        create_by     			string          comment '创建人',
-                                        create_on               string          comment '创建时间'
+                                        update_time             string        comment '数据入库时间'
 )with (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
@@ -120,9 +121,10 @@ create table dwd_hunger_all_rt_test (
 -- Doris写入的告警数据（Sink：doris）
 drop table if exists dwd_hunger_alarm_test;
 create table dwd_hunger_alarm_test (
-                                       pts                     bigint      	comment 'pts 值',
-                                       ntp_timestamp           bigint      	comment '时间戳',
+                                       object_id               bigint          comment '目标ID',
                                        ntp_timestamp_format    timestamp       comment '时间戳格式化',
+                                       ntp_timestamp           bigint      	comment '时间戳',
+                                       pts                     bigint      	comment 'pts 值',
                                        batch_id                bigint      	comment '批处理ID',
                                        frame_num               int         	comment '帧编号',
                                        source_id               string          comment '数据源ID',
@@ -131,7 +133,7 @@ create table dwd_hunger_alarm_test (
                                        infer_done              boolean		    comment '',
                                        full_image_path         string          comment '大图图片存储路径',
                                        frame_tensor_list       string          comment '输出基于帧的特征向量',
-                                       object_id               bigint          comment '目标ID',
+
                                        object_label            string          comment '目标类型(cat,dog,mouse,smoke,naked)',
                                        infer_id                int             comment '推理算子ID',
                                        class_id                int             comment '',
@@ -148,8 +150,7 @@ create table dwd_hunger_alarm_test (
                                        is_cover                boolean,
                                        uncover_confidence      string,
                                        cover_confidence 	    string,
-                                       create_by     			string          comment '创建人',
-                                       create_on               string          comment '创建时间'
+                                       update_time             string        comment '数据入库时间'
 )with (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
@@ -216,7 +217,8 @@ from  test_infer_result a
                                                 confidence,
                                                 image_path
     )
-where a.ntp_timestamp is not null;
+where a.ntp_timestamp is not null
+  and t.object_id is not null;
 
 
 -- 数据展开kafka-topic1给定外部饿了么的数据进行告警筛选
@@ -254,7 +256,7 @@ from(
             is_cover,
             uncover_confidence,
             cover_confidence,
-            row_number() over(partition by id,bbox_left,bbox_top,bbox_width,bbox_height,class_id order by ntp_timestamp) as rk
+            row_number() over(partition by object_id,bbox_left,bbox_top,bbox_width,bbox_height,class_id order by ntp_timestamp) as rk
         from tmp_frame_infer_data_external_01
     ) as t1
 where t1.rk = 1;
@@ -271,9 +273,10 @@ begin statement set;
 -- 给定饿了吗的数据-全量数据写入doris
 insert into dwd_hunger_all_rt_test
 select
-    pts,
-    ntp_timestamp,
+    object_id,
     ntp_timestamp_format, -- 时间戳格式化
+    ntp_timestamp,
+    pts,
     batch_id,
     frame_num,
     source_id,
@@ -282,7 +285,6 @@ select
     infer_done,
     full_image_path,
     frame_tensor_list,
-    object_id,
     object_label,
     infer_id,
     class_id,
@@ -299,17 +301,17 @@ select
     is_cover,
     uncover_confidence,
     cover_confidence,
-    'ja-flink' as create_by,
-    from_unixtime(unix_timestamp()) as create_on
+    from_unixtime(unix_timestamp()) as update_time
 from tmp_frame_infer_data_external_01;
 
 
 -- 给定饿了吗的数据告警数据写入doris
 insert into dwd_hunger_alarm_test
 select
-    pts,
-    ntp_timestamp,
+    object_id,
     ntp_timestamp_format, -- 时间戳格式化
+    ntp_timestamp,
+    pts,
     batch_id,
     frame_num,
     source_id,
@@ -318,7 +320,6 @@ select
     infer_done,
     full_image_path,
     frame_tensor_list,
-    object_id,
     object_label,
     infer_id,
     class_id,
@@ -335,10 +336,8 @@ select
     is_cover,
     uncover_confidence,
     cover_confidence,
-    'ja-flink' as create_by,
-    from_unixtime(unix_timestamp()) as create_on
+    from_unixtime(unix_timestamp()) as update_time
 from tmp_frame_infer_data_external_02;
-
 
 end;
 
