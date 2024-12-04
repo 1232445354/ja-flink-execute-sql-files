@@ -19,7 +19,7 @@ set 'table.exec.sink.not-null-enforcer'='drop';
 
 -- checkpoint的时间和位置
 set 'execution.checkpointing.interval' = '120000';
-set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-jinghang-rt';
+set 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-jinghang-rt';
 
 
  -----------------------
@@ -86,16 +86,15 @@ create table temp01_kafka(
       'connector' = 'kafka',
       'topic' = 'jinghang_detection_result',
       -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = 'kafka.kafka.svc.cluster.local:9092',
-      'properties.group.id' = 'test-group',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'test-group-4',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'scan.startup.timestamp-millis' = '1713268800000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
-
 
 
 -- 设备表（Source：mysql）
@@ -152,7 +151,7 @@ create table temporary_detect_result (
     -- PRIMARY KEY (device_id,result_time,plate_no) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -242,7 +241,6 @@ from temp01_kafka as a
 
 -- begin statement set;
 
-
 insert into temporary_detect_result
 select
     c.action_id                ,
@@ -266,8 +264,8 @@ select
     c.bbox_top - c.bbox_height as right_btm_y,
     c.bbox_width               ,
     c.bbox_height              ,
-    c.source_frame_width       ,
-    c.source_frame_height      ,
+    1920       ,
+    1080      ,
     c.confidence               ,
     d.type as device_type      ,
     c.device_name
