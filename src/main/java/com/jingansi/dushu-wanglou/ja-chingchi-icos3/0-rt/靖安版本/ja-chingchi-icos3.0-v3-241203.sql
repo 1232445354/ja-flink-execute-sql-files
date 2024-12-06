@@ -613,9 +613,8 @@ select
         when t1.product_key = 'r4ae3Loh78v' then '7' -- 振动仪
         when t1.product_key = 'dTz5djGU3Jb' then '8' -- 边缘设备
         when t1.product_key = '68ai6goNgw5' then '9' -- 网络设备（mesh）
-        when t1.product_key = 'zyrFih3kept' then '10' -- 无人机
-        when t1.product_key = '00000000002' then '10' -- 机库子设备-无人机
-        when t1.product_key = '00000000001' then '11' -- 无人机机
+        when t1.product_key in ('zyrFih3kept','0hcOWdhPRzy','00000000002') then '10' -- 无人机
+        when t1.product_key = '00000000001' then '11' -- 无人机机库
         else t1.product_key end as device_type,
 
     if(t2.parent_id is not null and t2.parent_id <> '',t2.parent_id,t1.device_id) as parent_id,
@@ -645,7 +644,7 @@ from (
              PROCTIME()  as proctime
          from iot_device_message_kafka_02
          where coalesce(productKey,message.productKey) in('Y95SjAkrmRG','uvFrSFW2zMs','mVpLCOnTPLz','k8dNIRut1q3','raYeBHvRKYP','r4ae3Loh78v','eX71parWGpf',
-                                                          'dTz5djGU3Jb','68ai6goNgw5','zyrFih3kept','00000000001','00000000002','lZezNYnHUO0','3m8d1RppMas','ZN5WjyZvfcP','BBqdWxlqTM3')
+                                                          'dTz5djGU3Jb','68ai6goNgw5','zyrFih3kept','00000000001','00000000002','lZezNYnHUO0','3m8d1RppMas','ZN5WjyZvfcP','BBqdWxlqTM3','0hcOWdhPRzy')
            and coalesce(`method`,message.`method`) in ('properties.state','event.property.post')
            and coalesce(`timestamp`,message.`timestamp`) > 1704096000000
      ) as t1

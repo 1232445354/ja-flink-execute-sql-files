@@ -59,7 +59,7 @@ create table test_infer_result (
                                    watermark for rowtime as rowtime - interval '5' second
 ) WITH (
       'connector' = 'kafka',
-      'topic' =  'test_infer_result2',
+      'topic' =  'test_infer_result3',
       'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
       'properties.group.id' = 'test-infer-result-rt',
       'scan.startup.mode' = 'latest-offset',
