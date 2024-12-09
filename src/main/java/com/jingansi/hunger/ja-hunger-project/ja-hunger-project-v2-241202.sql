@@ -4,7 +4,7 @@
 -- description: 饿了么数据存储、内部新版本测试的，现在已经是正式的了
 -- 2024-12-02
 --********************************************************************--
-set 'pipeline.name' = 'ja-hunger-project-test';
+set 'pipeline.name' = 'ja-hunger-project-v2-241202';
 
 SET 'parallelism.default' = '2';
 set 'table.exec.state.ttl' = '300000';
@@ -15,7 +15,7 @@ SET 'sql-client.display.max-column-width' = '100';
 
 -- -- checkpoint的时间和位置
 SET 'execution.checkpointing.interval' = '300000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-chenkpoints/ja-hunger-project-test' ;
+SET 'state.checkpoints.dir' = 's3://ja-flink/flink-chenkpoints/ja-hunger-project-v2-241202' ;
 
 
 -- kafka来源的数据给外部饿了么测试的（Source：kafka）
@@ -59,7 +59,7 @@ create table test_infer_result (
                                    watermark for rowtime as rowtime - interval '5' second
 ) WITH (
       'connector' = 'kafka',
-      'topic' =  'test_infer_result3',
+      'topic' =  'ja_infer_result3', --test_infer_result3
       'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
       'properties.group.id' = 'test-infer-result-rt',
       'scan.startup.mode' = 'latest-offset',
