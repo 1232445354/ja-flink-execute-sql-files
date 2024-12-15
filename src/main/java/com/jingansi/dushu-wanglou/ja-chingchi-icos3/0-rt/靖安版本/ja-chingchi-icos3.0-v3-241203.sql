@@ -183,8 +183,10 @@ create table dwd_radar_target_all_rt(
                                         acquire_timestamp_format   string     , -- '上游程序上报时间戳-时间戳格式化',
                                         acquire_timestamp          bigint     , -- '采集时间戳毫秒级别，上游程序上报时间戳',
                                         source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
+                                        source_type_name           string     , -- 数据设备来源名称，就是设备类型，使用product_key区分的
+
                                         device_name                string     , -- 设备名称
-                                        source                     string     , -- 数据检测的来源[{deviceName,targetId,type}]
+                                        device_info                string     , -- 数据检测的来源[{deviceName,targetId,type}]
                                         object_label               string     , -- 目标类型
                                         x_distance                 double     , -- 'x距离',
                                         y_distance                 double     , -- 'y距离',
@@ -226,44 +228,28 @@ create table dwd_radar_target_all_rt(
 
 
 
--- 雷达 - 设备检测目标状态数据入库（Sink：doris）
-drop table  if exists dws_radar_target_status_rt;
-create table dws_radar_target_status_rt(
+-- 雷达 - 检测数据 - 入融合合并表（Sink：doris）
+drop table  if exists dwd_detection_target_merge;
+create table dwd_detection_target_merge(
                                            device_id                  string     , -- '设备id',
                                            target_id                  string     , -- '目标id',
                                            parent_id                  string     , -- 父设备的id,也就是望楼id
                                            acquire_timestamp_format   string     , -- '上游程序上报时间戳-时间戳格式化',
-                                           acquire_timestamp          bigint     , -- '采集时间戳毫秒级别，上游程序上报时间戳',
-                                           source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
+                                           source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:融合,RADAR:雷达,VIBRATOR: 震动器
+                                           source_type_name           string     , -- 数据设备来源名称，就是设备类型，使用product_key区分的
                                            device_name                string     , -- 设备名称
-                                           source                     string     , -- 数据检测的来源[{deviceName,targetId,type}]
-                                           object_label               string     , -- 目标类型
-                                           x_distance                 double     , -- 'x距离',
-                                           y_distance                 double     , -- 'y距离',
                                            speed                      double     , -- '目标速度',
-                                           status                     string     , -- '0 目标跟踪 1 目标丢失 2 跟踪终止',
-                                           target_altitude            double     , -- '目标海拔高度',
+                                           distance                   double     , -- 距离，新雷达的距离，没有了x距离和y距离
+                                           object_label               string     , -- 目标类型
                                            longitude                  double     , -- '目标经度',
                                            latitude                   double     , -- '目标维度',
-                                           target_pitch               double     , -- '俯仰角',
-                                           target_yaw                 double     , -- 水平角,新版本加入
-                                           distance                   double     , -- 距离，新雷达的距离，没有了x距离和y距离
-                                           utc_time                   bigint     , -- '雷达上报的时间'	,
-                                           tracked_times              double     , -- '已跟踪次数',
-                                           loss_times                 double     , -- '连续丢失次数'
-                                           target_credibility         double     ,
-                                           time1                      string     ,
-                                           tid                        string     , -- 当前请求的事务唯一ID
-                                           bid                        string     , -- 长连接整个业务的ID
-                                           `method`                   string     , -- 服务&事件标识
-                                           product_key                string     , -- 产品编码
-                                           version                    string     , -- 版本
+                                           device_info                string     , -- 数据检测的来源[{deviceName,targetId,type}]
                                            update_time                string      -- 数据入库时间
 )WITH (
      'connector' = 'doris',
 -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',  -- k8s部署
      'fenodes' = '172.21.30.202:30030',                                       -- 物理机器部署
-     'table.identifier' = 'dushu.dws_radar_target_status_rt',
+     'table.identifier' = 'dushu.dwd_detection_target_merge',
      'username' = 'admin',
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
@@ -531,7 +517,10 @@ select
     t2.targetCredibility   as target_credibility,
     t2.`time` as time1,
 
-    if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,  -- 设备来源，M300、RADAR
+    -- if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,  -- 设备来源，M300、RADAR、振动仪
+
+    if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,
+    t1.device_name_join as source_type_name,
 
     -- 雷达无目标类型都给未知｜可见光红外需要null、''、未知目标更改为未知｜ 信火一体的需要'' 改为未知
     if(
@@ -546,7 +535,7 @@ select
            concat('"deviceId":"',t1.device_id,'",'),
            concat('"targetId":"',t2.targetId,'",'),
            concat('"type":"',t2.sourceType,'"}]')
-        ) as source
+        ) as device_info
 
 from tmp_source_kafka_03 as t1
          cross join unnest (targets) as t2 (
@@ -726,8 +715,9 @@ select
     acquire_timestamp_format,
     acquire_timestamp,
     source_type,
+    source_type_name,
     device_name,
-    source,
+    device_info,
     object_label,
     x_distance,
     y_distance,
@@ -753,38 +743,23 @@ select
 from tmp_source_kafka_04;
 
 
--- 雷达目标 - 检测状态数据入库doris
-insert into dws_radar_target_status_rt
+
+-- 检测数据入合并表
+insert into dwd_detection_target_merge
 select
     device_id,
     target_id,
     parent_id,
     acquire_timestamp_format,
-    acquire_timestamp,
     source_type,
+    source_type_name,
     device_name,
-    source,
-    object_label,
-    x_distance,
-    y_distance,
     speed,
-    status,
-    target_altitude,
+    distance,
+    object_label,
     longitude,
     latitude,
-    target_pitch,
-    target_yaw,
-    distance,
-    utc_time,
-    tracked_times,
-    loss_times,
-    target_credibility,
-    time1,
-    tid,
-    bid,
-    `method`,
-    product_key,
-    version,
+    device_info,
     from_unixtime(unix_timestamp()) as update_time
 from tmp_source_kafka_04;
 

@@ -2,9 +2,10 @@
 -- author:     yibo@jingan-inc.com
 -- create time: 2024/08/14 16:28:19
 -- description: 检测数据告警
+-- version:
 --********************************************************************--
 
-set 'pipeline.name' = 'ja-intrusion-detection-new-base';
+set 'pipeline.name' = 'ja-intrusion-detection-vjh-241215';
 
 SET 'table.exec.state.ttl' = '600000';
 SET 'execution.type' = 'streaming';
@@ -13,7 +14,7 @@ SET 'sql-client.display.max-column-width' = '100';
 
 -- checkpoint的时间和位置
 SET 'execution.checkpointing.interval' = '60000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-intrusion-detection-new-base' ;
+SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-intrusion-detection' ;
 
 
  -----------------------

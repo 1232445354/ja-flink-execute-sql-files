@@ -2,9 +2,10 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2023/10/27 15:19:11
 -- description: 警航程序
+-- version:ja-jinghang-rt-vpre-240920
 --********************************************************************--
 
-set 'pipeline.name' = 'ja-jinghang-rt';
+set 'pipeline.name' = 'ja-jinghang-rt-vpre-240920';
 
 
 set 'parallelism.default' = '1';
@@ -19,7 +20,7 @@ set 'table.exec.sink.not-null-enforcer'='drop';
 
 -- checkpoint的时间和位置
 set 'execution.checkpointing.interval' = '120000';
-set 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-jinghang-rt';
+set 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-jinghang-rt-pre';
 
 
  -----------------------
@@ -85,16 +86,16 @@ create table temp01_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'jinghang_detection_result',
-      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      'properties.group.id' = 'test-group-4',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1713268800000',
+      'properties.bootstrap.servers' = '135.100.11.103:9092',
+      'properties.group.id' = 'test-group',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
+
 
 
 -- 设备表（Source：mysql）
@@ -110,7 +111,7 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://135.100.11.103:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -151,7 +152,7 @@ create table temporary_detect_result (
     -- PRIMARY KEY (device_id,result_time,plate_no) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://135.100.11.103:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -240,6 +241,7 @@ from temp01_kafka as a
 -----------------------
 
 -- begin statement set;
+
 
 insert into temporary_detect_result
 select
