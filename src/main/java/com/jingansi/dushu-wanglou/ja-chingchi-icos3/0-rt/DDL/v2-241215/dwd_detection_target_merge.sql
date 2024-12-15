@@ -1,0 +1,61 @@
+
+CREATE TABLE `dwd_detection_target_merge` (
+                                              `device_id` VARCHAR(200) NULL COMMENT '设备id,2级设备',
+                                              `target_id` VARCHAR(200) NULL COMMENT '目标id',
+                                              `parent_id` VARCHAR(300) NULL COMMENT '父设备的id,也就是望楼id',
+                                              `acquire_timestamp_format` DATETIME NULL COMMENT '上游程序上报时间戳-时间戳格式化',
+                                              `source_type` VARCHAR(300) NULL COMMENT '数据来源设备',
+                                              source_type_name varchar(300) comment '数据来源设备名称，就是设备类型，使用product_key区分的',
+                                              `device_name` VARCHAR(300) NULL COMMENT '设备名称',
+                                              `speed` DOUBLE NULL COMMENT '目标速度m/s',
+                                              `distance` DOUBLE NULL COMMENT '距离,新雷达的距离,没有了x距离和y距离 m',
+                                              `object_label` VARCHAR(300) NULL COMMENT '目标类型',
+                                              `longitude` DOUBLE NULL COMMENT '目标经度',
+                                              `latitude` DOUBLE NULL COMMENT '目标维度',
+                                              `big_image_path` VARCHAR(1000) NULL COMMENT '大图',
+                                              `image_source` VARCHAR(200) NULL COMMENT '图片来源设备',
+                                              `record_path` VARCHAR(10000) NULL COMMENT '可见光、红外告警视频地址',
+                                              `device_info` VARCHAR(10000) NULL COMMENT '数据检测的来源拼接 示例:雷达（11）、可见光（22）',
+                                              `bbox_height` DOUBLE NULL COMMENT '长度',
+                                              `bbox_left` DOUBLE NULL COMMENT '左',
+                                              `bbox_top` DOUBLE NULL COMMENT '上',
+                                              `bbox_width` DOUBLE NULL COMMENT '宽度',
+                                              `source_frame_height` BIGINT NULL COMMENT '原视频高度',
+                                              `source_frame_width` BIGINT NULL COMMENT '原视频宽度',
+                                              target_model   varchar(1000) comment '目标型号',
+                                              `flag` int NULL COMMENT '是否修改属性-修改、插入',
+                                              `update_time` DATETIME NULL COMMENT '数据入库时间'
+) ENGINE=OLAP
+UNIQUE KEY(`device_id`, `target_id`, `parent_id`, `acquire_timestamp_format`)
+COMMENT '设备检测数据合并入库'
+PARTITION BY RANGE(`acquire_timestamp_format`)()
+DISTRIBUTED BY HASH(`device_id`) BUCKETS 2
+PROPERTIES (
+"replication_allocation" = "tag.location.default: 3",
+"min_load_replica_num" = "-1",
+"is_being_synced" = "false",
+"dynamic_partition.enable" = "true",
+"dynamic_partition.time_unit" = "DAY",
+"dynamic_partition.time_zone" = "Etc/UTC",
+"dynamic_partition.start" = "-1000",
+"dynamic_partition.end" = "3",
+"dynamic_partition.prefix" = "p",
+"dynamic_partition.replication_allocation" = "tag.location.default: 3",
+"dynamic_partition.buckets" = "2",
+"dynamic_partition.create_history_partition" = "true",
+"dynamic_partition.history_partition_num" = "400",
+"dynamic_partition.hot_partition_num" = "0",
+"dynamic_partition.reserved_history_periods" = "NULL",
+"dynamic_partition.storage_policy" = "",
+"dynamic_partition.storage_medium" = "HDD",
+"storage_medium" = "hdd",
+"storage_format" = "V2",
+"inverted_index_storage_format" = "V1",
+"enable_unique_key_merge_on_write" = "true",
+"light_schema_change" = "true",
+"disable_auto_compaction" = "false",
+"enable_single_replica_compaction" = "false",
+"group_commit_interval_ms" = "10000",
+"group_commit_data_bytes" = "134217728",
+"enable_mow_light_delete" = "false"
+);
