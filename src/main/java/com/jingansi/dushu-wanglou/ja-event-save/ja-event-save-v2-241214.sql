@@ -5,7 +5,7 @@
 --version:ja-event-save-v1-241203
 --********************************************************************--
 
-set 'pipeline.name' = 'ja-event-save-v2-241214';
+set 'pipeline.name' = 'ja-event-save-v1-241203';
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
@@ -14,8 +14,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save' ;
-
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save-v1-241203' ;
 
 
  -- -----------------------
@@ -100,7 +99,6 @@ create table jiance_209(
                            trackStatus           bigint,    -- 航迹状态
                            targetNum             bigint,    -- 目标数量
                            targetModel           bigint,    -- 目标型号
-
                            xSpeed                bigint,    -- X向速度
                            ySpeed                bigint,    -- Y向速度
                            zSpeed                bigint,    -- Z向速度
@@ -120,7 +118,7 @@ create table jiance_209(
 
 ) WITH (
       'connector' = 'kafka',
-      'topic' = 'ja-detection-output-209',
+      'topic' = 'ja-detection-output',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'ja-detection-output-2091',
       -- 'scan.startup.mode' = 'group-offsets',
@@ -188,6 +186,66 @@ create table dwd_photoelectric_target_all_rt(
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
+
+
+-- 209检测数据- 单独表（Sink：doris）
+drop table  if exists dwd_event_save_all;
+create table dwd_event_save_all(
+                                   device_id                  string     , -- '设备id',
+                                   target_id                  string     , -- '目标id',
+                                   parent_id                  string     , -- 父设备的id,也就是望楼id
+                                   acquire_timestamp_format   string     , -- '上游程序上报时间戳-时间戳格式化',
+                                   acquire_timestamp          bigint     , -- '采集时间戳毫秒级别，上游程序上报时间戳',
+
+                                   local_lot_no              varchar(300)  ,-- 本地批号,设备sn号
+                                   rcs                       bigint,        -- RCS值
+                                   data_cycle                bigint,        -- 数据周期
+                                   recognition_rate          bigint,        -- 目标识别概率
+                                   superior_lot_no           bigint,        -- 上级批号,每个车辆唯一
+                                   target_type               bigint,        -- 目标类型
+                                   target_property           bigint,        -- 目标属性
+                                   track_status              bigint,        -- 航迹状态
+                                   target_num                bigint,        -- 目标数量
+                                   target_model              bigint,        -- 目标型号
+
+                                   x_speed                   bigint,        -- X向速度
+                                   y_speed                   bigint,        -- Y向速度
+                                   z_speed                   bigint,        -- Z向速度
+                                   x_location                bigint,        -- 目标位置X
+                                   y_location                bigint,        -- 目标位置Y
+                                   z_location                bigint,        -- 目标位置Z
+                                   pitch_system_error        bigint,        -- 俯仰系统误差
+                                   pitch_random_error        bigint,        -- 俯仰随机误差
+                                   slant_range_system_error  bigint,        -- 斜距随机误差
+                                   slant_range_random_error  bigint,        -- 斜距系统误差
+                                   speed_random_error        bigint,        -- 速度随机误差
+                                   speed_system_error        bigint,        -- 速度系统误差
+                                   yaw_system_error          bigint,        -- 方位系统误差
+                                   yaw_random_error          bigint,        -- 方位随机误差
+                                   overall_speed             bigint,        -- 合速度
+
+                                   source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
+                                   source_type_name           string     , -- 数据设备来源名称，就是设备类型，使用product_key区分的
+                                   device_name                string     , -- 设备名称
+                                   device_info                string     , -- 数据检测的来源拼接 示例：雷达（11）、可见光（22）
+                                   object_label               string, -- 目标类型名称-中文
+                                   update_time                string      -- 数据入库时间
+)WITH (
+     'connector' = 'doris',
+-- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',  -- k8s部署
+     'fenodes' = '172.21.30.202:30030',                                       -- 物理机器部署
+     'table.identifier' = 'dushu.dwd_event_save_all',
+     'username' = 'admin',
+     'password' = 'Jingansi@110',
+     'doris.request.tablet.size'='3',
+     'doris.request.read.timeout.ms'='30000',
+     'sink.batch.size'='20000',
+     'sink.batch.interval'='10s',
+     'sink.properties.escape_delimiters' = 'true',
+     'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
+     'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+     );
 
 
 
@@ -394,7 +452,6 @@ select
 
     if(source_type = 'FUSHION','融合目标',t2.device_name) as source_type_name,
 
-    cast(null as varchar) as flag,
     case when source_type in ('VISUAL','INFRARED') then -- 可见光、红外
              concat('[{',
                     concat('"deviceName":"',t2.device_name,'",'),
@@ -426,6 +483,7 @@ from tmp_source_kafka_001 as t1
 
 create view ja_tmp01 as
 select
+    t1.*,
     t1.localLotNo as sn,
     t1.`timestamp`   as acquire_timestamp,
     from_unixtime(t1.`timestamp`/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
@@ -434,7 +492,6 @@ select
     if(t3.parent_id is not null and t3.parent_id <> '',t3.parent_id,t2.device_id) as parent_id,
     t2.name as device_name,
     concat(cast(t1.`timestamp` as varchar),cast(RAND_INTEGER(10000) as varchar)) as target_id,
-
 
     if(t4.target_name is not null,t4.target_name,'未知')       as object_label,   -- 目标类型对应中文
     if(t2.type is not null,t2.type,'none') as source_type,
@@ -530,7 +587,7 @@ select
 from tmp_source_kafka_002;
 
 
-
+-- 209数据入融合事件表
 insert into dwd_detection_target_merge(device_id,target_id,parent_id,acquire_timestamp_format,source_type,source_type_name,device_name,object_label,target_model,update_time)
 select
     device_id,
@@ -546,6 +603,47 @@ select
 
 from ja_tmp01;
 
+
+-- 209数据单独入表
+insert into dwd_event_save_all
+select
+    device_id,
+    target_id,
+    parent_id,
+    acquire_timestamp_format,
+    acquire_timestamp,
+    localLotNo             as local_lot_no,
+    RCS                    as rcs,
+    dataCycle              as data_cycle,
+    recognitionRate        as recognition_rate,
+    superiorLotNo          as superior_lot_no,
+    targetType             as target_type,
+    targetProperty         as target_property,
+    trackStatus            as track_status,
+    targetNum              as target_num,
+    targetModel            as target_model,
+    xSpeed                 as x_speed,
+    ySpeed                 as y_speed,
+    zSpeed                 as z_speed,
+    xLocation              as x_location,
+    yLocation              as y_location,
+    zLocation              as z_location,
+    pitchSystemError       as pitch_system_error,
+    pitchRandomError       as pitch_random_error,
+    slantRangeSystemError  as slant_range_system_error,
+    slantRangeRandomError  as slant_range_random_error,
+    speedRandomError       as speed_random_error,
+    speedSystemError       as speed_system_error,
+    yawSystemError         as yaw_system_error,
+    yawRandomError         as yaw_random_error,
+    overallSpeed           as overall_speed,
+    source_type,
+    source_type_name,
+    device_name,
+    cast(null as varchar) as device_info,
+    object_label,
+    from_unixtime(unix_timestamp()) as update_time
+from ja_tmp01;
 
 end;
 

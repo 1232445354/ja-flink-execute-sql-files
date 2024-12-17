@@ -1,4 +1,3 @@
-
 CREATE TABLE `dwd_photoelectric_target_all_rt` (
                                                    `device_id` VARCHAR(200) NULL COMMENT '可见光、红外的设备ID-source_id',
                                                    `target_id` VARCHAR(200) NULL COMMENT '可见光、红外检测到的目标的id',
@@ -7,7 +6,6 @@ CREATE TABLE `dwd_photoelectric_target_all_rt` (
                                                    `acquire_timestamp` BIGINT NULL COMMENT '采集时间戳毫秒级别，上游程序上报时间戳',
                                                    `source_type` VARCHAR(300) NULL COMMENT '数据设备来源类型',
                                                    source_type_name varchar(300) COMMENT '数据设备来源名称，就是设备类型，使用product_key区分的',
-
                                                    `device_name` VARCHAR(300) NULL COMMENT '设备名称',
                                                    `radar_id` VARCHAR(300) NULL COMMENT '雷达id',
                                                    `radar_target_id` DOUBLE NULL COMMENT '雷达检测的目标id',
@@ -30,12 +28,10 @@ CREATE TABLE `dwd_photoelectric_target_all_rt` (
                                                    `confidence` VARCHAR(200) NULL COMMENT '置信度',
                                                    `infer_id` DOUBLE NULL,
                                                    `object_label` VARCHAR(300) NULL COMMENT '目标类型',
-
                                                    `object_sub_label` VARCHAR(200) NULL COMMENT '目标的类型子类型',
                                                    `speed` DOUBLE NULL COMMENT '目标速度 m/s',
                                                    `distance` DOUBLE NULL COMMENT '距离 m',
                                                    `yaw` DOUBLE NULL COMMENT '目标方位',
-                                                   `create_by` VARCHAR(300) NULL COMMENT '创建人',
                                                    `update_time` DATETIME NULL COMMENT '数据入库时间'
 ) ENGINE=OLAP
 UNIQUE KEY(`device_id`, `target_id`, `parent_id`, `acquire_timestamp_format`)
@@ -44,8 +40,6 @@ PARTITION BY RANGE(`acquire_timestamp_format`)()
 DISTRIBUTED BY HASH(`device_id`) BUCKETS 2
 PROPERTIES (
 "replication_allocation" = "tag.location.default: 3",
-"min_load_replica_num" = "-1",
-"is_being_synced" = "false",
 "dynamic_partition.enable" = "true",
 "dynamic_partition.time_unit" = "DAY",
 "dynamic_partition.time_zone" = "Etc/UTC",
@@ -55,19 +49,6 @@ PROPERTIES (
 "dynamic_partition.replication_allocation" = "tag.location.default: 3",
 "dynamic_partition.buckets" = "2",
 "dynamic_partition.create_history_partition" = "true",
-"dynamic_partition.history_partition_num" = "10",
-"dynamic_partition.hot_partition_num" = "0",
-"dynamic_partition.reserved_history_periods" = "NULL",
-"dynamic_partition.storage_policy" = "",
-"dynamic_partition.storage_medium" = "HDD",
-"storage_medium" = "hdd",
-"storage_format" = "V2",
-"inverted_index_storage_format" = "V1",
-"enable_unique_key_merge_on_write" = "true",
-"light_schema_change" = "true",
-"disable_auto_compaction" = "false",
-"enable_single_replica_compaction" = "false",
-"group_commit_interval_ms" = "10000",
-"group_commit_data_bytes" = "134217728",
-"enable_mow_light_delete" = "false"
+"dynamic_partition.history_partition_num" = "400",
+"dynamic_partition.hot_partition_num" = "0"
 );

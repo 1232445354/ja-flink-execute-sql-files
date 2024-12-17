@@ -519,7 +519,7 @@ select
 
     -- if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,  -- 设备来源，M300、RADAR、振动仪
 
-    if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,
+    if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,    -- RADAR、振动仪 的产品product_key一样
     t1.device_name_join as source_type_name,
 
     -- 雷达无目标类型都给未知｜可见光红外需要null、''、未知目标更改为未知｜ 信火一体的需要'' 改为未知

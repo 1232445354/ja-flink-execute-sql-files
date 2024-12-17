@@ -4,7 +4,6 @@ CREATE TABLE `dwd_radar_target_all_rt` (
                                            `parent_id` VARCHAR(300) NULL COMMENT '父设备的id,也就是望楼id',
                                            `acquire_timestamp_format` DATETIME NULL COMMENT '上游程序上报时间戳-时间戳格式化',
                                            `acquire_timestamp` BIGINT NULL COMMENT '采集时间戳毫秒级别，上游程序上报时间戳',
-
                                            `source_type` VARCHAR(300) NULL COMMENT '数据设备来源名称',
                                            source_type_name VARCHAR(300) NULL COMMENT '数据设备来源名称,就是设备类型,使用product_key区分的',
                                            `device_name` VARCHAR(300) NULL COMMENT '设备名称',
@@ -30,17 +29,14 @@ CREATE TABLE `dwd_radar_target_all_rt` (
                                            `method` VARCHAR(200) NULL COMMENT '服务&事件标识',
                                            `product_key` VARCHAR(200) NULL COMMENT '产品编码',
                                            `version` VARCHAR(100) NULL COMMENT '版本',
-                                           `create_by` VARCHAR(300) NULL COMMENT '创建人',
                                            `update_time` DATETIME NULL COMMENT '数据入库时间'
 ) ENGINE=OLAP
 UNIQUE KEY(`device_id`, `target_id`, `parent_id`, `acquire_timestamp_format`)
-COMMENT '设备检测数据全部入库'
+COMMENT '雷达-振动仪设备检测数据全部入库'
 PARTITION BY RANGE(`acquire_timestamp_format`)()
 DISTRIBUTED BY HASH(`device_id`) BUCKETS 10
 PROPERTIES (
 "replication_allocation" = "tag.location.default: 3",
-"min_load_replica_num" = "-1",
-"is_being_synced" = "false",
 "dynamic_partition.enable" = "true",
 "dynamic_partition.time_unit" = "DAY",
 "dynamic_partition.time_zone" = "Etc/UTC",
@@ -48,21 +44,27 @@ PROPERTIES (
 "dynamic_partition.end" = "3",
 "dynamic_partition.prefix" = "p",
 "dynamic_partition.replication_allocation" = "tag.location.default: 3",
-"dynamic_partition.buckets" = "10",
+"dynamic_partition.buckets" = "2",
 "dynamic_partition.create_history_partition" = "true",
-"dynamic_partition.history_partition_num" = "30",
-"dynamic_partition.hot_partition_num" = "0",
-"dynamic_partition.reserved_history_periods" = "NULL",
-"dynamic_partition.storage_policy" = "",
-"dynamic_partition.storage_medium" = "HDD",
-"storage_medium" = "hdd",
-"storage_format" = "V2",
-"inverted_index_storage_format" = "V1",
-"enable_unique_key_merge_on_write" = "true",
-"light_schema_change" = "true",
-"disable_auto_compaction" = "false",
-"enable_single_replica_compaction" = "false",
-"group_commit_interval_ms" = "10000",
-"group_commit_data_bytes" = "134217728",
-"enable_mow_light_delete" = "false"
+"dynamic_partition.history_partition_num" = "400",
+"dynamic_partition.hot_partition_num" = "0"
 );
+
+
+alter table dwd_radar_target_all_rt add column
+    source_type_name VARCHAR(300) COMMENT '数据设备来源名称,就是设备类型,使用product_key区分的'
+   after source_type;
+
+update dwd_radar_target_all_rt
+set source_type_name = device_name
+where 1 = 1;
+
+alter table dwd_radar_target_all_rt add column
+    `device_info` VARCHAR(10000) NULL COMMENT '数据检测的来源[{deviceName,targetId,type}]',
+   after source;
+
+update dwd_radar_target_all_rt
+set device_info = source
+where 1 =1;
+
+alter table dwd_radar_target_all_rt drop column create_by;

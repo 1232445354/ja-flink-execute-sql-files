@@ -1,4 +1,3 @@
-
 CREATE TABLE `dwd_detection_target_merge` (
                                               `device_id` VARCHAR(200) NULL COMMENT '设备id,2级设备',
                                               `target_id` VARCHAR(200) NULL COMMENT '目标id',
@@ -32,8 +31,6 @@ PARTITION BY RANGE(`acquire_timestamp_format`)()
 DISTRIBUTED BY HASH(`device_id`) BUCKETS 2
 PROPERTIES (
 "replication_allocation" = "tag.location.default: 3",
-"min_load_replica_num" = "-1",
-"is_being_synced" = "false",
 "dynamic_partition.enable" = "true",
 "dynamic_partition.time_unit" = "DAY",
 "dynamic_partition.time_zone" = "Etc/UTC",
@@ -44,18 +41,5 @@ PROPERTIES (
 "dynamic_partition.buckets" = "2",
 "dynamic_partition.create_history_partition" = "true",
 "dynamic_partition.history_partition_num" = "400",
-"dynamic_partition.hot_partition_num" = "0",
-"dynamic_partition.reserved_history_periods" = "NULL",
-"dynamic_partition.storage_policy" = "",
-"dynamic_partition.storage_medium" = "HDD",
-"storage_medium" = "hdd",
-"storage_format" = "V2",
-"inverted_index_storage_format" = "V1",
-"enable_unique_key_merge_on_write" = "true",
-"light_schema_change" = "true",
-"disable_auto_compaction" = "false",
-"enable_single_replica_compaction" = "false",
-"group_commit_interval_ms" = "10000",
-"group_commit_data_bytes" = "134217728",
-"enable_mow_light_delete" = "false"
+"dynamic_partition.hot_partition_num" = "0"
 );
