@@ -14,7 +14,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-v3-241203' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0';
 
 
 
@@ -220,42 +220,6 @@ create table dwd_radar_target_all_rt(
      'doris.request.read.timeout.ms'='30000',
      'sink.batch.size'='20000',
      'sink.batch.interval'='10s',
-     'sink.properties.escape_delimiters' = 'true',
-     'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
-     'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
-     );
-
-
-
--- 雷达 - 检测数据 - 入融合合并表（Sink：doris）
-drop table  if exists dwd_detection_target_merge;
-create table dwd_detection_target_merge(
-                                           device_id                  string     , -- '设备id',
-                                           target_id                  string     , -- '目标id',
-                                           parent_id                  string     , -- 父设备的id,也就是望楼id
-                                           acquire_timestamp_format   string     , -- '上游程序上报时间戳-时间戳格式化',
-                                           source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:融合,RADAR:雷达,VIBRATOR: 震动器
-                                           source_type_name           string     , -- 数据设备来源名称，就是设备类型，使用product_key区分的
-                                           device_name                string     , -- 设备名称
-                                           speed                      double     , -- '目标速度',
-                                           distance                   double     , -- 距离，新雷达的距离，没有了x距离和y距离
-                                           object_label               string     , -- 目标类型
-                                           longitude                  double     , -- '目标经度',
-                                           latitude                   double     , -- '目标维度',
-                                           device_info                string     , -- 数据检测的来源[{deviceName,targetId,type}]
-                                           update_time                string      -- 数据入库时间
-)WITH (
-     'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',  -- k8s部署
-     'fenodes' = '172.21.30.202:30030',                                       -- 物理机器部署
-     'table.identifier' = 'dushu.dwd_detection_target_merge',
-     'username' = 'admin',
-     'password' = 'Jingansi@110',
-     'doris.request.tablet.size'='3',
-     'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='20000',
-     'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -743,27 +707,7 @@ select
 from tmp_source_kafka_04;
 
 
-
--- 检测数据入合并表
-insert into dwd_detection_target_merge
-select
-    device_id,
-    target_id,
-    parent_id,
-    acquire_timestamp_format,
-    source_type,
-    source_type_name,
-    device_name,
-    speed,
-    distance,
-    object_label,
-    longitude,
-    latitude,
-    device_info,
-    from_unixtime(unix_timestamp()) as update_time
-from tmp_source_kafka_04;
-
-
+-- 属性数据入库
 insert into dwd_device_attr_info
 select
     device_id                 ,

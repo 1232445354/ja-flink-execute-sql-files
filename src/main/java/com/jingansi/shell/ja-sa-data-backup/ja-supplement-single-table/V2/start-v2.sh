@@ -6,7 +6,7 @@ declare -a time_ranges=(
 "2024-10-01 00:00:00 2024-11-10 23:59:59"
 )
 
-col="dws_bhv_airport_weather_info acquire_time 864000"
+#col="dws_bhv_airport_weather_info acquire_time 864000"
 #col="dws_bhv_aircraft_last_location_dh merge_time 43200"
 #col="dws_bhv_vessel_last_location_dh merge_time 28800"
 #col="dws_vessel_bhv_track_rt acquire_time 3600"
@@ -24,6 +24,9 @@ col="dws_bhv_airport_weather_info acquire_time 864000"
 #col="dws_aircraft_combine_list_rt acquire_time 1800"
 #col="dws_flight_segment_rt start_time 86400"
 #col="dws_bhv_airport_weather_info acquire_time 432000"
+#col="dwd_bhv_sentinel_info photograph_datetime 864000"
+#col="dws_bhv_satellite_list_fd today_time 864000"
+col="ods_airport_flight_arrival acquire_time 432000"
 
 date_format="+%Y-%m-%d %H:%M:%S"
 sleep_time=40

@@ -32,6 +32,7 @@ CREATE TABLE `dwd_photoelectric_target_all_rt` (
                                                    `speed` DOUBLE NULL COMMENT '目标速度 m/s',
                                                    `distance` DOUBLE NULL COMMENT '距离 m',
                                                    `yaw` DOUBLE NULL COMMENT '目标方位',
+                                                   `flag` bigint  COMMENT '是否修改属性-修改、插入',
                                                    `update_time` DATETIME NULL COMMENT '数据入库时间'
 ) ENGINE=OLAP
 UNIQUE KEY(`device_id`, `target_id`, `parent_id`, `acquire_timestamp_format`)

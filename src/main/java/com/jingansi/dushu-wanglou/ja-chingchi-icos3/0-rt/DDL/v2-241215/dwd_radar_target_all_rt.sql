@@ -51,6 +51,27 @@ PROPERTIES (
 );
 
 
+
+
+alter table dwd_radar_target_all_rt add column
+    source_type_name VARCHAR(300) COMMENT '数据设备来源名称,就是设备类型,使用product_key区分的'
+   after source_type;
+
+update dwd_radar_target_all_rt
+set source_type_name = device_name
+where 1 = 1;
+
+alter table dwd_radar_target_all_rt add column
+    `device_info` VARCHAR(10000) NULL COMMENT '数据检测的来源[{deviceName,targetId,type}]',
+   after source;
+
+update dwd_radar_target_all_rt
+set device_info = source
+where 1 =1;
+
+alter table dwd_radar_target_all_rt drop column create_by;
+
+
 alter table dwd_radar_target_all_rt add column
     source_type_name VARCHAR(300) COMMENT '数据设备来源名称,就是设备类型,使用product_key区分的'
    after source_type;

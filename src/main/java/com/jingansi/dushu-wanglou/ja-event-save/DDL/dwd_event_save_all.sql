@@ -1,12 +1,9 @@
-
 create table dwd_event_save_all (
                                     device_id                 varchar(200)  comment '设备id',
                                     target_id                 varchar(200)  comment '目标id',
                                     parent_id                 varchar(300)  comment '父设备的id',
                                     acquire_timestamp_format  datetime      comment '上游程序上报时间戳-时间戳格式化',
-
                                     acquire_timestamp         bigint        comment '时间ms',
-
                                     local_lot_no              varchar(300)  comment '本地批号,设备sn号',
                                     rcs                       bigint        comment 'RCS值',
                                     data_cycle                bigint        comment '数据周期',
@@ -33,10 +30,8 @@ create table dwd_event_save_all (
                                     yaw_system_error        bigint          comment '方位系统误差',
                                     yaw_random_error        bigint          comment '方位随机误差',
                                     overall_speed           bigint          comment '合速度',
-
                                     source_type             varchar(300)    comment '数据设备来源名称',
                                     source_type_name        varchar(300)    comment '数据设备来源名称,就是设备类型,使用product_key区分的',
-
                                     device_name             varchar(300)    comment '设备名称',
                                     device_info             varchar(10000)  comment '数据检测的来源[{deviceName,targetId,type}]',
                                     object_label            varchar(300)    comment '目标类型名称-中文',

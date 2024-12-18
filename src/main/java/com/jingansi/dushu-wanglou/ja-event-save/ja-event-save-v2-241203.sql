@@ -13,8 +13,8 @@ SET 'table.exec.state.ttl' = '600000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
-SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save-v1-241203' ;
+-- SET 'execution.checkpointing.interval' = '600000';
+-- SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save' ;
 
 
  -- -----------------------
@@ -131,7 +131,8 @@ create table jiance_209(
       );
 
 
--- 设备（可见光、红外）检测全量数据入库- 单独表（Sink：doris）
+
+-- 设备（可见光、红外）检测全量数据入库- 可修改的数据表（Sink：doris）
 drop table  if exists dwd_photoelectric_target_all_rt;
 create table dwd_photoelectric_target_all_rt(
                                                 device_id                  string     , -- '设备id',
@@ -188,6 +189,63 @@ create table dwd_photoelectric_target_all_rt(
 
 
 
+-- 设备（可见光、红外）检测全量数据入库- 不可修改的数据表（Sink：doris）
+drop table  if exists dwd_photoelectric_target_all_rt_source;
+create table dwd_photoelectric_target_all_rt_source(
+                                                       device_id                  string     , -- '设备id',
+                                                       target_id                  bigint     , -- '目标id',
+                                                       parent_id                  string     , -- 父设备的id,也就是望楼id
+                                                       acquire_timestamp_format   string     , -- '上游程序上报时间戳-时间戳格式化',
+                                                       acquire_timestamp          bigint     , -- '采集时间戳毫秒级别，上游程序上报时间戳',
+                                                       source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
+                                                       source_type_name           string     , -- 数据设备来源名称，就是设备类型，使用product_key区分的
+
+                                                       device_name                string     , -- 设备名称
+                                                       radar_id                   string     , -- 雷达id
+                                                       radar_target_id            string     , -- 雷达检测的目标id
+                                                       radar_device_name          string     , -- 雷达的设备名称
+                                                       device_info                string     , -- 数据检测的来源拼接 示例：雷达（11）、可见光（22）
+                                                       record_path                string     , -- 可见光、红外告警视频地址
+                                                       bbox_height                double     , -- 长度
+                                                       bbox_left	               double     , -- 左
+                                                       bbox_top	               double     , -- 上
+                                                       bbox_width	               double     , -- 宽度
+                                                       source_frame_height        bigint     , -- 原视频高度
+                                                       source_frame_width         bigint     , -- 原视频宽度
+                                                       longitude                  double     , -- 目标经度
+                                                       latitude                   double 	  , -- 目标纬度
+                                                       altitude                   double     , -- 高度
+                                                       big_image_path             string     , -- 大图
+                                                       small_image_path           string     , -- 小图
+                                                       image_source               string     , -- 图片来源设备
+                                                       class_id                   double     ,
+                                                       confidence                 string     , -- 置信度
+                                                       infer_id                   double     ,
+                                                       object_label               string     , -- 目标的类型，人，车
+                                                       object_sub_label           string     , -- 目标的类型子类型
+                                                       speed                      double     , -- 目标速度 m/s
+                                                       distance                   double     , -- 距离 m
+                                                       yaw                        double     , -- 目标方位
+                                                       update_time                string      -- 数据入库时间
+)WITH (
+     'connector' = 'doris',
+-- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',  -- k8s部署
+     'fenodes' = '172.21.30.202:30030',                                       -- 物理机器部署
+     'table.identifier' = 'dushu.dwd_photoelectric_target_all_rt_source',
+     'username' = 'admin',
+     'password' = 'Jingansi@110',
+     'doris.request.tablet.size'='3',
+     'doris.request.read.timeout.ms'='30000',
+     'sink.batch.size'='20000',
+     'sink.batch.interval'='10s',
+     'sink.properties.escape_delimiters' = 'true',
+     'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
+     'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+     );
+
+
+
 -- 209检测数据- 单独表（Sink：doris）
 drop table  if exists dwd_event_save_all;
 create table dwd_event_save_all(
@@ -228,7 +286,7 @@ create table dwd_event_save_all(
                                    source_type_name           string     , -- 数据设备来源名称，就是设备类型，使用product_key区分的
                                    device_name                string     , -- 设备名称
                                    device_info                string     , -- 数据检测的来源拼接 示例：雷达（11）、可见光（22）
-                                   object_label               string, -- 目标类型名称-中文
+                                   object_label               string     , -- 目标类型名称-中文
                                    update_time                string      -- 数据入库时间
 )WITH (
      'connector' = 'doris',
@@ -249,52 +307,6 @@ create table dwd_event_save_all(
 
 
 
--- 设备检测目标数据入库 - 融合合并表（Sink：doris）
-drop table  if exists dwd_detection_target_merge;
-create table dwd_detection_target_merge(
-                                           device_id                  string     , -- '设备id',
-                                           target_id                  string     , -- '目标id',
-                                           parent_id                  string     , -- 父设备的id,也就是望楼id
-                                           acquire_timestamp_format   string     , -- '上游程序上报时间戳-时间戳格式化',
-                                           source_type                string      , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:融合,RADAR:雷达,VIBRATOR: 震动器
-                                           source_type_name           string     , -- 数据设备来源名称，就是设备类型，使用product_key区分的
-
-                                           device_name                string     , -- 设备名称
-                                           speed                      double     , -- '目标速度',
-                                           distance                   double     , -- 距离，新雷达的距离，没有了x距离和y距离
-                                           object_label               string     , -- 目标类型
-                                           longitude                  double     , -- '目标经度',
-                                           latitude                   double     , -- '目标维度',
-                                           big_image_path             string     , -- 大图
-                                           image_source               string     , -- 图片来源设备
-                                           record_path                string     , -- 可见光、红外告警视频地址
-                                           device_info                string     , -- 数据检测的来源[{deviceName,targetId,type}]
-                                           bbox_height                double     , -- 长度
-                                           bbox_left                  double     , -- 左
-                                           bbox_top                   double     , -- 上
-                                           bbox_width                 double     , -- 宽度
-                                           source_frame_height        bigint     , -- 原视频高度
-                                           source_frame_width         bigint     , -- 原视频宽度
-                                           target_model               string     , -- 目标型号
-                                           update_time                string      -- 数据入库时间
-)WITH (
-     'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',  -- k8s部署
-     'fenodes' = '172.21.30.202:30030',                                       -- 物理机器部署
-     'table.identifier' = 'dushu.dwd_detection_target_merge',
-     'username' = 'admin',
-     'password' = 'Jingansi@110',
-     'doris.request.tablet.size'='3',
-     'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='20000',
-     'sink.batch.interval'='5s',
-     'sink.properties.escape_delimiters' = 'true',
-     'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
-     'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
-     );
-
-
 -- 建立映射mysql的表（device）
 drop table if exists device;
 create table device (
@@ -306,15 +318,15 @@ create table device (
                         primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true', -- ECS环境
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',  -- 201环境
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true', -- ECS环境
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true',  -- 201环境
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'device',
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
@@ -330,15 +342,15 @@ create table iot_device (
                             primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true', -- ECS环境
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',    -- 201环境
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true', -- ECS环境
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true',    -- 201环境
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'iot_device',
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
@@ -351,15 +363,15 @@ create table enum_target_name (
                                   primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true', -- ECS环境
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',    -- 201环境
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true', -- ECS环境
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true',    -- 201环境
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'enum_target_name',
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
@@ -516,7 +528,7 @@ where t2.device_id is not null;
 begin statement set;
 
 
--- 红外可见光目标入单独全量表
+-- 红外可见光目标入表 - 可修改表
 insert into dwd_photoelectric_target_all_rt
 select
     device_id,
@@ -557,54 +569,48 @@ from tmp_source_kafka_002;
 
 
 
--- 红外可见光目标 - 入融合合并表
-insert into dwd_detection_target_merge
+
+-- 红外可见光目标入表 - 不可修改表
+insert into dwd_photoelectric_target_all_rt_source
 select
     device_id,
-    cast(target_id as varchar) as target_id,
+    target_id,
     parent_id,
     acquire_timestamp_format,
+    acquire_timestamp,
     source_type,
     source_type_name,
     device_name,
-    speed,
-    distance,
-    object_label,
-    longitude,
-    latitude,
-    big_image_path,
-    image_source,
-    record_path,
+    radar_id,
+    radar_target_id,
+    radar_device_name,
     device_info,
+    record_path,
     bbox_height,
     bbox_left,
     bbox_top,
     bbox_width,
     source_frame_height,
     source_frame_width,
-    cast(null as varchar) as target_model,
+    longitude,
+    latitude,
+    altitude,
+    big_image_path,
+    small_image_path,
+    image_source,
+    class_id,
+    confidence,
+    infer_id,
+    object_label,
+    object_sub_label,
+    speed,
+    distance,
+    yaw,
     from_unixtime(unix_timestamp()) as update_time
 from tmp_source_kafka_002;
 
 
--- 209数据入融合事件表
-insert into dwd_detection_target_merge(device_id,target_id,parent_id,acquire_timestamp_format,source_type,source_type_name,device_name,object_label,target_model,update_time)
-select
-    device_id,
-    target_id,
-    parent_id,
-    acquire_timestamp_format,
-    source_type,
-    source_type_name,
-    device_name,
-    object_label,
-    target_model,
-    from_unixtime(unix_timestamp()) as update_time
-
-from ja_tmp01;
-
-
--- 209数据单独入表
+-- 209数据入库
 insert into dwd_event_save_all
 select
     device_id,
