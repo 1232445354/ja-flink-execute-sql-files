@@ -26,7 +26,8 @@ declare -a time_ranges=(
 #col="dws_bhv_airport_weather_info acquire_time 432000"
 #col="dwd_bhv_sentinel_info photograph_datetime 864000"
 #col="dws_bhv_satellite_list_fd today_time 864000"
-col="ods_airport_flight_arrival acquire_time 432000"
+#col="ods_airport_flight_arrival acquire_time 432000"
+col="ods_airport_flight_departure acquire_time 432000"
 
 date_format="+%Y-%m-%d %H:%M:%S"
 sleep_time=40

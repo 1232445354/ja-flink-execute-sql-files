@@ -110,11 +110,14 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
-      'table-name' = 'device'
+      'table-name' = 'device',
+      'lookup.cache.max-rows' = '5000',
+      'lookup.cache.ttl' = '3600s',
+      'lookup.max-retries' = '10'
       );
 
 
@@ -151,11 +154,14 @@ create table temporary_detect_result (
     -- PRIMARY KEY (device_id,result_time,plate_no) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
-      'table-name' = 'temporary_detect_result'
+      'table-name' = 'temporary_detect_result',
+      'lookup.cache.max-rows' = '5000',
+      'lookup.cache.ttl' = '3600s',
+      'lookup.max-retries' = '10'
       );
 
 
@@ -276,10 +282,5 @@ from tmp_table01 as c
 
 
 -- end;
-
-
-
-
-
 
 

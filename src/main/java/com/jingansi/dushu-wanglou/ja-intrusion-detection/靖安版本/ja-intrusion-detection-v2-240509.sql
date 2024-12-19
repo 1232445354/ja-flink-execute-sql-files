@@ -17,7 +17,7 @@ SET 'sql-client.display.max-column-width' = '100';
 
 -- checkpoint的时间和位置
 SET 'execution.checkpointing.interval' = '60000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-intrusion-detection' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-intrusion-detection' ;
 
 create function rectangle_intersect_polygon as 'com.jingan.udf.geohash.RectangleIntersectPolygon';
 create function merge_plate_no as 'com.jingan.udf.merge.MergePlateNoAllColumnUdf';
@@ -114,14 +114,15 @@ create table video_area (
                             PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
       'table-name' = 'video_area',
-      'lookup.cache.ttl' = '3s',
-      'lookup.cache.max-rows' = '1000'
+      'lookup.cache.max-rows' = '5000',
+      'lookup.cache.ttl' = '3600s',
+      'lookup.max-retries' = '10'
       );
 
 
@@ -188,12 +189,15 @@ create table iot_device (
                             PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
-      'table-name' = 'iot_device'
+      'table-name' = 'iot_device',
+      'lookup.cache.max-rows' = '5000',
+      'lookup.cache.ttl' = '3600s',
+      'lookup.max-retries' = '10'
       );
 
 
@@ -209,12 +213,15 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
-      'table-name' = 'device'
+      'table-name' = 'device',
+      'lookup.cache.max-rows' = '5000',
+      'lookup.cache.ttl' = '3600s',
+      'lookup.max-retries' = '10'
       );
 
 ---------------
@@ -394,4 +401,3 @@ from tmp_frame_infer_data_03 t1
                    on t2.parent_id=t3.device_id
          left join device FOR SYSTEM_TIME AS OF t1.proctime as t4      -- 关联设备信息表，取出子设备的类型
                    on t1.source_id=t4.device_id;
-
