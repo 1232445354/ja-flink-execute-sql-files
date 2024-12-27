@@ -665,7 +665,7 @@ from tmp_source_kafka_02
 where acquire_timestamp is not null
   and (
         (`method` = 'platform.capture.post' and picture_url is not null)  -- 截图
-        or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null) -- 拍照数据过滤截图的
+        or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null and SPLIT_INDEX(photo_url,'.',1) <> 'MP4') -- 拍照数据过滤截图的
     );
 
 

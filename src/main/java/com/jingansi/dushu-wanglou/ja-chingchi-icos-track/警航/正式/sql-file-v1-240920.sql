@@ -2,7 +2,7 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/04/16 14:06:19
 -- description: 旌旗3.0设备接入日志、设备检测数据状态、轨迹等
--- version: 3.0.2.240419
+-- version: v2024226
 -- fix:新增望楼3.0
 --********************************************************************--
 
@@ -341,7 +341,7 @@ create table device_media_datasource (
                                          PRIMARY KEY (device_id,start_time,url) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -404,7 +404,7 @@ create table iot_device (
                             primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'iot_device',
@@ -425,7 +425,7 @@ create table device (
                         primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'device',
@@ -447,7 +447,7 @@ create table users (
                        primary key (user_id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/ja-4a?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/ja-4a?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'users',
@@ -767,6 +767,7 @@ from tmp_source_kafka_01
 where acquire_timestamp is not null
   and `method` = 'event.mediaFileUpload.info'
   and photo_url is not null
+  and SPLIT_INDEX(photo_url,'.',1) <> 'MP4'
   and is_capture is null;
 
 
