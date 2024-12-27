@@ -770,6 +770,7 @@ from tmp_source_kafka_01
 where acquire_timestamp is not null
   and `method` = 'event.mediaFileUpload.info'
   and photo_url is not null
+  and SPLIT_INDEX(photo_url,'.',1) <> 'MP4'
   and is_capture is null;
 
 
