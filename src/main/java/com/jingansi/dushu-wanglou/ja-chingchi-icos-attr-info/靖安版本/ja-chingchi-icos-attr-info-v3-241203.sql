@@ -2,10 +2,10 @@
 -- author:      write your name here
 -- create time: 2024/12/2 19:42:10
 -- description: 截图拍照、属性、轨迹、雷达、振动仪
---version:ja-chingchi-icos3.0-v3-241203
+--version:ja-chingchi-icos-attr-info-v3-241203
 --********************************************************************--
 
-set 'pipeline.name' = 'ja-chingchi-icos3.0-v3-241203';
+set 'pipeline.name' = 'ja-chingchi-icos-attr-info';
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
@@ -14,12 +14,11 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0';
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos-attr-info';
 
 
 
 -- 设备检测数据上报 （Source：kafka）
-drop table if exists iot_device_message_kafka_01;
 create table iot_device_message_kafka_01 (
                                              productKey    string     comment '产品编码',
                                              deviceId      string     comment '设备id',
@@ -104,7 +103,6 @@ create table iot_device_message_kafka_01 (
 
 
 -- 属性数据存储
-drop table if exists iot_device_message_kafka_02;
 create table iot_device_message_kafka_02 (
                                              productKey    string     comment '产品编码',
                                              deviceId      string     comment '设备id',
@@ -141,7 +139,6 @@ create table iot_device_message_kafka_02 (
 
 
 -- 媒体拍照数据入库（Sink：mysql）
-drop table if exists device_media_datasource;
 create table device_media_datasource (
                                          device_id                      string        comment '设备编码',
                                          source_id                      string        comment '来源,截图(SCREENSHOT)，拍照(PHOTOGRAPH)',
@@ -175,7 +172,6 @@ create table device_media_datasource (
 
 
 -- 雷达 - 检测目标全量数据入库（Sink：doris）
-drop table  if exists dwd_radar_target_all_rt;
 create table dwd_radar_target_all_rt(
                                         device_id                  string     , -- '雷达设备id',
                                         target_id                  string     , -- '目标id',
@@ -229,7 +225,6 @@ create table dwd_radar_target_all_rt(
 
 
 -- 设备执法仪、无人机轨迹数据（Sink：doris）
-drop table if exists dwd_device_track_rt;
 create table dwd_device_track_rt (
                                      device_id                 string              comment '上报的设备id',
                                      acquire_timestamp_format  string              comment '格式化时间',
@@ -244,7 +239,6 @@ create table dwd_device_track_rt (
                                      tid                       string              comment 'tid',
                                      bid                       string              comment 'bid',
                                      device_name               string              comment '设备名称',
-                                     create_by                 string              comment '创建人',
                                      update_time               string              comment '更新插入时间（数据入库时间'
 )WITH (
      'connector' = 'doris',
@@ -262,7 +256,6 @@ create table dwd_device_track_rt (
 
 
 -- 设备属性存储（Sink：doris）
-drop table if exists dwd_device_attr_info;
 create table dwd_device_attr_info (
                                       device_id                 string          comment '设备id:望楼id,雷达ID,可见光红外id,震动器id',
                                       parent_id                 string          comment '父设备id',
@@ -298,7 +291,6 @@ create table dwd_device_attr_info (
 
 
 -- 建立映射mysql的表（为了查询用户名称）
-drop table if exists iot_device;
 create table iot_device (
                             id	             int,    -- 自增id
                             parent_id        string, -- 父设备的id,也就是望楼id
@@ -316,12 +308,11 @@ create table iot_device (
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
 -- 建立映射mysql的表（device）
-drop table if exists device;
 create table device (
                         id	             int,    -- 自增id
                         device_id	     string, -- 设备id
@@ -337,12 +328,11 @@ create table device (
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
 -- 建立映射mysql的表（为了查询组织id）
-drop table if exists users;
 create table users (
                        user_id	int,
                        username	string,
@@ -359,7 +349,7 @@ create table users (
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
@@ -370,7 +360,6 @@ create table users (
 -----------------------
 
 -- kafka来源的所有数据解析
-drop view if exists tmp_source_kafka_01;
 create view tmp_source_kafka_01 as
 select
     coalesce(productKey,message.productKey)   as product_key,
@@ -398,7 +387,7 @@ select
     message.`data`.gimbalHead    as gimbal_head,   -- 无人机云台朝向
 
     -- 手动拍照
-    message.`data`.height                     as height,
+    message.`data`.height      as height,
     message.`data`.photoUrl    as photo_url,
     message.`data`.isCapture   as is_capture,
 
@@ -406,12 +395,12 @@ select
 from iot_device_message_kafka_01
 where coalesce(deviceId,message.deviceId) is not null
   -- and abs(coalesce(`timestamp`,message.`timestamp`)/1000 - UNIX_TIMESTAMP()) <=86400;
-  and coalesce(`timestamp`,message.`timestamp`) > 1704096000000;
+  and coalesce(`timestamp`,message.`timestamp`) > 1704096000000
+  and coalesce(`timestamp`,message.`timestamp`) is not null;
 
 
 
 -- 关联设备表取出设备名称,取出父设备望楼id，数据来源都是子设备id
-drop view if exists tmp_source_kafka_02;
 create view tmp_source_kafka_02 as
 select
     t1.*,
@@ -428,8 +417,7 @@ from tmp_source_kafka_01 as t1
 
 
 
--- 设备(雷达、振动仪)检测数据筛选处理 r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）
-drop view if exists tmp_source_kafka_03;
+-- 设备(雷达、振动仪)事件-检测数据筛选处理 r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）
 create view tmp_source_kafka_03 as
 select
     tid,
@@ -450,7 +438,6 @@ where `method` = 'event.targetInfo.info'
 
 
 -- 设备检测数据（雷达、振动仪）数据进一步解析数组
-drop view if exists tmp_source_kafka_04;
 create view tmp_source_kafka_04 as
 select
     t1.tid,
@@ -463,7 +450,7 @@ select
     from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
     t1.acquire_timestamp,
     t1.device_name_join    as device_name,    -- 设备名称
-    if(t1.parent_id is null or t1.parent_id = '',t1.device_id, t1.parent_id) as parent_id,
+    if(t1.parent_id is null or t1.parent_id = '',t1.device_id, t1.parent_id) as parent_id,    -- 没有父设备的，设备id写入parent_id中
     t2.targetId          as target_id,     -- 目标id
     t2.xDistance         as x_distance,
     t2.yDistance         as y_distance,
@@ -480,10 +467,7 @@ select
     t2.loss_times,
     t2.targetCredibility   as target_credibility,
     t2.`time` as time1,
-
-    -- if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,  -- 设备来源，M300、RADAR、振动仪
-
-    if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,    -- RADAR、振动仪 的产品product_key一样
+    if(t2.sourceType <> '',t2.sourceType,t1.product_key)    as source_type,    -- RADAR、振动仪 的method是一样的
     t1.device_name_join as source_type_name,
 
     -- 雷达无目标类型都给未知｜可见光红外需要null、''、未知目标更改为未知｜ 信火一体的需要'' 改为未知
@@ -530,7 +514,6 @@ where t2.sourceType in('RADAR','VIBRATOR');
 
 
 -- 轨迹数据筛选处理 QptZJHOd1KD（执法仪），zyrFih3kept(无人机),00000000002（机库子设备-无人机）,xmYA9WCWCtk\0hcOWdhPRzy（警航版本中小川加的）
-drop view if exists tmp_track_01;
 create view tmp_track_01 as
 select
     device_id,
@@ -540,37 +523,27 @@ select
     acquire_timestamp,
     attitude_head,
     gimbal_head,
-    device_name,
+    device_name_join as device_name,
     longitude,
     latitude,
     username,
     group_id
 from tmp_source_kafka_02
-where product_key in('QptZJHOd1KD','zyrFih3kept','00000000002','xmYA9WCWCtk','0hcOWdhPRzy')
-  and longitude is not null
+where longitude is not null
   and latitude is not null;
+--where product_key in('QptZJHOd1KD','zyrFih3kept','00000000002','xmYA9WCWCtk','0hcOWdhPRzy')
+--   and longitude is not null
+--  and latitude is not null;
+
 
 
 -- 各种设备属性处理存储   properties.state（无人机上报的属性）、event.property.post（盒子上报的属性）
-drop view if exists tmp_attr_01;
 create view tmp_attr_01 as
 select
     t1.device_id,
-    case
-        when t1.product_key = 'Y95SjAkrmRG' then '1' -- 望楼
-        when t1.product_key = 'uvFrSFW2zMs' then '2' -- 可见光
-        when t1.product_key = 'mVpLCOnTPLz' then '3' -- 红外
-        when t1.product_key = 'k8dNIRut1q3' then '4' -- 雷达
-        when t1.product_key = 'raYeBHvRKYP' then '5' -- 北斗
-        when t1.product_key = 'eX71parWGpf' then '6' -- 电池
-        when t1.product_key = 'r4ae3Loh78v' then '7' -- 振动仪
-        when t1.product_key = 'dTz5djGU3Jb' then '8' -- 边缘设备
-        when t1.product_key = '68ai6goNgw5' then '9' -- 网络设备（mesh）
-        when t1.product_key in ('zyrFih3kept','0hcOWdhPRzy','00000000002') then '10' -- 无人机
-        when t1.product_key = '00000000001' then '11' -- 无人机机库
-        else t1.product_key end as device_type,
-
-    if(t2.parent_id is not null and t2.parent_id <> '',t2.parent_id,t1.device_id) as parent_id,
+    t2.device_name as device_type,  -- 可以不入库的，只是多了个字段顺便写入
+    -- if(t2.parent_id = '',cast(null as varchar),t2.parent_id) as parent_id,
+    if(t2.parent_id <> '' and t2.parent_id is not null,t2.parent_id,t1.device_id) as parent_id,
 
     -- TO_TIMESTAMP_LTZ(acquire_timestamp,3) as acquire_timestamp_format,
     from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
@@ -586,21 +559,22 @@ select
 from (
          select
              type,
-             coalesce(productKey,message.productKey)   as product_key,       -- message_product_key
-             coalesce(deviceId,message.deviceId)       as device_id,         -- message_device_id
-             coalesce(version,message.version)         as version,           -- message_version
-             coalesce(`timestamp`,message.`timestamp`) as acquire_timestamp, -- message_acquire_timestamp
-             coalesce(tid,message.tid)                 as tid,               -- message_tid
-             coalesce(bid,message.bid)                 as bid,               -- message_bid
-             coalesce(`method`,message.`method`)       as `method`,          -- message_method
+             coalesce(productKey,message.productKey)   as product_key,
+             coalesce(deviceId,message.deviceId)       as device_id,
+             coalesce(version,message.version)         as version,
+             coalesce(`timestamp`,message.`timestamp`) as acquire_timestamp,
+             coalesce(tid,message.tid)                 as tid,
+             coalesce(bid,message.bid)                 as bid,
+             coalesce(`method`,message.`method`)       as `method`,
              message.`data`                            as properties,
              PROCTIME()  as proctime
          from iot_device_message_kafka_02
-         where coalesce(productKey,message.productKey) in('Y95SjAkrmRG','uvFrSFW2zMs','mVpLCOnTPLz','k8dNIRut1q3','raYeBHvRKYP','r4ae3Loh78v','eX71parWGpf',
-                                                          'dTz5djGU3Jb','68ai6goNgw5','zyrFih3kept','00000000001','00000000002','lZezNYnHUO0','3m8d1RppMas','ZN5WjyZvfcP','BBqdWxlqTM3','0hcOWdhPRzy')
-           and coalesce(`method`,message.`method`) in ('properties.state','event.property.post')
+              -- where coalesce(productKey,message.productKey) in('Y95SjAkrmRG','uvFrSFW2zMs','mVpLCOnTPLz','k8dNIRut1q3','raYeBHvRKYP','r4ae3Loh78v','eX71parWGpf',
+              -- 'dTz5djGU3Jb','68ai6goNgw5','zyrFih3kept','00000000001','00000000002','lZezNYnHUO0','3m8d1RppMas','ZN5WjyZvfcP','BBqdWxlqTM3','0hcOWdhPRzy')
+         where coalesce(`method`,message.`method`) in ('properties.state','event.property.post')
            and coalesce(`timestamp`,message.`timestamp`) > 1704096000000
      ) as t1
+
          left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.device_id = t2.device_id
 
@@ -636,7 +610,6 @@ select
     tid                       ,
     bid                       ,
     device_name               ,
-    'ja-flink' as create_by,
     from_unixtime(unix_timestamp()) as update_time
 from tmp_track_01;
 
@@ -664,8 +637,8 @@ select
 from tmp_source_kafka_02
 where acquire_timestamp is not null
   and (
-        (`method` = 'platform.capture.post' and picture_url is not null)  -- 截图
-        or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null and SPLIT_INDEX(photo_url,'.',1) <> 'MP4') -- 拍照数据过滤截图的
+        (`method` = 'platform.capture.post' and picture_url is not null)  -- 截图数据入库
+        or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null and SPLIT_INDEX(photo_url,'.',1) <> 'MP4') -- 拍照数据过滤截图的，如果是截图（is_capture=1）
     );
 
 

@@ -5,7 +5,7 @@
 --version:ja-event-save-v1-241203
 --********************************************************************--
 
-set 'pipeline.name' = 'ja-event-save-v1-241203';
+set 'pipeline.name' = 'ja-event-save';
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
@@ -13,8 +13,8 @@ SET 'table.exec.state.ttl' = '600000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
--- SET 'execution.checkpointing.interval' = '600000';
--- SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save' ;
+SET 'execution.checkpointing.interval' = '600000';
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save' ;
 
 
  -- -----------------------
