@@ -6,7 +6,7 @@
 --********************************************************************--
 
 
-set 'pipeline.name' = 'ja-intrusion-detection';
+set 'pipeline.name' = 'ja-intrusion-detection-v2-240509';
 
 
 -- SET 'parallelism.default' = '2';
@@ -401,3 +401,4 @@ from tmp_frame_infer_data_03 t1
                    on t2.parent_id=t3.device_id
          left join device FOR SYSTEM_TIME AS OF t1.proctime as t4      -- 关联设备信息表，取出子设备的类型
                    on t1.source_id=t4.device_id;
+
