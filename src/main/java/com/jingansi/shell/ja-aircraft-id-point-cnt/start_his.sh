@@ -6,8 +6,8 @@ echo -en "统计实体点位数据...$(date "+%Y-%m-%d %H:%M:%S")\n"
 
 sleep_time=3
 interval_time=86400
-start_time="2024-10-01 00:00:00"
-end_time="2024-10-22 00:00:00"
+start_time="2024-10-21 00:00:00"
+end_time="2025-02-19 00:00:00"
 
 
 start_timestamp=$(date -d "$start_time" +"%s")
