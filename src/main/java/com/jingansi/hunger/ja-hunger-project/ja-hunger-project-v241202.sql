@@ -2,9 +2,9 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/3/8 09:33:33
 -- description: 饿了么数据存储、内部新版本测试的，现在已经是正式的了
--- 2024-12-02
+-- version: ja-hunger-project-v241202
 --********************************************************************--
-set 'pipeline.name' = 'ja-hunger-project-v2-241202';
+set 'pipeline.name' = 'ja-hunger-project';
 
 SET 'parallelism.default' = '2';
 set 'table.exec.state.ttl' = '300000';
@@ -15,7 +15,7 @@ SET 'sql-client.display.max-column-width' = '100';
 
 -- -- checkpoint的时间和位置
 SET 'execution.checkpointing.interval' = '300000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-chenkpoints/ja-hunger-project-v2-241202' ;
+SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-hunger-project' ;
 
 
 -- kafka来源的数据给外部饿了么测试的（Source：kafka）
@@ -172,7 +172,6 @@ create table dwd_hunger_alarm_test (
 ---------------
 
 -- 数据展开
-drop view if exists tmp_frame_infer_data_external_01;
 create view tmp_frame_infer_data_external_01 as
 select
     a.batch_id,

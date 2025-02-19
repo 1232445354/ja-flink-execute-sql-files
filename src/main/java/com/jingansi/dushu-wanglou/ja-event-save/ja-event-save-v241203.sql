@@ -2,7 +2,7 @@
 -- author:      write your name here
 -- create time: 2024/12/2 19:42:10
 -- description: 各类事件数据存储
---version:ja-event-save-v1-241203
+-- version:ja-event-save-v241203
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-event-save';

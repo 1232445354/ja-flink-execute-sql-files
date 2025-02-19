@@ -2,6 +2,7 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2023/2/7 14:21:36
 -- description: 饿了么数据存储、外部和内部
+-- version: ja-hunger-project-v240101
 --********************************************************************--
 
 SET 'pipeline.name' = 'ja-hunger-project';
@@ -21,7 +22,6 @@ SET 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 
 
 -- kafka来源的数据给外部饿了么测试的（Source：kafka）
-drop table if exists frame_infer_data_external_test;
 create table frame_infer_data_external_test (
                                                 batch_id                bigint,                        -- 批处理ID
                                                 frame_num               int,                           -- 帧编号
@@ -74,7 +74,6 @@ create table frame_infer_data_external_test (
 
 
 -- 饿了吗的告警数据写入kafka（Sink：kafka）
-drop table if exists hunger_alarm_result_external_kafka;
 create table hunger_alarm_result_external_kafka (
                                                     uuid                    string,                        -- UUID
                                                     batch_id                bigint,                        -- 批处理ID
@@ -121,7 +120,6 @@ create table hunger_alarm_result_external_kafka (
 
 
 -- 全量数据入库（Sink：doris）
-drop table if exists dwd_hunger_all_rt;
 create table dwd_hunger_all_rt (
                                    pts                     bigint      	comment 'pts 值',
                                    ntp_timestamp           bigint      	comment '时间戳',
@@ -165,7 +163,6 @@ create table dwd_hunger_all_rt (
 
 
 -- 告警数据入库（Sink：doris）
-drop table if exists dwd_hunger_alarm_all_rt;
 create table dwd_hunger_alarm_all_rt (
                                          pts                     bigint      	comment 'pts 值',
                                          ntp_timestamp           bigint      	comment '时间戳',
@@ -216,7 +213,6 @@ create table dwd_hunger_alarm_all_rt (
 ---------------
 
 -- 数据展开kafka-topic1给定外部饿了么的数据
-drop view if exists tmp_frame_infer_data_external_01;
 create view tmp_frame_infer_data_external_01 as
 select
     a.batch_id,
@@ -262,7 +258,6 @@ where a.ntp_timestamp is not null;
 
 
 -- 数据展开kafka-topic1给定外部饿了么的数据进行告警筛选，已经存在了则这次不进行告警，缓存时间为1小时
-drop view if exists tmp_frame_infer_data_external_02;
 create view tmp_frame_infer_data_external_02 as
 select
     *,

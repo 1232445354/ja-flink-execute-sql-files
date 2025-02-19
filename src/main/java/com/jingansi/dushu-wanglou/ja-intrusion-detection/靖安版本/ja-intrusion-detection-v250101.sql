@@ -1,8 +1,8 @@
 --********************************************************************--
 -- author:     yibo@jingan-inc.com
 -- create time: 2024/06/28 16:28:19
--- description: 告警、区分object_label类型、并且合并车牌
--- version:ja-intrusion-detection-v2-240509
+-- description: 告警、区分object_label类型、并且合并车牌，新增天朗雷达告警
+-- version:ja-intrusion-detection-250101
 --********************************************************************--
 
 
@@ -17,11 +17,16 @@ SET 'sql-client.display.max-column-width' = '100';
 
 -- checkpoint的时间和位置
 SET 'execution.checkpointing.interval' = '60000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-intrusion-detection' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-intrusion-detection' ;
 
 
-create function rectangle_intersect_polygon as 'com.jingan.udf.geohash.RectangleIntersectPolygon'; -- 判断矩形四个点是否在多边形内，这里不是经纬度
-create function merge_plate_no as 'com.jingan.udf.merge.MergePlateNoAllColumnUdf';   -- 合并车牌
+-- 判断矩形四个点是否在多边形内，这里不是经纬度
+create function rectangle_intersect_polygon as 'com.jingan.udf.geohash.RectangleIntersectPolygon';
+
+-- 合并车牌
+create function merge_plate_no as 'com.jingan.udf.merge.MergePlateNoAllColumnUdf';
+
+-- 区域告警
 create function in_polygon as 'com.jingan.udf.geohash.GeoPolygonUdf';
 
 
@@ -92,8 +97,8 @@ create table frame_infer_data (
       'topic' = 'ja-ai-detection-output',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'ja-intrusion-detection',
-      'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'group-offsets',
+      'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
       -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
@@ -195,8 +200,8 @@ create table video_area (
                             PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -271,8 +276,8 @@ create table iot_device (
                             PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -295,12 +300,33 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
       'table-name' = 'device',
+      'lookup.cache.max-rows' = '5000',
+      'lookup.cache.ttl' = '3600s',
+      'lookup.max-retries' = '10'
+      );
+
+
+-- 告警类型枚举表（Source：mysql）
+create table event_type (
+                            id              int,      -- id
+                            event_type      string,   -- 事件类型
+                            event_name      string,   -- 事件名称
+                            `level`         string,   -- 事件等级
+                            PRIMARY KEY (id) NOT ENFORCED
+) with (
+      'connector' = 'jdbc',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'driver' = 'com.mysql.cj.jdbc.Driver',
+      'username' = 'root',
+      'password' = 'jingansi110',
+      'table-name' = 'event_type',
       'lookup.cache.max-rows' = '5000',
       'lookup.cache.ttl' = '3600s',
       'lookup.max-retries' = '10'
@@ -317,8 +343,8 @@ create table `overlay` (
                            PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -411,50 +437,63 @@ from (select *,merge_plate_no(object_list) as object_list1 from frame_infer_data
 -- 没有区域都告警
 create view tmp_frame_infer_data_02 as
 select
-    tt.*
+    t1.*,
+    t3.longitude as parent_longitude_join,
+    t3.latitude  as parent_latitude_join,
+    t4.type      as device_type_join,
+    t4.name      as device_name_join
 from (
          select
              a.*,
-             b.device_id,
+             b.id as video_area_id,
              rectangle_intersect_polygon(a.bbox_left,a.bbox_top,a.bbox_width,a.bbox_height,b.points) as flag   -- 判断是否在区域内
          from tmp_frame_infer_data_01 a
                   left join video_area FOR SYSTEM_TIME AS OF a.proctime as b
                             on a.source_id = b.device_id
      ) as t1
-         left join video_area FOR SYSTEM_TIME AS OF t1.proctime as t2
-                   on a.source_id = b.device_id
+         left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2        -- 关联父子设备表,取出父设备ID
+                   on t1.source_id=t2.device_id
+         left join device FOR SYSTEM_TIME AS OF t1.proctime as t3            -- 关联设备信息表,取出父设备的经纬度 ， 给父设备经纬度是因为望楼子设备数据库位置字段是空（后端子设备位置空）
+                   on t2.parent_id=t3.device_id
+         left join device FOR SYSTEM_TIME AS OF t1.proctime as t4            -- 关联设备信息表,取出设备的类型
+                   on t1.source_id=t4.device_id;
 
 
-
-
-drop view if exists tmp_frame_infer_data_03;
+-- 重庆南岸、望楼告警、
 create view tmp_frame_infer_data_03 as
 select
     *,
-    case
-        when object_label in ('人员','Person') and flag = true then 'climbing'             -- device_id不为空 说明关联上video_area flag为true说明在区域内   攀爬告警
-    -- when object_label in ('人员','Person') and device_id is null then 'person'         -- 人员不在区域内 人员告警
-        when object_label in ('人员','Person')  then 'person'         -- 人员不在区域内 人员告警
-        when object_label in ('摩托车','车','MotorVehicle','NonMotorVehicle','机动车','非机动车') then 'car'                       -- 车辆告警
-        when object_label = '交通事故'      then 'traffic_accident'
-        when object_label = '烟雾'         then 'smoke'
-        when object_label = '烟火'         then 'fire_detection'
-
-        -- when object_label in ('MotorVehicle','NonMotorVehicle') and object_sub_label <> 'license_plate' then 'car'     -- 车辆告警
+    case when device_type_join <> 'UAV' and object_label = '人员' and flag = true        then 'climbing'    -- device_id不为空 说明关联上video_area flag为true说明在区域内   人员入侵
+         when device_type_join <> 'UAV' and object_label = '人员' and video_area_id is null  then 'person'      -- 无区域  人员告警
+         when device_type_join = 'UAV' and object_label = '人员'                         then 'person'      -- 无人机的告警
+         when object_label in('摩托车','车','MotorVehicle','NonMotorVehicle','机动车') then 'car'   -- 车辆告警
+         when object_label = '非机动车'      then 'non_car'
+         when object_label = '交通事故'      then 'traffic_accident'
+         when object_label = '烟雾'         then 'smoke'
+         when object_label = '烟火'         then 'fire_detection'
         end as eventType
     -- count(*) over(partition by object_id,device_id order by proctime ) as cnt
 from tmp_frame_infer_data_02
-where object_label in (
-                       '人员','Person','摩托车','车','MotorVehicle','NonMotorVehicle','机动车','非机动车','交通事故','烟雾','烟火'
-    )  ;
--- （object_sub_label <> 'license_plate' or object_sub_label is null
+where (object_sub_label <> 'license_plate' or object_sub_label is null);
+
+
+
+-- 关联事件名称
+create view tmp_frame_infer_data_04 as
+select
+    t1.*,
+    t2.event_name,
+    t2.`level`
+from tmp_frame_infer_data_03 as t1
+         left join event_type FOR SYSTEM_TIME AS OF t1.proctime as t2        -- 关联父子设备表,取出父设备ID
+                   on t1.eventType = t2.event_type;
+
 
 
 
 -- **************************** 来源3 天朗设备*********************************
 -- 这是一段临时代码
 
-drop view if exists tmp_source_kafka_01;
 create view tmp_source_kafka_01 as
 select
     coalesce(productKey,message.productKey)   as product_key, -- message_product_key
@@ -465,54 +504,32 @@ select
     coalesce(bid,message.bid)                 as bid, -- message_bid
     coalesce(`method`,message.`method`)       as `method`, -- message_method
 
-    -- -- 截图数据
-    -- `data`.pictureUrl as picture_url,
-    -- `data`.width  as width,
-    -- `data`.height as height,
-
-
     -- 雷达、振动仪检测目标数据
     message.`data`.targets     as targets,
 
-    -- -- 执法仪轨迹
-    -- message.`data`.longitude   as longitude,
-    -- message.`data`.latitude    as latitude,
-    -- message.`data`.attitudeHead  as attitude_head,
-    -- message.`data`.gimbalHead    as gimbal_head,
-    -- message.`data`.deviceName  as device_name,
-
-    -- -- 手动拍照
-    -- message.`data`.photoUrl    as photo_url,
-    -- message.`data`.isCapture   as is_capture,
     PROCTIME()  as proctime
 from iot_device_message_kafka_01
 where coalesce(deviceId,message.deviceId) is not null
-  and coalesce(`timestamp`,message.`timestamp`) > 1704096000000
+  and coalesce(`timestamp`,message.`timestamp`) > 1735714109000
   and coalesce(`timestamp`,message.`timestamp`) is not null;
 
 
 
 -- 关联设备表取出设备名称,取出父设备望楼id，数据来源都是子设备id
-drop view if exists tmp_source_kafka_02;
 create view tmp_source_kafka_02 as
 select
     t1.*,
-    t2.gmt_create_by as username,
-    t2.device_name as device_name_join,
-    t2.parent_id,
-    t3.group_id
+    t2.name        as device_name_join,
+    t2.type        as device_type_join
 from tmp_source_kafka_01 as t1
-         left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2
+         left join device FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.device_id = t2.device_id
-
-         left join users FOR SYSTEM_TIME AS OF t1.proctime as t3
-                   on t2.gmt_create_by = t3.username
 where product_key ='xjWO7NdIOYs'
   and `method` = 'event.targetInfo.info';
 
 
+
 -- 设备检测数据（雷达）数据进一步解析数组
-drop view if exists tmp_source_kafka_03;
 create view tmp_source_kafka_03 as
 select
     t1.tid,
@@ -521,29 +538,17 @@ select
     t1.product_key,
     t1.device_id,
     t1.version,
-    -- TO_TIMESTAMP_LTZ(t1.acquire_timestamp,3) as acquire_timestamp_format,
     from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
     t1.acquire_timestamp   as acquire_timestamp,
-    t1.device_name_join    as device_name,    -- 设备名称
-    if(t1.parent_id is null or t1.parent_id = '',t1.device_id, t1.parent_id) as parent_id,
+    t1.device_name_join,
+    t1.device_type_join,
+
     t2.targetId          as target_id,     -- 目标id
-    t2.xDistance         as x_distance,
-    t2.yDistance         as y_distance,
     t2.speed             as speed,
-    t2.targetPitch       as target_pitch,
     t2.targetAltitude    as target_altitude, -- 高度
-    t2.status            as status,          -- 状态
     t2.targetLongitude   as longitude,       -- 经度
     t2.targetLatitude    as latitude,        -- 纬度
-    t2.targetYaw         as target_yaw,
     coalesce(t2.distance,radialDistance) as distance,
-    t2.utc_time,
-    t2.tracked_times,
-    t2.loss_times,
-    t2.targetCredibility   as target_credibility,
-    t2.`time` as time1,
-
-    if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,  -- 设备来源，M300、RADAR
 
     -- 雷达无目标类型都给未知｜可见光红外需要null、''、未知目标更改为未知｜ 信火一体的需要'' 改为未知
     if(
@@ -552,13 +557,6 @@ select
                 or coalesce(t2.objectLabel,t2.targetType) = '未知目标',
                 '未知',coalesce(t2.objectLabel,t2.targetType)
         ) as object_label,
-
-    concat('[{',
-           concat('"deviceName":"',t1.device_name_join,'",'),
-           concat('"deviceId":"',t1.device_id,'",'),
-           concat('"targetId":"',t2.targetId,'",'),
-           concat('"type":"',t2.sourceType,'"}]')
-        ) as source,
     proctime
 
 from tmp_source_kafka_02 as t1
@@ -595,7 +593,7 @@ from tmp_source_kafka_02 as t1
     );
 
 
-drop view if exists tmp_source_kafka_04;
+-- 关联区域，整理数据
 create view tmp_source_kafka_04 as
 select
     *
@@ -603,25 +601,25 @@ from (
          select
              uuid()                           as eventId                   , -- 唯一编号 必填
              uuid()                           as eventNo                   , -- 事件编号 必填
-             '无人机入侵' as eventName                 , -- 事件名称
-             a.device_id                        as deviceId                  , -- 设备id  必填
-             t4.name                          as deviceName                , -- 设备名称
-             t4.type                          as deviceType                , -- 设备类型
+             '无人机入侵' as eventName          , -- 事件名称
+             a.device_id                      as deviceId                  , -- 设备id  必填
+             device_type_join                 as deviceName                , -- 设备名称
+             device_type_join                 as deviceType                , -- 设备类型
              'drone_intrusion'                as eventType                 , -- 事件类型
              'High'                           as `level`                   , -- 防护区等级
              to_timestamp(acquire_timestamp_format,'yyyy-MM-dd HH:mm:ss')         as eventTime                 , -- 事件时间
              cast(null as bigint)             as sourceFrameWidth          , -- 原始帧宽度
-             cast(null as bigint)              as sourceFrameHeight         , -- 原始帧高度
-             cast(null as string)                   as sourceImage               , -- 异常物的大图uri地址
-             a.longitude as longitude                 , -- 经度
-             a.latitude   as latitude                  , -- 纬度
-             target_id        as targetId                  , -- 目标id
-             cast(null as string)                      as recordPath,
+             cast(null as bigint)             as sourceFrameHeight         , -- 原始帧高度
+             cast(null as string)             as sourceImage               , -- 异常物的大图uri地址
+             a.longitude                      as longitude                 , -- 经度
+             a.latitude                       as latitude                  , -- 纬度
+             target_id                        as targetId                  , -- 目标id
+             cast(null as string)             as recordPath,
              speed,
              distance,
-             a.device_id                         as radarId,
-             cast(target_id as double)                  as radarTargetId,
-             cast(null as string)                       as sourceType,
+             a.device_id                      as radarId,
+             cast(target_id as double)        as radarTargetId,
+             cast(null as string)             as sourceType,
              target_altitude as altitude,
              array[row(
                      cast(null as string) ,
@@ -636,12 +634,11 @@ from (
              count(1) over(partition by target_id order by a.proctime) as cnt
          from tmp_source_kafka_03 a
                   left join `overlay` FOR SYSTEM_TIME AS OF a.proctime as b
-             -- on b.gmt_create_by = 'tianlang-dev'
                             on b.gmt_create_by = 'tianlang-dev'
-                  left join device FOR SYSTEM_TIME AS OF a.proctime as t4      -- 关联设备信息表，取出子设备的类型
-                            on a.device_id=t4.device_id
+
          where in_polygon(coalesce(a.longitude,0),coalesce(a.latitude,0),overlay_positions)= true
            and object_label='9'
+
      ) a
 where cnt<=2;
 
@@ -656,29 +653,24 @@ where cnt<=2;
 
 
 begin statement set;
+
+-- 望楼、重庆南岸、无人机
 insert into event_warn_kafka
 select
     uuid()                           as eventId                   , -- 唯一编号 必填
     uuid()                           as eventNo                   , -- 事件编号 必填
-    case eventType
-        when 'climbing'          then '人员入侵'
-        when 'person'            then '人员告警'
-        when 'car'               then '车辆告警'
-        when 'smoke'             then '烟雾告警'
-        when 'fire_detection'    then '烟火告警'
-        when 'traffic_accident'  then '交通事故'
-        end                          as eventName                 , -- 事件名称
+    event_name                       as eventName                 , -- 事件名称
     source_id                        as deviceId                  , -- 设备id  必填
-    t4.name                          as deviceName                , -- 设备名称
-    t4.type                          as deviceType                , -- 设备类型
+    device_name_join                 as deviceName                , -- 设备名称
+    device_type_join                 as deviceType                , -- 设备类型
     eventType                        as eventType                 , -- 事件类型
-    'High'                           as `level`                   , -- 防护区等级
+    `level`                         ,                  -- 防护区等级
     ntp_timestamp                    as eventTime                 , -- 事件时间
     source_frame_width               as sourceFrameWidth          , -- 原始帧宽度
     source_frame_height              as sourceFrameHeight         , -- 原始帧高度
     big_image_path                   as sourceImage               , -- 异常物的大图uri地址
-    if(t1.longitude is not null,t1.longitude,t3.longitude) as longitude                 , -- 经度
-    if(t1.latitude is not null,t1.latitude,t3.latitude)    as latitude                  , -- 纬度
+    coalesce(longitude,parent_longitude_join)  as longitude       , -- 经度
+    coalesce(latitude,parent_latitude_join)    as latitude        , -- 纬度
     cast(object_id as string)        as targetId                  , -- 目标id
     record_path                      as recordPath,
     speed,
@@ -697,16 +689,10 @@ select
             obj_label_list
         )]                               as objList,
     false                            as reid
-from tmp_frame_infer_data_03 t1
-         -- (select * from tmp_frame_infer_data_03 where cnt % 5 = 1) a
-         left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2        -- 关联父子设备表，取出父设备ID
-                   on t1.source_id=t2.device_id
-         left join device FOR SYSTEM_TIME AS OF t1.proctime as t3            -- 关联设备信息表，取出父设备的经纬度
-                   on t2.parent_id=t3.device_id
-         left join device FOR SYSTEM_TIME AS OF t1.proctime as t4            -- 关联设备信息表，取出子设备的类型
-                   on t1.source_id=t4.device_id;
+from tmp_frame_infer_data_04;
 
 
+-- 天朗雷达数据告警
 insert into event_warn_kafka
 select
     eventId                   , -- 唯一编号 必填

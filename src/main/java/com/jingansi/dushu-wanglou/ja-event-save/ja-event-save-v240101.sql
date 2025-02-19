@@ -2,10 +2,10 @@
 -- author:      write your name here
 -- create time: 2024/12/2 19:42:10
 -- description: 各类事件数据存储
---version:ja-event-save-v1-241203
+--version:ja-event-save-v240101
 --********************************************************************--
 
-set 'pipeline.name' = 'ja-event-save-v1-241203';
+set 'pipeline.name' = 'ja-event-save';
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
@@ -14,11 +14,10 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save-v1-241203' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save' ;
 
 
 -- 可见光红外检测的数据（Source：kafka）
-drop table if exists photoelectric_inspection_result_kafka;
 create table photoelectric_inspection_result_kafka(
                                                       batch_id             bigint,
                                                       frame_num            bigint,
@@ -79,7 +78,6 @@ create table photoelectric_inspection_result_kafka(
 
 
 -- 设备（可见光、红外）检测全量数据入库-原表-不支持修改的（Sink：doris）
-drop table  if exists dwd_photoelectric_target_all_rt_source;
 create table dwd_photoelectric_target_all_rt_source(
                                                        device_id                  string     , -- '设备id',
                                                        target_id                  bigint     , -- '目标id',
@@ -134,7 +132,6 @@ create table dwd_photoelectric_target_all_rt_source(
 
 
 -- 设备（可见光、红外）检测目标状态数据入库（Sink：doris）
-drop table  if exists dws_photoelectric_target_status_rt;
 create table dws_photoelectric_target_status_rt(
                                                    device_id                  string     , -- '设备id',
                                                    target_id                  bigint     , -- '目标id',

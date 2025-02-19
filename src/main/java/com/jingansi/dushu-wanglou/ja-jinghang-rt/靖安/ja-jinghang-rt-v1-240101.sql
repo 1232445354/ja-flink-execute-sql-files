@@ -2,10 +2,10 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2023/10/27 15:19:11
 -- description: 警航程序
---version：ja-jinghang-rt-v1-240101
+--version：ja-jinghang-rt-240101
 --********************************************************************--
 
-set 'pipeline.name' = 'ja-jinghang-rt-v1-240101';
+set 'pipeline.name' = 'ja-jinghang-rt';
 
 set 'parallelism.default' = '1';
 set 'execution.type' = 'streaming';
@@ -88,9 +88,9 @@ create table temp01_kafka(
       -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'test-group-4',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1713268800000',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1713268800000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'

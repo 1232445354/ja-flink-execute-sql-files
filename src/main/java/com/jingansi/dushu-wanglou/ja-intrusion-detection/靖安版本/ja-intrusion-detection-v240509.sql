@@ -2,11 +2,11 @@
 -- author:     yibo@jingan-inc.com
 -- create time: 2024/06/28 16:28:19
 -- description: 告警、区分object_label类型、并且合并车牌
--- version:ja-intrusion-detection-v2-240509
+-- version:ja-intrusion-detection-v240509
 --********************************************************************--
 
 
-set 'pipeline.name' = 'ja-intrusion-detection-v2-240509';
+set 'pipeline.name' = 'ja-intrusion-detection';
 
 
 -- SET 'parallelism.default' = '2';

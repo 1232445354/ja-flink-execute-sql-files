@@ -2,7 +2,7 @@
 -- author:      write your name here
 -- create time: 2024/12/2 19:42:10
 -- description: 截图拍照、属性、轨迹、雷达、振动仪
---version:ja-chingchi-icos3.0-rt-v3-241203
+--version:ja-chingchi-icos3.0-rt-v241203
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-chingchi-icos3.0-rt';

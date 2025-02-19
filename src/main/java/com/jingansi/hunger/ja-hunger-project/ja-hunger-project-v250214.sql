@@ -2,7 +2,7 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/3/8 09:33:33
 -- description: 饿了么数据存储、内部新版本测试的，现在已经是正式的了
--- version：ja-hunger-project-v2-250214
+-- version：ja-hunger-project-v250214
 --********************************************************************--
 set 'pipeline.name' = 'ja-hunger-project';
 

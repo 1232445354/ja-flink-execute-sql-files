@@ -2,11 +2,11 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/05/09 14:06:19
 -- description: 旌旗、望楼、最新版本、信火一体
--- version: 3.2.0.240509,3.3.0.240521
+-- version: ja-chingchi-icos3.0-rt-v240731
 --********************************************************************--
 
 
-set 'pipeline.name' = 'ja-chingchi-icos3.0-rt-new';
+set 'pipeline.name' = 'ja-chingchi-icos3.0-rt';
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
@@ -15,7 +15,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-chingchi-icos3.0-rt-new' ;
+SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-chingchi-icos3.0-rt' ;
 
 
 
