@@ -12,7 +12,7 @@ insert into sa.${table_name}
 select
   *
 from doris_idc.sa.${table_name}
-where ${time_column} between date_sub(now(),interval 1 hour) and now();
+where ${time_column} between date_sub(now(),interval 10 minute) and now();
 
 "
 

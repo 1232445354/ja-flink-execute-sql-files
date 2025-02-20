@@ -11,7 +11,7 @@ sql="
 insert into sa.${table_name}
 select
   *
-from doris_202.sa.${table_name}
+from doris_idc.sa.${table_name}
 where ${time_column} between date_sub(now(),interval 10 minute) and now();
 
 "
