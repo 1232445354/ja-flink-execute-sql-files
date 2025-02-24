@@ -13,7 +13,6 @@ sh start.sh "2024-09-01"  "2024-09-02"
 <<comment
 同步记录以语雀文档为准：https://jingan.yuque.com/staff-ycgiyb/od1rat/phks427fr8n7wdnz
 
-1. 第1版本：执行start-v1.sh 里面执行的是sql_file_1-v1.sh和sql_file_2-v1.sh
 2. 第2版本：执行start-v2.sh 里面执行的是sql_file-v2.sh    更新时间2024-08-01
 
 comment

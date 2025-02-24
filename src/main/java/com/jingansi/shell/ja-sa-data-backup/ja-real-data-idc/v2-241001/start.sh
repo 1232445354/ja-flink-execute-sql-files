@@ -2,7 +2,7 @@
 
 DIR=$(cd `dirname $0`; pwd)
 source ${DIR}/config.sh
-echo -en "开始备份idc-态势数据...$(date "+%Y-%m-%d %H:%M:%S")\n"
+echo -e "开始备份idc-态势数据...$(date "+%Y-%m-%d %H:%M:%S")"
 
 # 检查是否提供了参数
 if [ $# -eq 0 ]; then
@@ -35,7 +35,7 @@ execute_with_retry() {
       break
     else
       echo -en "执行失败，重试中...\n"
-      sleep 1s
+      sleep 5s
     fi
   done
 }
@@ -80,17 +80,18 @@ for table_info in "${small_table_infos[@]}"; do
   next_end_time=$(date -d "${end_time} +${after_day} day" "+%Y-%m-%d 00:00:00")
 
   # shellcheck disable=SC2028
-  echo "------${table_name}:::{$pre_start_time---$next_end_time}------\n"
+  echo -e "------${table_name}:::{$pre_start_time---$next_end_time}------\n"
   execute_with_retry "$table_name" "$time_column" "$pre_start_time" "$next_end_time"
   sleep ${per_table_sleep_time}s
 done
 
-echo -en "小表同步完成"
-echo -en "---------------------------------------\n"
+echo -e "---------------------------------------\n"
+echo -e "小表同步完成\n"
+echo -e "---------------------------------------\n"
 
 
 
-echo -en "同步船舶、飞机按天聚合数据......\n"
+echo -e "同步船舶、飞机按天聚合数据......\n"
 declare -a table_infos=(
 "dws_bhv_aircraft_last_location_fd merge_time 1-2-3"
 "dws_bhv_vessel_last_location_fd merge_time 1-2-3-4"
@@ -101,9 +102,9 @@ merge_end_time=$(date -d "${end_time}" "+%Y-%m-%d 00:00:00")
 
 for table_info in "${table_infos[@]}"; do
   IFS=' ' read -r table_name time_column src_code <<< "$table_info" && IFS='-' read -ra src_codes <<< "$src_code"
-  echo -en ".................${table_name}.................\n"
+  echo -e ".................${table_name}.................\n"
   for src_code in "${src_codes[@]}"; do
-    echo -en "$merge_start_time + ${merge_end_time} + src_code:{$src_code}\n"
+    echo -e "$merge_start_time + ${merge_end_time} + src_code:{$src_code}\n"
     execute_with_retry "$table_name" "$time_column" "$merge_start_time" "$merge_end_time" "${src_code}"
   done
 
@@ -137,8 +138,8 @@ do
     sleep_hour_time=$(echo $item | awk '{print $3}')
     interval_time=$(echo $item | awk '{print $4}')
 
-    echo ".................${table_name}................."
-    echo "sleep时间：${sleep_hour_time}s..."
+    echo -e ".................${table_name}.................\n"
+    echo -e "该表没执行完一次sleep时间:${sleep_hour_time}s...\n"
 
     while [ $current_timestamp -lt $end_timestamp ];
     do
@@ -147,14 +148,14 @@ do
       current_timestamp=$((current_timestamp + ${interval_time}))
       next_end_time=$(date -d "@$current_timestamp" +"%Y-%m-%d %H:%M:%S")
 
-      echo -en "${pre_start_time} + ${next_end_time}\n"
+      echo -e "${pre_start_time} + ${next_end_time}\n"
       execute_with_retry "$table_name" "$time_column" "$pre_start_time" "$next_end_time"
       sleep ${sleep_hour_time}s
     done
 
 done
 
-echo -en "+++++++++++++++++++++++++++++++++++++++++++++++\n"
-echo -en "执行SUCCESS--------$(date "+%Y-%m-%d %H:%M:%S")\n"
-echo -en "+++++++++++++++++++++++++++++++++++++++++++++++\n"
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++\n"
+echo -e "执行SUCCESS--------$(date "+%Y-%m-%d %H:%M:%S")\n"
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++\n"
 
