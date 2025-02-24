@@ -57,6 +57,7 @@ declare -a small_table_infos=(
 "dws_airport_flight_info update_time 1 0"                   # 飞机起飞航班表
 "dws_vessel_et_info_rt update_time 1 0"                     # 船舶实体表
 "dws_vessel_bhv_status_rt acquire_time 0 0"                 # 船舶最后位置状态表
+
 "dws_flight_segment_rt start_time 0 0"                      # 飞机航段表 - 自己计算的
 "dws_bhv_airport_weather_info acquire_time 0 0"             # 机场天气数据表
 
@@ -114,14 +115,14 @@ done
 
 # 表名称、时间字段、同一个表不同时间之间的间隔、每次同步几小时(s)
 arrayList=(
-"dws_bhv_aircraft_last_location_dh merge_time 3 43200"                # 12 hour
-"dws_bhv_vessel_last_location_dh merge_time 3 21600"                  # 6 hour
-"dws_vessel_bhv_track_rt acquire_time 10 7200"                        # 2 hour
+"dws_bhv_aircraft_last_location_dh merge_time 3 14400"                # 4 hour
+"dws_bhv_vessel_last_location_dh merge_time 3 14400"                  # 4 hour
+"dws_vessel_bhv_track_rt acquire_time 10 3600"                        # 1 hour
 "dwd_vessel_list_all_rt acquire_timestamp_format 5 7200"              # 2 hour
 "dwd_adsbexchange_aircraft_list_rt acquire_timestamp_format 10 3600"  # 1 hour
-"dwd_vt_vessel_all_info acquire_timestamp_format 5 7200"              # 2 hour
+"dwd_vt_vessel_all_info acquire_timestamp_format 5 3600"              # 1 hour
 "dwd_ais_landbased_vessel_list acquire_time 5 14400"                  # 4 hour
-"dwd_fr24_aircraft_list_rt acquire_time 5 7200"                       # 2 hour
+"dwd_fr24_aircraft_list_rt acquire_time 5 3600"                       # 1 hour
 "dwd_bhv_aircraft_combine_rt acquire_time 10 1800"                    # 0.5 hour
 )
 

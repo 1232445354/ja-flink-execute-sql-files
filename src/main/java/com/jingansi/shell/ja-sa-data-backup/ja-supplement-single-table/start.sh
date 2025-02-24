@@ -1,33 +1,27 @@
 #!/bin/bash
 
-echo -en "程序开始执行.....$(date)\n"
+echo -e "程序开始执行.....$(date)\n"
 
 declare -a time_ranges=(
 "2024-10-01 00:00:00 2024-11-10 23:59:59"
 )
 
-#col="dws_bhv_airport_weather_info acquire_time 864000"
-#col="dws_bhv_aircraft_last_location_dh merge_time 43200"
-#col="dws_bhv_vessel_last_location_dh merge_time 28800"
-#col="dws_vessel_bhv_track_rt acquire_time 3600"
-#col="dwd_vessel_list_all_rt acquire_timestamp_format 7200"
-#col="dwd_adsbexchange_aircraft_list_rt acquire_timestamp_format 3600"
-#col="dwd_vt_vessel_all_info acquire_timestamp_format 7200"
-#col="dwd_ais_landbased_vessel_list acquire_time 14400"
-#col="dwd_fr24_aircraft_list_rt acquire_time 7200"
-#col="dwd_bhv_aircraft_combine_rt acquire_time 1800"
-#col="dwd_ais_vessel_all_info acquire_timestamp_format 3600"
-#col="dws_aircraft_combine_list_rt acquire_time 1800"
-#col="dwd_ais_vessel_port_all_info acquire_timestamp_format 172800"
-#col="dws_ais_vessel_all_info_day acquire_timestamp_format 432000"
-#col="dwd_ais_vessel_all_info acquire_timestamp_format 7200"
-#col="dws_aircraft_combine_list_rt acquire_time 1800"
-#col="dws_flight_segment_rt start_time 86400"
-#col="dws_bhv_airport_weather_info acquire_time 432000"
-#col="dwd_bhv_sentinel_info photograph_datetime 864000"
-#col="dws_bhv_satellite_list_fd today_time 864000"
-#col="ods_airport_flight_arrival acquire_time 432000"
-col="ods_airport_flight_departure acquire_time 432000"
+#col="dws_bhv_aircraft_last_location_dh merge_time 14400"   # 4hour
+#col="dws_bhv_vessel_last_location_dh merge_time 14400"     # 4hour
+#col="dws_vessel_bhv_track_rt acquire_time 3600"            # 1hour
+#col="dwd_vessel_list_all_rt acquire_timestamp_format 7200" # 2hour
+#col="dwd_adsbexchange_aircraft_list_rt acquire_timestamp_format 3600"  # 1hour
+#col="dwd_vt_vessel_all_info acquire_timestamp_format 3600"             # 1hour
+#col="dwd_ais_landbased_vessel_list acquire_time 14400"                 # 4 hour
+#col="dwd_fr24_aircraft_list_rt acquire_time 3600"                      # 1 hour
+#col="dwd_bhv_aircraft_combine_rt acquire_time 1800"                    # 0.5hour
+#col="dws_flight_segment_rt start_time 86400"                           # 24 hour
+#col="dws_bhv_airport_weather_info acquire_time 432000"                 # 5day
+#col="dwd_bhv_sentinel_info photograph_datetime 864000"                 # 10day
+#col="dws_bhv_satellite_list_fd today_time 864000"                      # 10 day
+# --------------------------------------------------
+
+
 
 date_format="+%Y-%m-%d %H:%M:%S"
 sleep_time=40

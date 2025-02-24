@@ -1,3 +1,4 @@
+-- 整个时间跨度1月
 
 SET @start_time = "2024-11-11 00:00:00";
 SET @end_time = "2024-12-15 23:59:59";
@@ -42,18 +43,17 @@ select * from doris_idc.sa.dws_bhv_satellite_list_fd
 where today_time between @start_time and @end_time;
 
 
+-- 卫星图片表
+insert into dws_atr_satellite_image_info
+select * from doris_idc.sa.dws_atr_satellite_image_info
+where acquire_time between @start_time and @end_time;
+
+
 
 -- 卫星实体详情
 insert into dws_et_satellite_info
 select * from doris_idc.sa.dws_et_satellite_info
 where update_time between @start_time and @end_time;
-
-
-
--- 卫星图片表
-insert into dws_atr_satellite_image_info
-select * from doris_idc.sa.dws_atr_satellite_image_info
-where acquire_time between @start_time and @end_time;
 
 
 
