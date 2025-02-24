@@ -15,7 +15,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 -- SET 'parallelism.default' = '4';
 set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt';
+SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-chingchi-icos3.0-rt';
 
 
 
@@ -56,6 +56,9 @@ create table iot_device_message_kafka_01 (
                                                  latitude            double, -- 纬度
                                                  attitudeHead        double, -- 无人机机头朝向
                                                  gimbalHead          double, -- 无人机云台朝向
+                                                 altitude            double, -- 海拔
+                                                 -- height              double, -- 跟海拔差不多的字段，一起给前段，回溯轨迹需要海拔，3维
+
 
                                                  -- 雷达、振动仪检测数据
                                                  targets array<
@@ -99,9 +102,9 @@ create table iot_device_message_kafka_01 (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id4',
       -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '1740384023000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -137,7 +140,7 @@ create table iot_device_message_kafka_02 (
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.timestamp-millis' = '1740373209000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -166,8 +169,8 @@ create table device_media_datasource (
                                          PRIMARY KEY (device_id,start_time,url) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true', -- ECS环境
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',  -- 201环境
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true', -- ECS环境
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',  -- 201环境
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -213,8 +216,8 @@ create table dwd_radar_target_all_rt(
                                         update_time                string      -- 数据入库时间
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
-     'fenodes' = '172.21.30.202:30030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+-- 'fenodes' = '172.21.30.202:30030',
      'table.identifier' = 'dushu.dwd_radar_target_all_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -238,6 +241,8 @@ create table dwd_device_track_rt (
                                      acquire_timestamp         bigint              comment '上报时间戳',
                                      attitude_head             DECIMAL(30,18)      comment '无人机机头朝向',
                                      gimbal_head               DECIMAL(30,18)      comment '无人机云台朝向',
+                                     altitude                  double              comment '海拔高度',
+                                     height                    double              comment '跟海拔差不多的一个高度，用于回溯轨迹3维',
                                      lng_02                    DECIMAL(30,18)      comment '经度—高德坐标系、火星坐标系',
                                      lat_02                    DECIMAL(30,18)      comment '纬度—高德坐标系、火星坐标系',
                                      username                  string              comment '设备用户',
@@ -250,8 +255,8 @@ create table dwd_device_track_rt (
                                      update_time               string              comment '更新插入时间（数据入库时间'
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
-     'fenodes' = '172.21.30.202:30030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+-- 'fenodes' = '172.21.30.202:30030',
      'table.identifier' = 'dushu.dwd_device_track_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -280,8 +285,8 @@ create table dwd_device_attr_info (
                                       update_time               string          comment '数据入库时间'
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
-     'fenodes' = '172.21.30.202:30030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+-- 'fenodes' = '172.21.30.202:30030',
      'table.identifier' = 'dushu.dwd_device_attr_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -308,8 +313,8 @@ create table iot_device (
                             primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'iot_device',
@@ -330,8 +335,8 @@ create table device (
                         primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'device',
@@ -351,8 +356,8 @@ create table enum_target_name (
                                   primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'enum_target_name',
@@ -416,6 +421,9 @@ select
     message.`data`.latitude    as latitude,
     message.`data`.attitudeHead  as attitude_head,
     message.`data`.gimbalHead    as gimbal_head,
+    message.`data`.height    as uav_height,
+    message.`data`.altitude  as altitude,
+
 
     -- 手动拍照
     message.`data`.photoUrl    as photo_url,
@@ -584,6 +592,8 @@ select
     acquire_timestamp,
     attitude_head,
     gimbal_head,
+    altitude,
+    uav_height as height,
     longitude,
     latitude,
     username,
@@ -662,6 +672,8 @@ select
     acquire_timestamp         ,
     attitude_head             ,
     gimbal_head               ,
+    altitude,
+    height,
     longitude   as lng_02     ,
     latitude    as lat_02     ,
     username                  ,
