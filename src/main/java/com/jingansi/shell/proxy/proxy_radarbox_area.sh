@@ -2,15 +2,15 @@
 
 #本地代理服务，绑定IP和端口
 #注意：若部署在公网，IP必须是127.0.0.1/内网IP，或者代理端口配置成禁止外部访问
-proxy_name="radarbox"
+proxy_name="radarbox-area"
 proxy_ip="172.21.30.203"
-proxy_port=6790
+proxy_port=6666
 
 #青果代理的ssh登陆账号、端口
 #通过ssh证书免密码登陆（需要提前配置）
 ssh_user="root"
 ssh_ip="59.57.14.142"
-ssh_port="20805"
+ssh_port="20837"
 ssh_key="./ssh_key/qg_ssh_key"
 
 service_ip=""

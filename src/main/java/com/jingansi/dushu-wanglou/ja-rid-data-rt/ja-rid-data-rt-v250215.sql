@@ -2,7 +2,7 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/07/30 16:48:50
 -- description: 飞机数据源合之后的数据全部写入doris
--- version: ja-rid-data-rt-v250215-dev
+-- version: ja-rid-data-rt-v250215
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-rid-data-rt';
@@ -14,8 +14,8 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '3';
 
--- SET 'execution.checkpointing.interval' = '300000';
--- SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-rid-data-rt';
+SET 'execution.checkpointing.interval' = '300000';
+SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-rid-data-rt';
 
 -- set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 
@@ -99,17 +99,18 @@ create table iot_device_message_kafka_01 (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      'properties.bootstrap.servers' = '172.21.30.105:30090',
-      -- 'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-rid-data1',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1740153629000',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1740501727000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
+
 
 
 -- rid数据入库doris
@@ -159,7 +160,8 @@ create table dws_bhv_rid_rt (
                                 update_time                string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = '172.21.30.105:30030',
+      -- 'fenodes' = '172.21.30.105:30030',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_bhv_rid_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -186,7 +188,8 @@ create table `dws_et_control_station_info` (
                                                update_time     string  comment '数据入库时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = '172.21.30.105:30030',
+      -- 'fenodes' = '172.21.30.105:30030',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_et_control_station_info',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -223,7 +226,8 @@ create table `dws_et_uav_info` (
                                    update_time             string  comment '数据入库时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = '172.21.30.105:30030',
+      -- 'fenodes' = '172.21.30.105:30030',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_et_uav_info',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -251,7 +255,8 @@ create table `dws_bhv_rid_heartbeat_rt` (
                                             update_time         	string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = '172.21.30.105:30030',
+      -- 'fenodes' = '172.21.30.105:30030',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_bhv_rid_heartbeat_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -276,7 +281,8 @@ create table `dws_rl_rid_uav_rt` (
                                      update_time          string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = '172.21.30.105:30030',
+      -- 'fenodes' = '172.21.30.105:30030',
+      'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_rl_rid_uav_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -306,8 +312,8 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://172.21.30.105:31306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      -- 'url' = 'jdbc:mysql://172.21.30.105:31306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -316,6 +322,42 @@ create table device (
       'lookup.cache.ttl' = '86400s',
       'lookup.max-retries' = '10'
       );
+
+
+
+-- 无人机实体表来源
+create table `dws_et_uav_info_source` (
+                                          id                      string  comment '无人机id-sn号',
+                                          device_id               string  comment '无人机设备id-牍术接入的',
+                                          sn                      string  comment '序列号',
+                                          name                    string  comment '无人机名称',
+                                          recvmac                 string  comment 'MAC地址',
+                                          manufacturer            string  comment '厂商',
+                                          model                   string  comment '型号',
+                                          owner                   string  comment '所有者',
+                                          type                    string  comment '类型',
+                                          source                  string  comment '数据来源',
+                                          category                string  comment '类别',
+                                          phone                   string  comment '电话',
+                                          empty_weight            string  comment '空机重量',
+                                          maximum_takeoff_weight  string  comment '最大起飞重量',
+                                          purpose                 string  comment '用途',
+                                          update_time             string  comment '数据入库时间',
+                                          PRIMARY KEY (id) NOT ENFORCED
+) with (
+      'connector' = 'jdbc',
+      -- 'url' = 'jdbc:mysql://172.21.30.105:31306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'driver' = 'com.mysql.cj.jdbc.Driver',
+      'username' = 'root',
+      'password' = 'jingansi110',
+      'table-name' = 'dws_et_uav_info',
+      'lookup.cache.max-rows' = '50000',
+      'lookup.cache.ttl' = '86400s',
+      'lookup.max-retries' = '10'
+      );
+
+
 
 
 -- ****************************规则引擎写入数据******************************** --
@@ -346,8 +388,8 @@ create table uav_source(
 ) with (
       'connector' = 'kafka',
       'topic' = 'uav_source',
-      'properties.bootstrap.servers' = '172.21.30.105:30090',
-      -- 'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'uav_source1',
       'key.format' = 'json',
       'key.fields' = 'id',
@@ -426,7 +468,20 @@ where message.`timestamp` is not null
 
 create view temp01_01 as
 select
-    t1.*
+    t1.*,
+    t3.id                     as doris_uav_join_id,
+    t3.name                   as doris_uav_join_name,
+    t3.recvmac                as doris_uav_join_recvmac,
+    t3.manufacturer           as doris_uav_join_manufacturer,
+    t3.model                  as doris_uav_join_model,
+    t3.owner                  as doris_uav_join_owner,
+    t3.type                   as doris_uav_join_type,
+    t3.category               as doris_uav_join_category,
+    t3.phone                  as doris_uav_join_phone,
+    t3.empty_weight           as doris_uav_join_empty_weight,
+    t3.maximum_takeoff_weight as doris_uav_join_maximum_takeoff_weightn,
+    t3.purpose                as doris_uav_join_purpose
+
 from (
          select
              *
@@ -441,6 +496,10 @@ from (
      ) as t1
          left join device FOR SYSTEM_TIME AS OF t1.proctime as t2   -- 设备表 关联rid设备位置
                    on t1.rid_device_id = t2.device_id
+
+         left join dws_et_uav_info_source FOR SYSTEM_TIME AS OF t1.proctime as t3   -- 设备表 关联rid设备位置
+                   on t1.uav_id = t3.id
+
 where distance_utf(t1.uav_latitude,t1.uav_longitude,t2.latitude,t2.longitude) <= 15;
 
 
@@ -495,6 +554,19 @@ select
     if(t1.sys_timestamp = '',cast(null as varchar),t1.sys_timestamp) as sys_timestamp, -- 探测到无人机时间戳
     t1.operator_type,         -- 描述类型 保留字
     t1.operator_id,            -- 无用-可为空
+
+    t1.doris_uav_join_id,
+    t1.doris_uav_join_name,
+    t1.doris_uav_join_recvmac,
+    t1.doris_uav_join_manufacturer,
+    t1.doris_uav_join_model,
+    t1.doris_uav_join_owner,
+    t1.doris_uav_join_type,
+    t1.doris_uav_join_category,
+    t1.doris_uav_join_phone,
+    t1.doris_uav_join_empty_weight,
+    t1.doris_uav_join_maximum_takeoff_weightn,
+    t1.doris_uav_join_purpose,
 
     t2.device_id              as join_dushu_uav_device_id,
     t2.name                   as join_dushu_uav_name,
@@ -583,7 +655,8 @@ select
             ifnull(uav_id,'')
         )         as search_content,
     from_unixtime(unix_timestamp()) as update_time
-from temp02;
+from temp02
+where doris_uav_join_id is null;
 
 
 
