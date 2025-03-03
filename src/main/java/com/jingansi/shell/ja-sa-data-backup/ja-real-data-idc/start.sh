@@ -48,7 +48,6 @@ declare -a small_table_infos=(
 "dws_vessel_list_status_rt acquire_timestamp_format 0 0"    # marinetraffic的船舶状态数据单独入库
 "dws_vt_vessel_status_info acquire_timestamp_format 0 0"    # vt的船舶状态数据单独入库
 "dws_ais_landbased_vessel_status acquire_time 0 0"          # lb岸基数据的状态数据入库
-"dwd_bhv_satellite_rt acquire_time 1 0"                     # 卫星全量数据表
 "dws_bhv_satellite_list_fd today_time 1 0"                  # 卫星每日聚合表
 "dws_atr_satellite_image_info update_time 1 0"              # 卫星图片
 "dws_et_satellite_info update_time 1 0"                     # 卫星实体表
@@ -60,17 +59,6 @@ declare -a small_table_infos=(
 
 "dws_flight_segment_rt start_time 0 0"                      # 飞机航段表 - 自己计算的
 "dws_bhv_airport_weather_info acquire_time 0 0"             # 机场天气数据表
-
-
-#"dws_atr_aircraft_image_info update_time 0 0"                   # 飞机图片表
-#"dws_atr_aircraft_image_id_info update_time 0 0"                # 飞机图片id表
-#"dws_ais_vessel_all_info_day acquire_timestamp_format 0 0 - +"  # 船舶按天的数据
-#"dws_ais_vessel_detail_static_attribute update_time 1 0 - +"    # 船舶实体属性
-#"dws_ais_vessel_status_info acquire_timestamp_format 0 0 - +"   # 船舶融合状态表
-#"dws_aircraft_combine_status_rt acquire_time 0 0 - +"           # 飞机实体融合状态表
-#"dwd_satellite_tle_list update_time 2 0" # 卫星tle融合表,全量表1
-#"dws_satellite_tle_info current_date 2 0" # 卫星tle融合表2
-#"dws_satellite_entity_info update_time 1 0" # 卫星实体表
 )
 
 echo -en "小表数据同步中......\n"
