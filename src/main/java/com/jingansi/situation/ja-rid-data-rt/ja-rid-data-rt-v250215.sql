@@ -1,7 +1,7 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/07/30 16:48:50
--- description: 飞机数据源合之后的数据全部写入doris
+-- description: rid设备数据采集数据
 -- version: ja-rid-data-rt-v250215
 --********************************************************************--
 
@@ -342,15 +342,14 @@ create table `dws_et_uav_info_source` (
                                           empty_weight            string  comment '空机重量',
                                           maximum_takeoff_weight  string  comment '最大起飞重量',
                                           purpose                 string  comment '用途',
-                                          update_time             string  comment '数据入库时间',
                                           PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
       -- 'url' = 'jdbc:mysql://172.21.30.105:31306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
-      'password' = 'jingansi110',
+      'password' = 'Jingansi@110',
       'table-name' = 'dws_et_uav_info',
       'lookup.cache.max-rows' = '50000',
       'lookup.cache.ttl' = '86400s',
