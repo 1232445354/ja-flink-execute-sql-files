@@ -1,8 +1,8 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
--- create time: 2024/05/09 14:06:19
--- description: 旌旗、望楼、最新版本、信火一体
--- version: ja-chingchi-icos3.0-rt-v240731
+-- create time: 2024/01/01 14:06:19
+-- description: 旌旗
+-- version:v20240101
 --********************************************************************--
 
 
@@ -15,7 +15,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-chingchi-icos3.0-rt' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt' ;
 
 
 
@@ -55,17 +55,11 @@ create table iot_device_message_kafka_01 (
                                                  -- 执法仪轨迹
                                                  longitude           double, -- 经度
                                                  latitude            double, -- 纬度
-                                                 deviceName          string,  -- 执法仪名称
+                                                 deviceName          string, -- 执法仪名称
+                                                 attitudeHead        double, -- 无人机机头朝向
+                                                 gimbalHead          double, -- 无人机云台朝向
 
-                                                 -- 振动仪数据
-                                                 objectType           string, -- 大类型
-                                                 distance             double, -- 上报距离
-                                                 source_type          string,
-                                                 targetCredibility    double,
-                                                 `time`               string,
-                                                 target_id            string,
-                                                 sourceType           string,
-                                                 -- 雷达检测数据
+                                                 -- 雷达、振动仪检测数据
                                                  targets array<
                                                  row(
                                                  targetId         string   ,-- -目标id
@@ -81,9 +75,15 @@ create table iot_device_message_kafka_01 (
                                                  targetYaw        double   , -- 水平角度
                                                  utc_time         bigint   , -- 雷达检测数据上报时间戳
                                                  tracked_times    double   , -- 已跟踪次数
-                                                 loss_times       double   ,  -- 连续丢失次数
-                                                 sourceType       string   ,  -- 数据来源类型：M300、RADAR
-                                                 targetType       string      -- 目标类型
+                                                 loss_times       double   , -- 连续丢失次数
+                                                 sourceType       string   , -- 数据来源类型：M300、RADAR
+                                                 targetType       string   , -- 目标类型
+
+                                                 -- 振动仪数据
+                                                 objectLabel          string, -- 大类型
+                                                 targetCredibility    double,
+                                                 `time`               string
+
                                                  )
                                                  >
                                                  )
@@ -95,8 +95,8 @@ create table iot_device_message_kafka_01 (
       'properties.group.id' = 'iot-device-message-group-id1',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1720682617000',
+      --'scan.startup.mode' = 'timestamp',
+      --'scan.startup.timestamp-millis' = '1734971983000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -188,7 +188,7 @@ create table photoelectric_inspection_result_kafka(
                                                           >
 ) WITH (
       'connector' = 'kafka',
-      'topic' = 'wanglou_test',
+      'topic' = 'ja-ai-detection-output',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'photoelectric_inspection_result_group_id',
       -- 'scan.startup.mode' = 'group-offsets',
@@ -224,14 +224,17 @@ create table device_media_datasource (
                                          PRIMARY KEY (device_id,start_time,url) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8', -- ECS环境
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',  -- 201环境
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true', -- ECS环境
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',  -- 201环境
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
       'table-name' = 'device_media_datasource',
       'sink.buffer-flush.interval' = '1s',
-      'sink.buffer-flush.max-rows' = '20'
+      'sink.buffer-flush.max-rows' = '20',
+      'lookup.cache.max-rows' = '5000',
+      'lookup.cache.ttl' = '3600s',
+      'lookup.max-retries' = '10'
       );
 
 
@@ -273,6 +276,7 @@ create table dwd_radar_target_all_rt(
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+-- 'fenodes' = '172.27.95.216:8030',
      'table.identifier' = 'dushu.dwd_radar_target_all_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -325,6 +329,7 @@ create table dws_radar_target_status_rt(
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+-- 'fenodes' = '172.27.95.216:8030',
      'table.identifier' = 'dushu.dws_radar_target_status_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -338,60 +343,6 @@ create table dws_radar_target_status_rt(
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
-
-
--- -- 设备（可见光、红外）检测全量数据入库（Sink：doris）
--- drop table  if exists dwd_photoelectric_target_all_rt;
--- create table dwd_photoelectric_target_all_rt(
---     device_id                  string     , -- '设备id',
---     target_id                  bigint     , -- '目标id',
---     parent_id                  string     , -- 父设备的id,也就是望楼id
---     acquire_timestamp_format   string     , -- '上游程序上报时间戳-时间戳格式化',
---     acquire_timestamp          bigint     , -- '采集时间戳毫秒级别，上游程序上报时间戳',
---     source_type                string     , -- 类型，VISUAL:可见光,INFRARED:红外,FUSHION:	融合,RADAR:雷达,VIBRATOR: 震动器
---     device_name                string     , -- 设备名称
---     radar_id                   string     , -- 雷达id
---     radar_target_id            double     , -- 雷达检测的目标id
---     radar_device_name          string     , -- 雷达的设备名称
---     source                     string     , -- 数据检测的来源拼接 示例：雷达（11）、可见光（22）
---     record_path                string     , -- 可见光、红外告警视频地址
---     bbox_height                double     , -- 长度
--- 	bbox_left	               double     , -- 左
--- 	bbox_top	               double     , -- 上
--- 	bbox_width	               double     , -- 宽度
---     source_frame_height        bigint     , -- 原视频高度
---     source_frame_width         bigint     , -- 原视频宽度
--- 	longitude                  double     , -- 目标经度
---     latitude                   double 	  , -- 目标纬度
---     altitude                   double     , -- 高度
--- 	big_image_path             string     , -- 大图
--- 	small_image_path           string     , -- 小图
--- 	class_id                   double     ,
--- 	confidence                 string     , -- 置信度
--- 	infer_id                   double     ,
--- 	object_label               string     , -- 目标的类型，人，车
--- 	object_sub_label           string     , -- 目标的类型子类型
--- 	speed                      double     , -- 目标速度 m/s
--- 	distance                   double     , -- 距离 m
--- 	yaw                        double     , -- 目标方位
---     flag                       string     , -- 是否修改属性-修改、插入
---     create_by                  string     , -- 创建人
---     update_time                string      -- 数据入库时间
--- )WITH (
--- 'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
--- 'table.identifier' = 'dushu.dwd_photoelectric_target_all_rt',
--- 'username' = 'admin',
--- 'password' = 'Jingansi@110',
--- 'doris.request.tablet.size'='3',
--- 'doris.request.read.timeout.ms'='30000',
--- 'sink.batch.size'='50000',
--- 'sink.batch.interval'='10s',
--- 'sink.properties.escape_delimiters' = 'true',
--- 'sink.properties.column_separator' = '\x01',	 -- 列分隔符
--- 'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
--- 'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
--- );
 
 
 
@@ -436,6 +387,7 @@ create table dwd_photoelectric_target_all_rt_source(
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+-- 'fenodes' = '172.27.95.216:8030',
      'table.identifier' = 'dushu.dwd_photoelectric_target_all_rt_source',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -493,6 +445,7 @@ create table dws_photoelectric_target_status_rt(
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+-- 'fenodes' = '172.27.95.216:8030',
      'table.identifier' = 'dushu.dws_photoelectric_target_status_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -514,6 +467,8 @@ create table dwd_device_track_rt (
                                      device_id                 string              comment '上报的设备id',
                                      acquire_timestamp_format  string              comment '格式化时间',
                                      acquire_timestamp         bigint              comment '上报时间戳',
+                                     attitude_head             DECIMAL(30,18)      comment '无人机机头朝向',
+                                     gimbal_head               DECIMAL(30,18)      comment '无人机云台朝向',
                                      lng_02                    DECIMAL(30,18)      comment '经度—高德坐标系、火星坐标系',
                                      lat_02                    DECIMAL(30,18)      comment '纬度—高德坐标系、火星坐标系',
                                      username                  string              comment '设备用户',
@@ -533,7 +488,11 @@ create table dwd_device_track_rt (
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
      'sink.batch.size'='5000',
-     'sink.batch.interval'='5s'
+     'sink.batch.interval'='5s',
+     'sink.properties.escape_delimiters' = 'true',
+     'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
+     'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
 
@@ -559,6 +518,7 @@ create table dwd_device_attr_info (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+-- 'fenodes' = '172.27.95.216:8030',
      'table.identifier' = 'dushu.dwd_device_attr_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -585,15 +545,15 @@ create table iot_device (
                             primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'iot_device',
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
@@ -606,15 +566,15 @@ create table device (
                         primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'device',
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
@@ -629,14 +589,14 @@ create table users (
                        primary key (user_id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/ja-4a?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/ja-4a?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'users',
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
@@ -651,7 +611,6 @@ create table users (
 drop view if exists tmp_source_kafka_01;
 create view tmp_source_kafka_01 as
 select
-    type,
     coalesce(productKey,message.productKey)   as product_key, -- message_product_key
     coalesce(deviceId,message.deviceId)       as device_id,   -- message_device_id
     coalesce(version,message.version)         as version, -- message_version
@@ -660,35 +619,30 @@ select
     coalesce(bid,message.bid)                 as bid, -- message_bid
     coalesce(`method`,message.`method`)       as `method`, -- message_method
 
-    -- 手动拍照截图数据
+    -- 截图数据
     `data`.pictureUrl as picture_url,
     `data`.width  as width,
     `data`.height as height,
-    `data`.isCapture as is_capture,
 
-    -- 雷达检测目标数据
-    message.`data`.sourceType  as sourceType,
+
+    -- 雷达、振动仪检测目标数据
     message.`data`.targets     as targets,
 
     -- 执法仪轨迹
     message.`data`.longitude   as longitude,
     message.`data`.latitude    as latitude,
+    message.`data`.attitudeHead  as attitude_head,
+    message.`data`.gimbalHead    as gimbal_head,
     message.`data`.deviceName  as device_name,
 
-    -- 媒体拍照的
+    -- 手动拍照
     message.`data`.photoUrl    as photo_url,
-
-    -- 振动仪数据
-    message.`data`.objectType  as object_label,
-    message.`data`.distance,
-    message.`data`.source_type,
-    message.`data`.targetCredibility as target_credibility,
-    message.`data`.`time` as time1,
-    message.`data`.target_id,
+    message.`data`.isCapture   as is_capture,
     PROCTIME()  as proctime
 from iot_device_message_kafka_01
 where coalesce(deviceId,message.deviceId) is not null
-  and coalesce(`timestamp`,message.`timestamp`) > 1704096000000;
+  and coalesce(`timestamp`,message.`timestamp`) > 1704096000000
+  and coalesce(`timestamp`,message.`timestamp`) is not null;
 
 
 
@@ -710,7 +664,7 @@ from tmp_source_kafka_01 as t1
 
 
 
--- 设备(雷达)检测数据筛选处理
+-- 设备(雷达、振动仪)检测数据筛选处理
 drop view if exists tmp_source_kafka_03;
 create view tmp_source_kafka_03 as
 select
@@ -726,7 +680,9 @@ select
     parent_id,
     proctime
 from tmp_source_kafka_02
-where `method` = 'event.targetInfo.info';
+where `method` = 'event.targetInfo.info'
+  -- -- r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）
+  and product_key in('r4ae3Loh78v','k8dNIRut1q3');
 
 
 
@@ -759,8 +715,18 @@ select
     t2.utc_time,
     t2.tracked_times,
     t2.loss_times,
+    t2.targetCredibility   as target_credibility,
+    t2.`time` as time1,
+
     if(t2.sourceType <> '',t2.sourceType,t1.device_name_join) as source_type,  -- 设备来源，M300、RADAR
-    if(t2.targetType <> '',t2.targetType,cast(null as varchar)) as object_label,   -- 目标类型，海马斯
+
+    -- 雷达无目标类型都给未知｜可见光红外需要null、''、未知目标更改为未知｜ 信火一体的需要'' 改为未知
+    if(
+                coalesce(t2.objectLabel,t2.targetType) is null
+                or coalesce(t2.objectLabel,t2.targetType) = ''
+                or coalesce(t2.objectLabel,t2.targetType) = '未知目标',
+                '未知',coalesce(t2.objectLabel,t2.targetType)
+        ) as object_label,
 
     concat('[{',
            concat('"deviceName":"',t1.device_name_join,'",'),
@@ -786,9 +752,15 @@ from tmp_source_kafka_03 as t1
                                             tracked_times    ,
                                             loss_times       ,
                                             sourceType       ,
-                                            targetType
+                                            targetType       ,
+
+    -- 振动仪数据
+                                            objectLabel      ,
+                                            targetCredibility,
+                                            `time`
+
     )
-where t2.sourceType = 'RADAR';
+where t2.sourceType in('RADAR','VIBRATOR');
 
 
 
@@ -798,53 +770,56 @@ create view tmp_track_01 as
 select
     device_id,
     product_key,
-    type,
     tid,
     bid,
     acquire_timestamp,
+    attitude_head,
+    gimbal_head,
     device_name,
     longitude,
     latitude,
     username,
     group_id
-from tmp_source_kafka_02      -- QptZJHOd1KD :执法仪，zyrFih3kept,00000000002:无人机
-where product_key in('QptZJHOd1KD','zyrFih3kept','00000000002');
+from tmp_source_kafka_02      -- QptZJHOd1KD :执法仪，zyrFih3kept(无人机),00000000002（机库字设备-无人机）
+where product_key in('QptZJHOd1KD','zyrFih3kept','00000000002')
+  and longitude is not null
+  and latitude is not null;
 
 
 
--- 振动仪数据筛选处理
-drop view if exists tmp_source_kafka_05;
-create view tmp_source_kafka_05 as
-select
-    product_key,
-    device_id,
-    type,
-    tid,
-    bid,
-    version,
-    -- TO_TIMESTAMP_LTZ(acquire_timestamp,3) as acquire_timestamp_format,
-    from_unixtime(acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
-    acquire_timestamp as acquire_timestamp,
-    `method`,
-    object_label,
-    distance,
-    if(source_type is not null,source_type,device_name_join) as source_type,
-    longitude,
-    latitude,
-    target_credibility,
-    time1,
-    device_name_join as device_name,
-    parent_id,
-    target_id,
-    concat('[{',
-           concat('"deviceName":"',if(device_name_join is not null,device_name_join,''),'",'),
-           concat('"deviceId":"',device_id,'",'),
-           concat('"targetId":"',target_id,'",'),
-           concat('"type":"',coalesce(source_type,'VIBRATOR'),'"}]')
-        ) as source
-from tmp_source_kafka_02
-where `method` = 'event.alarmEvent.warning'
-  and target_id is not null;
+-- -- 振动仪数据筛选处理
+-- drop view if exists tmp_source_kafka_05;
+-- create view tmp_source_kafka_05 as
+-- select
+--   product_key,
+--   device_id,
+--   type,
+--   tid,
+--   bid,
+--   version,
+--   -- TO_TIMESTAMP_LTZ(acquire_timestamp,3) as acquire_timestamp_format,
+--   from_unixtime(acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
+--   acquire_timestamp as acquire_timestamp,
+--   `method`,
+--   object_label,
+--   distance,
+--   if(source_type is not null,source_type,device_name_join) as source_type,
+--   longitude,
+--   latitude,
+--   target_credibility,
+--   time1,
+--   device_name_join as device_name,
+--   parent_id,
+--   target_id,
+--   concat('[{',
+--       concat('"deviceName":"',if(device_name_join is not null,device_name_join,''),'",'),
+--       concat('"deviceId":"',device_id,'",'),
+--       concat('"targetId":"',target_id,'",'),
+--       concat('"type":"',coalesce(source_type,'VIBRATOR'),'"}]')
+--     ) as source
+-- from tmp_source_kafka_02
+--   where `method` = 'event.alarmEvent.warning'
+--     and target_id is not null;
 
 
 
@@ -863,6 +838,9 @@ select
         when t1.product_key = 'r4ae3Loh78v' then '7' -- 振动仪
         when t1.product_key = 'dTz5djGU3Jb' then '8' -- 边缘设备
         when t1.product_key = '68ai6goNgw5' then '9' -- 网络设备（mesh）
+        when t1.product_key = 'zyrFih3kept' then '10' -- 无人机
+        when t1.product_key = '00000000002' then '10' -- 机库子设备-无人机
+        when t1.product_key = '00000000001' then '11' -- 无人机机库
         end as device_type,
 
     if(t2.parent_id is not null and t2.parent_id <> '',t2.parent_id,t1.device_id) as parent_id,
@@ -892,8 +870,9 @@ from (
              PROCTIME()  as proctime
          from iot_device_message_kafka_02
               -- Y95SjAkrmRG（望楼）、uvFrSFW2zMs(可见光)、mVpLCOnTPLz(红外)、k8dNIRut1q3(雷达)、raYeBHvRKYP(北斗)、r4ae3Loh78v(振动仪)、eX71parWGpf（电池）、边缘设备（dTz5djGU3Jb）、网络状态（68ai6goNgw5）
-         where coalesce(productKey,message.productKey) in('Y95SjAkrmRG','uvFrSFW2zMs','mVpLCOnTPLz','k8dNIRut1q3','raYeBHvRKYP','r4ae3Loh78v','eX71parWGpf','dTz5djGU3Jb','68ai6goNgw5')
-           and coalesce(`method`,message.`method`)= 'properties.state'
+              -- zyrFih3kept(无人机)、00000000001(无人机机库)、00000000002(机库子设备-无人机)
+         where coalesce(productKey,message.productKey) in('Y95SjAkrmRG','uvFrSFW2zMs','mVpLCOnTPLz','k8dNIRut1q3','raYeBHvRKYP','r4ae3Loh78v','eX71parWGpf','dTz5djGU3Jb','68ai6goNgw5','zyrFih3kept','00000000001','00000000002')
+           and coalesce(`method`,message.`method`) in ('properties.state','event.property.post')
            and coalesce(`timestamp`,message.`timestamp`) > 1704096000000
      ) as t1
          left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2
@@ -1028,6 +1007,8 @@ select
     device_id               ,
     from_unixtime(acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format  ,
     acquire_timestamp         ,
+    attitude_head             ,
+    gimbal_head               ,
     longitude   as lng_02     ,
     latitude    as lat_02     ,
     username                  ,
@@ -1064,8 +1045,8 @@ select
 from tmp_source_kafka_02
 where acquire_timestamp is not null
   and (
-        (`method` = 'platform.capture.post' and picture_url is not null)
-        or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null)
+        (`method` = 'platform.capture.post' and picture_url is not null)  -- 截图
+        or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null) -- 拍照数据过滤截图的
     );
 
 
@@ -1095,8 +1076,8 @@ select
     utc_time,
     tracked_times,
     loss_times,
-    cast(null as double) as target_credibility,
-    cast(null as varchar) as time1,
+    target_credibility,
+    time1,
     tid,
     bid,
     `method`,
@@ -1132,8 +1113,8 @@ select
     utc_time,
     tracked_times,
     loss_times,
-    cast(null as double) as target_credibility,
-    cast(null as varchar) as time1,
+    target_credibility,
+    time1,
     tid,
     bid,
     `method`,
@@ -1142,6 +1123,7 @@ select
     'ja-flink' as create_by,
     from_unixtime(unix_timestamp()) as update_time
 from tmp_source_kafka_04;
+
 
 
 -- 设备(红外可见光)检测全量数据入库doris-原表-不支持修改的
@@ -1226,64 +1208,6 @@ select
     from_unixtime(unix_timestamp()) as update_time
 from tmp_source_kafka_002;
 
-
-
--- 设备(振动仪)检测全量数据入库doris
-insert into dwd_radar_target_all_rt(
-    device_id,target_id,parent_id,acquire_timestamp_format,acquire_timestamp,source_type,device_name,source,longitude,latitude,distance,object_label,target_credibility,time1,tid,bid,`method`,product_key,version,create_by
-)
-select
-    device_id,
-    target_id,
-    parent_id,
-    acquire_timestamp_format,
-    acquire_timestamp,
-    source_type,
-    device_name,
-    source,
-    longitude,
-    latitude,
-    distance,
-    object_label,
-    target_credibility,
-    time1,
-    tid,
-    bid,
-    `method`,
-    product_key,
-    version,
-    'ja-flink' as create_by,
-    from_unixtime(unix_timestamp()) as update_time
-from tmp_source_kafka_05;
-
-
--- 设备(振动仪)检测状态数据入库doris
-insert into dws_radar_target_status_rt(
-    device_id,target_id,parent_id,acquire_timestamp_format,acquire_timestamp,source_type,device_name,source,longitude,latitude,distance,object_label,target_credibility,time1,tid,bid,`method`,product_key,version,create_by
-)
-select
-    device_id,
-    target_id,
-    parent_id,
-    acquire_timestamp_format,
-    acquire_timestamp,
-    source_type,
-    device_name,
-    source,
-    longitude,
-    latitude,
-    distance,
-    object_label,
-    target_credibility,
-    time1,
-    tid,
-    bid,
-    `method`,
-    product_key,
-    version,
-    'ja-flink' as create_by,
-    from_unixtime(unix_timestamp()) as update_time
-from tmp_source_kafka_05;
 
 
 insert into dwd_device_attr_info

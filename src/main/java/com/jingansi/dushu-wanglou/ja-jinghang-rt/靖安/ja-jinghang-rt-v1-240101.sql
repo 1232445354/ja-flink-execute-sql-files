@@ -1,11 +1,11 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
--- create time: 2023/10/27 15:19:11
--- description: 警航程序
---version：ja-jinghang-rt-240101
+-- create time: 2024/01/01 15:19:11
+-- description: 警航程序  ja-jinghang-rt-240101
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-jinghang-rt';
+
 
 set 'parallelism.default' = '1';
 set 'execution.type' = 'streaming';
@@ -13,8 +13,8 @@ set 'table.planner' = 'blink';
 set 'table.exec.state.ttl' = '600000';
 set 'sql-client.execution.result-mode' = 'TABLEAU';
 
-set 'table.exec.sink.not-null-enforcer'='drop';
 
+set 'table.exec.sink.not-null-enforcer'='drop';
 
 
 -- checkpoint的时间和位置
@@ -85,16 +85,16 @@ create table temp01_kafka(
 ) with (
       'connector' = 'kafka',
       'topic' = 'jinghang_detection_result',
-      -- 'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      'properties.group.id' = 'test-group-4',
+      'properties.group.id' = 'test-group',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1713268800000',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
+
 
 
 -- 设备表（Source：mysql）
@@ -115,8 +115,8 @@ create table device (
       'username' = 'root',
       'password' = 'jingansi110',
       'table-name' = 'device',
-      'lookup.cache.max-rows' = '5000',
-      'lookup.cache.ttl' = '3600s',
+      'lookup.cache.max-rows' = '50000',
+      'lookup.cache.ttl' = '86400s',
       'lookup.max-retries' = '10'
       );
 
@@ -159,8 +159,9 @@ create table temporary_detect_result (
       'username' = 'root',
       'password' = 'jingansi110',
       'table-name' = 'temporary_detect_result',
-      'lookup.cache.max-rows' = '5000',
-      'lookup.cache.ttl' = '3600s',
+      'lookup.max-retries' = '10',
+      'lookup.cache.max-rows' = '50000',
+      'lookup.cache.ttl' = '86400s',
       'lookup.max-retries' = '10'
       );
 
@@ -238,6 +239,9 @@ from temp01_kafka as a
     ) on true;
 
 
+-- select * from tmp_table01;
+
+
 
 -----------------------
 
@@ -245,7 +249,8 @@ from temp01_kafka as a
 
 -----------------------
 
--- begin statement set;
+begin statement set;
+
 
 insert into temporary_detect_result
 select
@@ -270,8 +275,8 @@ select
     c.bbox_top - c.bbox_height as right_btm_y,
     c.bbox_width               ,
     c.bbox_height              ,
-    1920       ,
-    1080      ,
+    c.source_frame_width       ,
+    c.source_frame_height      ,
     c.confidence               ,
     d.type as device_type      ,
     c.device_name
@@ -281,6 +286,9 @@ from tmp_table01 as c
                    on c.device_id = d.device_id;
 
 
--- end;
+end;
+
+
+
 
 

@@ -2,7 +2,7 @@
 -- author:      write your name here
 -- create time: 2024/12/2 19:42:10
 -- description: 各类事件数据存储
--- version:ja-event-save-v241203
+--version:ja-event-save-v241203
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-event-save';
@@ -14,7 +14,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-event-save' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-event-save' ;
 
 
  -- -----------------------
@@ -122,9 +122,9 @@ create table jiance_209(
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'ja-detection-output-2091',
       -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -133,7 +133,6 @@ create table jiance_209(
 
 
 -- 设备（可见光、红外）检测全量数据入库- 可修改的数据表（Sink：doris）
-drop table  if exists dwd_photoelectric_target_all_rt;
 create table dwd_photoelectric_target_all_rt(
                                                 device_id                  string     , -- '设备id',
                                                 target_id                  bigint     , -- '目标id',
@@ -173,7 +172,6 @@ create table dwd_photoelectric_target_all_rt(
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',  -- k8s部署
--- 'fenodes' = '172.21.30.202:30030',                                       -- 物理机器部署
      'table.identifier' = 'dushu.dwd_photoelectric_target_all_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -230,7 +228,6 @@ create table dwd_photoelectric_target_all_rt_source(
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',  -- k8s部署
--- 'fenodes' = '172.21.30.202:30030',                                       -- 物理机器部署
      'table.identifier' = 'dushu.dwd_photoelectric_target_all_rt_source',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -291,7 +288,7 @@ create table dwd_event_save_all(
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',  -- k8s部署
--- 'fenodes' = '172.21.30.202:30030',                                       -- 物理机器部署
+-- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:8030',     -- 物理机器部署
      'table.identifier' = 'dushu.dwd_event_save_all',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -318,8 +315,8 @@ create table device (
                         primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true', -- ECS环境
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true',  -- 201环境
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true', -- ECS环境
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true',  -- 201环境
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'device',
@@ -342,8 +339,8 @@ create table iot_device (
                             primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true', -- ECS环境
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true',    -- 201环境
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true', -- ECS环境
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true',    -- 201环境
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'iot_device',
@@ -355,24 +352,23 @@ create table iot_device (
 
 
 
--- 目标类型枚举
+-- 209目标类型枚举表
+drop table if exists enum_target_name;
 create table enum_target_name (
-                                  id                bigint,
-                                  source_type       string, -- 项目来源的枚举
-                                  target_type_code  string, -- 目标的类型枚举代码
-                                  target_name	   string, -- 目标类型名称
+                                  id	             bigint,    -- 自增id
+                                  target_name      string, -- 目标类型
                                   primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true', -- ECS环境
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true&autoReconnect=true',    -- 201环境
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'enum_target_name',
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '3'
+     'lookup.max-retries' = '10'
      );
 
 
@@ -398,9 +394,9 @@ select
     t1.source_frame_width,
     t2.image_path small_image_path,   -- 里层的小图
     t2.image_source,
-    t2.object_id as target_id,        -- 目标id
-    t2.radar_target_id,               -- 融合目标的雷达目标id
-    t2.radar_device_id as radar_id,   -- 融合目标的雷达id
+    t2.object_id as target_id,
+    t2.radar_target_id,
+    t2.radar_device_id as radar_id,
     t2.bbox_height,
     t2.bbox_left,
     t2.bbox_top,
@@ -455,47 +451,44 @@ where t1.source_id is not null  -- 光电设备ID
 
 
 -- 可见光红外数据关联设备表取出设备名称
+drop view if exists tmp_source_kafka_002;
 create view tmp_source_kafka_002 as
 select
     t1.*,
-    t2.device_name,                         -- 设备名称-可见光、红外
-    t2.parent_id,                           -- 父设备id
+    t2.device_name, -- 设备名称可见光、红外
+    t2.parent_id,
     t3.device_name as radar_device_name,    -- 雷达设备名称
 
-    if(source_type = 'FUSHION','FUSHION',t4.type) as source_type,
     if(source_type = 'FUSHION','融合目标',t2.device_name) as source_type_name,
 
-    case when source_type in ('FUSION') then
+    case when source_type in ('VISUAL','INFRARED') then -- 可见光、红外
              concat('[{',
-                    concat('"deviceName":"',t2.device_name,'",'),    -- 设备名称
-                    concat('"deviceId":"',t1.device_id,'",'),        -- 设备id
-                    concat('"targetId":"',cast(target_id as varchar),'",'), -- 目标id
-                    concat('"type":"',t4.type,'"},{'),              -- 目标类型
-                    concat('"deviceName":"',t3.device_name,'",'),   -- 融合设备雷达名称
-                    concat('"deviceId":"',radar_id,'",'),           -- 融合目标雷达设备id
-                    concat('"targetId":"',radar_target_id,'",'),    -- 融合目标雷达目标id
-                    concat('"type":"RADAR"}]')                      -- 类型
+                    concat('"deviceName":"',t2.device_name,'",'),
+                    concat('"deviceId":"',t1.device_id,'",'),
+                    concat('"targetId":"',cast(target_id as varchar),'",'),
+                    concat('"type":"',source_type,'"}]')
                  )
-         else
+         when source_type in ('FUSION') then
              concat('[{',
-                    concat('"deviceName":"',t2.device_name,'",'),           -- 设备名称
-                    concat('"deviceId":"',t1.device_id,'",'),               -- 设备id
-                    concat('"targetId":"',cast(target_id as varchar),'",'), -- 目标id
-                    concat('"type":"',t4.type,'"}]')                    -- 类型
+                    concat('"deviceName":"',t2.device_name,'",'),
+                    concat('"deviceId":"',t1.device_id,'",'),
+                    concat('"targetId":"',cast(target_id as varchar),'",'),
+                    concat('"type":"','"},{'),
+                    concat('"deviceName":"',t3.device_name,'",'),
+                    concat('"deviceId":"',radar_id,'",'),
+                    concat('"targetId":"',radar_target_id,'",'),
+                    concat('"type":"RADAR"}]')
                  )
-        end as device_info
+         else cast(null as varchar) end as device_info
 
 from tmp_source_kafka_001 as t1
          left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2     -- 关联取设备名称，可见光/红外设备名称
                    on t1.device_id = t2.device_id
          left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t3     -- 关联取设备名称，雷达设备名称
-                   on t1.radar_id = t3.device_id
-         left join device FOR SYSTEM_TIME AS OF t1.proctime as t4       -- 关联取设备类型，雷达设备名称
-                   on t1.device_id = t4.device_id;
+                   on t1.radar_id = t3.device_id;
 
 
-
--- **************************** 来源2 209数据*********************************
+-- **************************** 来源2*********************************
 
 create view ja_tmp01 as
 select
@@ -503,17 +496,15 @@ select
     t1.localLotNo as sn,
     t1.`timestamp`   as acquire_timestamp,
     from_unixtime(t1.`timestamp`/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
-    if(t3.parent_id is not null and t3.parent_id <> '',t3.parent_id,t2.device_id) as parent_id,
-
-    cast(t1.targetModel as varchar)                          as target_model,
+    cast(t1.targetModel as varchar)      as target_model,
     t2.device_id,
-    t2.name                                                  as device_name,
+    if(t3.parent_id is not null and t3.parent_id <> '',t3.parent_id,t2.device_id) as parent_id,
+    t2.name as device_name,
     concat(cast(t1.`timestamp` as varchar),cast(RAND_INTEGER(10000) as varchar)) as target_id,
 
-    if(t2.type is not null,t2.type,'none')  as source_type,
-    if(t2.name is not null,t2.name,'未知')  as source_type_name,
-
-    if(t4.target_name is not null,t4.target_name,'未知')       as object_label   -- 目标类型对应中文
+    if(t4.target_name is not null,t4.target_name,'未知')       as object_label,   -- 目标类型对应中文
+    if(t2.type is not null,t2.type,'none') as source_type,
+    if(t2.name is not null,t2.name,'未知') as source_type_name
 
 from jiance_209 as t1
          left join device FOR SYSTEM_TIME AS OF t1.proctime as t2     -- 关联取设备名称，可见光/红外设备名称
@@ -521,10 +512,8 @@ from jiance_209 as t1
          left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t3     -- 关联取设备名称，可见光/红外设备名称
                    on t2.device_id = t3.device_id
          left join enum_target_name FOR SYSTEM_TIME AS OF t1.proctime as t4     -- 关联取设备名称，可见光/红外设备名称
-                   on cast(t1.targetType as varchar) = t4.target_type_code
-                       and '209' = t4.source_type
+                   on t1.targetType = t4.id
 where t2.device_id is not null;
-
 
 
 -----------------------
@@ -574,6 +563,7 @@ select
     yaw,
     from_unixtime(unix_timestamp()) as update_time
 from tmp_source_kafka_002;
+
 
 
 
