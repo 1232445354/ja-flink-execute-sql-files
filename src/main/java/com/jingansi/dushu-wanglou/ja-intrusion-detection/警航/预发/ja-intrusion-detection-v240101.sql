@@ -1,11 +1,10 @@
 --********************************************************************--
 -- author:     yibo@jingan-inc.com
 -- create time: 2024/08/14 16:28:19
--- description: 检测数据告警
--- version:
+-- description: ja-intrusion-detection-new-base-pre-240101
 --********************************************************************--
 
-set 'pipeline.name' = 'ja-intrusion-detection-vjh-241215';
+set 'pipeline.name' = 'ja-intrusion-detection-new-base-pre';
 
 SET 'table.exec.state.ttl' = '600000';
 SET 'execution.type' = 'streaming';
@@ -14,7 +13,7 @@ SET 'sql-client.display.max-column-width' = '100';
 
 -- checkpoint的时间和位置
 SET 'execution.checkpointing.interval' = '60000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-intrusion-detection' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-intrusion-detection-new-base-pre' ;
 
 
  -----------------------
@@ -67,9 +66,9 @@ create table frame_infer_data (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'ja-ai-detection-output',
-      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = '135.100.11.103:9092',
       'properties.group.id' = 'ja-intrusion-detection-new-base',
-      --'scan.startup.mode' = 'group-offsets',
+      -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
       -- 'scan.startup.timestamp-millis' = '0',
@@ -141,7 +140,7 @@ create table event_warn_kafka(
 ) with (
       'connector' = 'upsert-kafka',
       'topic' = 'event_warn',
-      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = '135.100.11.103:9092',
       'properties.group.id' = 'ja-intrusion-detection',
       'key.format' = 'json',
       'value.format' = 'json'
@@ -159,7 +158,7 @@ create table iot_device (
                             PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://135.100.11.103:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -179,7 +178,7 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://135.100.11.103:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
