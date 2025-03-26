@@ -4,6 +4,7 @@
 1 * * * * nohup sudo sh /data1/bigdata/apps/ja-sync-crontab-data/vessel-real/start.sh  > /data1/bigdata/apps/ja-sync-crontab-data/vessel-real/root.log 2>&1 &
 
 
+*/3 * * * * nohup sudo sh /data1/bigdata/apps/ja-sync-crontab-data/vessel-real/start.sh  > /data1/bigdata/apps/ja-sync-crontab-data/vessel-real/root.log 2>&1 &
 
 
 

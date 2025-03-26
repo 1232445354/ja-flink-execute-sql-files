@@ -1,0 +1,56 @@
+{
+  "job": {
+    "content": [
+      {
+        "reader": {
+          "name": "mysqlreader",
+          "parameter": {
+            "username": "root",
+            "password": "Jingansi@110",
+            "column": [
+              "*"
+            ],
+            "splitPk": "",
+            "where": "acquire_timestamp_format >= date_sub(now(),interval 1 day)",
+            "connection": [
+              {
+                "jdbcUrl": [
+                  "jdbc:mysql://115.231.236.108:9030/sa?useUnicode=true&characterEncoding=utf8"
+                ],
+                "table": [
+                  "dwd_gps_url_rt"
+                ]
+              }
+            ]
+          }
+        },
+        "writer": {
+          "name": "mysqlwriter",
+          "parameter": {
+            "column": [
+              "*"
+            ],
+            "connection": [
+              {
+                "jdbcUrl": "jdbc:mysql://172.21.30.105:31030/sa?useUnicode=true&characterEncoding=utf8",
+                "table": [
+                  "dwd_gps_url_rt"
+                ]
+              }
+            ],
+            "password": "Jingansi@110",
+            "preSql": [],
+            "session": [],
+            "username": "root",
+            "writeMode": "insert"
+          }
+        }
+      }
+    ],
+    "setting": {
+      "speed": {
+        "channel": "5"
+      }
+    }
+  }
+}

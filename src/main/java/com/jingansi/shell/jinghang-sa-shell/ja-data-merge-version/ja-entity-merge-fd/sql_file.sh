@@ -82,7 +82,7 @@ select
       t1.e_name,
       t1.elset_classification as classification,
       1 as remark,
-			'4' as friend_foe,
+			'NEUTRALITY' as friend_foe,
 			concat(
 				ifnull(t1.id,''),' ',
 				ifnull(t1.international_designator,''),' ',

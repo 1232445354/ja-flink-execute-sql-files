@@ -2,6 +2,7 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/3/1 16:47:59
 -- description: marinetraffic的采集
+-- version: ja-marinetraffic-list-rt-merge-v250325
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-marinetraffic-list-rt-merge';
@@ -31,6 +32,9 @@ set 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-marinetraffic-
  -----------------------
 
 
+
+
+
 -- 创建kafka全量marineTraffic数据来源的表（Source：kafka）
 create table marinetraffic_ship_list(
                                         SHIP_ID              string, -- 船舶的唯一标识符
@@ -57,14 +61,18 @@ create table marinetraffic_ship_list(
                                         block_range_x        bigint, -- x块
                                         block_range_y        bigint, -- y块
                                         typeFlag             string, -- 回流的类型标志
+                                        TYPE_IMG             string,
+                                        TYPE_NAME            string,
+                                        STATUS_NAME          string,
+                                        MMSI                 string,
                                         proctime             as PROCTIME()
 ) with (
       'connector' = 'kafka',
       'topic' = 'marinetraffic_ship_list',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'marinetraffic_ship_list_idc',
-      -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'group-offsets',
+      -- 'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
       -- 'scan.startup.timestamp-millis' = '1738796400000',
       'format' = 'json',
@@ -144,7 +152,6 @@ create table dim_mt_fm_id_relation (
 
 
 -- 海域
-drop table if exists dim_sea_area;
 create table dim_sea_area (
                               id 			string,  -- 海域编号
                               name 		string,  -- 名称
@@ -165,36 +172,36 @@ create table dim_sea_area (
 
 
 -- 实体信息表数据
-drop table if exists dws_ais_vessel_detail_static_attribute;
-create table dws_ais_vessel_detail_static_attribute (
-                                                        vessel_id 	       bigint,
-                                                        imo                bigint,
-                                                        mmsi               bigint,
-                                                        callsign           string,
-                                                        name               string,
-                                                        c_name             string,
-                                                        vessel_type        string,
-                                                        vessel_type_name   string,
-                                                        vessel_class       string,
-                                                        vessel_class_name  string,
-                                                        flag_country_code  string,
-                                                        country_name       string,
-                                                        source             string,
-                                                        length             double,
-                                                        width              double,
-                                                        height             double,
-                                                        primary key (vessel_id) NOT ENFORCED
+create table dws_vessel_et_info_rt (
+                                       vessel_id 	       bigint,
+                                       imo                bigint,
+                                       mmsi               bigint,
+                                       callsign           string,
+                                       vessel_name        string,
+                                       vessel_c_name      string,
+                                       vessel_class_code  int,
+                                       vessel_class_name  string,
+                                       vessel_type_code   string,
+                                       vessel_type_name   string,
+                                       country_code       string,
+                                       country_name       string,
+                                       source             string,
+                                       length             double,
+                                       width              double,
+                                       height             double,
+                                       primary key (vessel_id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
       'url' = 'jdbc:mysql://172.21.30.245:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'username' = 'root',
       'password' = 'Jingansi@110',
-      'table-name' = 'dws_ais_vessel_detail_static_attribute',
+      'table-name' = 'dws_vessel_et_info_rt',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'lookup.cache.max-rows' = '50000',
       'lookup.cache.ttl' = '3600s',
       'lookup.max-retries' = '10'
       );
+
 
 -- mtf 的船舶信息表
 drop table if exists dwd_mtf_ship_info;
@@ -215,6 +222,35 @@ create table dwd_mtf_ship_info (
       'lookup.cache.ttl' = '3600s',
       'lookup.max-retries' = '10'
       );
+
+
+-- vt数据最后一条
+drop table if exists dws_vt_vessel_status_info;
+create table dws_vt_vessel_status_info (
+                                           mmsi                  string, -- mmsi主键
+                                           imo                   string, -- imo
+                                           name                  string, -- name
+                                           length                double, -- 长度
+                                           width                 double, -- 宽度
+                                           callsign              string, -- 呼号
+                                           type                  bigint, -- ais类型代码
+                                           country               string, -- 国家名称
+                                           acquire_timestamp_format     timestamp, -- 时间
+                                           lng                   double,
+                                           lat                   double,
+                                           primary key (mmsi) NOT ENFORCED
+) with (
+      'connector' = 'jdbc',
+      'url' = 'jdbc:mysql://172.21.30.244:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
+      'username' = 'root',
+      'password' = 'Jingansi@110',
+      'table-name' = 'dws_vt_vessel_status_info',
+      'driver' = 'com.mysql.cj.jdbc.Driver',
+      'lookup.cache.max-rows' = '10000',
+      'lookup.cache.ttl' = '86400s',
+      'lookup.max-retries' = '10'
+      );
+
 
 
 -- ****************************数据单独入库******************************** --
@@ -269,7 +305,6 @@ create table dwd_vessel_list_all_rt (
 
 
 -- 创建写入doris状态数据表（Sink：doris）
-drop table if exists dws_vessel_list_status_rt;
 create table dws_vessel_list_status_rt (
                                            vessel_id              			string					, -- 船舶的唯一标识符
                                            acquire_timestamp_format		string    			    , -- 采集时间戳格式化
@@ -312,8 +347,9 @@ create table dws_vessel_list_status_rt (
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
+
+
 -- 缓存表
-drop table if exists dwd_vessel_mtf_cache_list_rt;
 create table dwd_vessel_mtf_cache_list_rt (
                                               SHIP_ID              string, -- 船舶的唯一标识符
                                               SHIPNAME             string, -- 船舶的名称
@@ -358,7 +394,6 @@ create table dwd_vessel_mtf_cache_list_rt (
 
 -- ****************************规则引擎写入数据******************************** --
 
-drop table if exists vessel_source;
 create table vessel_source(
                               id                    bigint, -- id
                               source                string, -- 来源
@@ -379,8 +414,6 @@ create table vessel_source(
                               positionCountryCode2  string, -- 所处国家
                               seaId                 string, -- 海域id
                               seaName               string, -- 海域名称
-                              navStatus             string, -- 航行状态
-                              navStatusName         string, -- 航行状态名称
                               lng                   double, -- 经度
                               lat                   double, -- 纬度
                               orientation           double, -- 方向
@@ -397,18 +430,8 @@ create table vessel_source(
                               sourceMmsi            string,
                               sourceImo             string,
                               sourceCallsign        string,
-                              sourceVesselClass     string,
-                              sourceVesselClassName string,
-                              sourceVesselType      string,
-                              sourceVesselTypeName  string,
                               sourceLength          double,
                               sourceWidth           double,
-                              sourceHeight          double,
-    -- masterImageId         bigint, -- 图像id
-    -- dimensions01          double,
-    -- dimensions02          double,
-    -- dimensions03          double,
-    -- dimensions04          double,
                               blockMapIndex         bigint, -- 图层层级
                               blockRangeX           bigint, -- 块x
                               blockRangeY           bigint, -- 块y
@@ -437,18 +460,39 @@ create table vessel_source(
 create function getCountry as 'com.jingan.udf.sea.GetCountryFromLngLat';
 create function getSeaArea as 'com.jingan.udf.sea.GetSeaArea';
 
--- create function passThrough as 'com.jingan.udtf.PassThroughUdtf';
 
-
-drop view if exists tmp_mtf_list;
-create view tmp_mtf_list as
+create view tmp_mtf_list_00 as
 select
-    a.*,
+    SHIP_ID              , -- 船舶的唯一标识符
+    SHIPNAME             , -- 船舶的名称
+    SPEED                , -- 船舶的当前速度，以节（knots）为单位 10倍
+    ROT                  , -- 船舶的旋转率，转向率
+    W_LEFT               , -- 舶的左舷吃水线宽度
+    L_FORE               , -- 船舶的前吃水线长度
+    `timeStamp`          , -- 采集时间
+    DESTINATION          , -- 船舶的目的地
+    LON                  , -- 船舶当前位置的经度值
+    ELAPSED              , -- 自上次位置报告以来经过的时间，以分钟为单位。
+    COURSE               , -- 船舶的当前航向，以度数（degrees）表示，0度表示北方，90度表示东方，
+    GT_SHIPTYPE          , -- 船舶的全球船舶类型码。
+    FLAG                 , -- 船舶的国家或地区旗帜标识。
+    LAT                  , -- 船舶当前位置的经度值。
+    SHIPTYPE             , -- 船舶的类型码，表示船舶所属的船舶类型。
+    HEADING              , -- 船舶的船首朝向
+    INVALID_DIMENSIONS   ,    -- 无效_维度
+    LENGTH               , -- 船舶的长度，以米为单位
+    WIDTH                , -- 船舶的宽度，以米为单位。
+    DWT                  , -- 船舶的载重吨位
+    block_map_index      , -- 地图分层
+    block_range_x        , -- x块
+    block_range_y        , -- y块
+    typeFlag             , -- 回流的类型标志
+    proctime,
     cast(LON as double) as lon_double,
     cast(LAT as double) as lat_double,
     cast(SHIP_ID as bigint) as ship_id_bigint,
     b.ship_id as b_ship_id,
-    b.mmsi as mmsi,
+    coalesce(cast(a.MMSI as bigint),b.mmsi) as mmsi,
     b.imo as imo,
     b.callsign as callsign
 from marinetraffic_ship_list a
@@ -460,8 +504,64 @@ where `timeStamp` is not null
   and CHAR_LENGTH(SHIP_ID) <= 30;
 
 
+
+
+create view tmp_mtf_list_01 as
+select
+    cast(cast(MMSI as bigint) + 4000000000 as string) as SHIP_ID              , -- 船舶的唯一标识符
+    if(abs(b.lng-cast(a.LON as double))<2 and abs(b.lat-cast(a.LAT as double))<2,b.name,MMSI) as SHIPNAME             , -- 船舶的名称
+    SPEED                , -- 船舶的当前速度，以节（knots）为单位 10倍
+    ROT                  , -- 船舶的旋转率，转向率
+    W_LEFT               , -- 舶的左舷吃水线宽度
+    L_FORE               , -- 船舶的前吃水线长度
+    `timeStamp`          , -- 采集时间
+    DESTINATION          , -- 船舶的目的地
+    LON                  , -- 船舶当前位置的经度值
+    ELAPSED              , -- 自上次位置报告以来经过的时间，以分钟为单位。
+    COURSE               , -- 船舶的当前航向，以度数（degrees）表示，0度表示北方，90度表示东方，
+    GT_SHIPTYPE          , -- 船舶的全球船舶类型码。
+    FLAG                 , -- 船舶的国家或地区旗帜标识。
+    LAT                  , -- 船舶当前位置的经度值。
+    SHIPTYPE             , -- 船舶的类型码，表示船舶所属的船舶类型。
+    HEADING              , -- 船舶的船首朝向
+    INVALID_DIMENSIONS   ,    -- 无效_维度
+    if(abs(b.lng-cast(a.LON as double))<2 and abs(b.lat-cast(a.LAT as double))<2,cast(b.length as string),LENGTH)  as LENGTH             , -- 船舶的长度，以米为单位
+    if(abs(b.lng-cast(a.LON as double))<2 and abs(b.lat-cast(a.LAT as double))<2,cast(b.width as string),WIDTH)   as WIDTH             , -- 船舶的宽度，以米为单位。
+    DWT                  , -- 船舶的载重吨位
+    block_map_index      , -- 地图分层
+    block_range_x        , -- x块
+    block_range_y        , -- y块
+    SHIPNAME as typeFlag             , -- 回流的类型标志
+    proctime,
+    cast(LON as double) as lon_double,
+    cast(LAT as double) as lat_double,
+    cast(MMSI as bigint) + 4000000000 as ship_id_bigint,
+    cast(MMSI as bigint) + 4000000000 as b_ship_id,
+    cast(MMSI as bigint) as mmsi,
+    case when abs(b.lng-cast(a.LON as double)) < 2 and abs(b.lat-cast(a.LAT as double))<2 then cast(b.imo as bigint) end as imo,
+    case when abs(b.lng-cast(a.LON as double)) < 2 and abs(b.lat-cast(a.LAT as double))<2 then b.callsign end as callsign
+from marinetraffic_ship_list a
+         left join dws_vt_vessel_status_info
+    FOR SYSTEM_TIME AS OF a.proctime as b
+                   on a.MMSI = b.mmsi
+where `timeStamp` is not null
+  and ELAPSED < 60
+  and CHAR_LENGTH(SHIP_ID) > 30;
+
+
+
+create view tmp_mtf_list as
+select
+    *
+from tmp_mtf_list_00
+union all
+select
+    *
+from tmp_mtf_list_01;
+
+
+
 -- 1.关联fleetmon表、2.关联国家名称表、3.整理字段、4.计算国家海域
-drop table if exists tmp_marinetraffic_ship_list_01;
 create view tmp_marinetraffic_ship_list_01 as
 select
     t1.SHIP_ID                                as ship_id,              -- 船舶的唯一标识符
@@ -475,7 +575,7 @@ select
     t1.lat_double                             as lat,                  -- 船舶当前位置的纬度值
     t1.SPEED                                  as source_speed,         -- 为了直接入库的
     cast(t1.SPEED as double)/10               as speed,                -- 船舶的当前速度，以节（knots）为单位 10倍
-    t1.FLAG                                   as cn_iso2,              -- 船舶的国家或地区旗帜标识
+    t1.FLAG                                   as country_code,         -- 船舶的国家或地区旗帜标识
     t1.GT_SHIPTYPE                            as gt_shiptype,          -- 船舶的全球船舶类型码（小类）
     t1.SHIPTYPE                               as shiptype,             -- 船舶的类型码，表示船舶所属的船舶类型 （大类）
     t1.HEADING                                as heading,              -- 船舶的船首朝向
@@ -490,10 +590,9 @@ select
     t1.block_map_index,
     t1.block_range_x,
     t1.block_range_y,
-    t2.vessel_id                      as fleetmon_vessel_id,
-    t3.e_name                         as country_e_name,
-    t3.c_name                         as country_c_name,
-    coalesce(t2.vessel_id,ship_id_bigint + 1000000000) as vessel_id,
+    t2.vessel_id                             as fleetmon_vessel_id,
+    t3.c_name                                as country_name,
+    coalesce(t2.vessel_id,if(ship_id_bigint > 4000000000,ship_id_bigint,ship_id_bigint + 1000000000)) as vessel_id,
     getCountry(lon_double,lat_double) as position_country_3code,  -- 计算所处国家 - 经纬度位置转换国家
     getSeaArea(lon_double,lat_double) as sea_id, -- 计算海域id
     t1.mmsi as mmsi,
@@ -520,39 +619,37 @@ from tmp_mtf_list t1
     FOR SYSTEM_TIME AS OF t1.proctime as t3
       on t1.FLAG  = t3.country_code2
       and 'COMMON' = t3.source
-where b_ship_id is not null -- 关联上的或者是回流的数据入库
-   or typeFlag='reissue' ;
+
+where b_ship_id is not null -- 关联上的或者是回流的数据入库 加上卫星数据直接入库
+   or typeFlag in ('reissue','[SAT-AIS]');
 
 
 
 -- 1.关联实体表 2.关联国家表取出所处国家二字代码 3. 关联海域表取海域名称 4. 整合字段
-drop view if exists tmp_marinetraffic_ship_list_02;
 create view tmp_marinetraffic_ship_list_02 as
 select
-    t1.vessel_id                     as id,
-    acquire_timestamp_format         as acquireTime,
-    acquire_timestamp                as acquireTimestamp,
-    coalesce(t4.name,t1.shipname)    as vesselName,
-    t4.c_name                        as cName,
+    t1.vessel_id                                       as id,
+    acquire_timestamp_format                           as acquireTime,
+    acquire_timestamp                                  as acquireTimestamp,
+    coalesce(t4.vessel_name,t1.shipname)               as vesselName,
+    t4.vessel_c_name                                   as cName,
     cast(coalesce(t1.imo, t4.imo) as varchar)          as imo,
     cast(coalesce(t1.mmsi, t4.mmsi) as varchar)        as mmsi,
-    coalesce(t1.callsign, t4.callsign) as callsign,
-    coalesce(t4.flag_country_code,t1.cn_iso2)      as cnIso2,
-    coalesce(t4.country_name,t1.country_c_name)    as countryName,
-    '2'                              as source,
-    t4.vessel_class                  as vesselClass,     -- 大类型编码
-    t4.vessel_class_name             as vesselClassName, -- 大类型名称
-    t4.vessel_type                   as vesselType,      -- 小类型编码
-    t4.vessel_type_name              as vesselTypeName,  -- 小类型名称
-    sea_id                           as seaId,
-    t3.c_name                        as seaName,
-    cast(null as varchar)            as navStatus,
-    cast(null as varchar)            as navStatusName,
+    coalesce(t1.callsign, t4.callsign)                 as callsign,
+    coalesce(t4.country_code,t1.country_code)          as countryCode,  -- 国家代码
+    coalesce(t4.country_name,t1.country_name)          as countryName,
+    '2'                                                as source,
+    cast(t4.vessel_class_code as varchar)              as vesselClass,     -- 大类型编码
+    t4.vessel_class_name                               as vesselClassName, -- 大类型名称
+    cast(t4.vessel_type_code as varchar)               as vesselType,      -- 小类型编码
+    t4.vessel_type_name                                as vesselTypeName,  -- 小类型名称
+    sea_id                                             as seaId,
+    t3.c_name                                          as seaName,   -- 海域名称
     lng,
     lat,
     orientation,
     speed,
-    speed * 1.852                    as speedKm,-- 速度 km/h
+    speed * 1.852                    as speedKm,        -- 速度 km/h
     rate_of_turn                     as rateOfTurn,
     cast(null as double)             as draught,
     coalesce(t4.length,cast(t1.length as double))    as length,
@@ -561,26 +658,22 @@ select
     block_map_index                  as blockMapIndex,
     block_range_x                    as blockRangeX,
     block_range_y                    as blockRangeY,
-    t2.country_code2 as positionCountry2code,
-    t4.vessel_id as t4_vessel_id,
-    t1.shipname                     as sourceShipname,
-    t1.cn_iso2                      as sourceCountryCode,
-    t1.country_c_name               as sourceCountryName,
-    cast(t1.mmsi as varchar)           as sourceMmsi,
-    cast(t1.imo as varchar)           as sourceImo,
-    cast(t1.callsign as varchar)           as sourceCallsign,
-    cast(null as varchar)           as sourceVesselClass,
-    cast(null as varchar)           as sourceVesselClassName,
-    cast(null as varchar)           as sourceVesselType,
-    cast(null as varchar)           as sourceVesselTypeName,
-    cast(t1.length as double)       as sourceLength,
-    cast(t1.width as double)        as sourceWidth,
-    cast(null as double)            as sourceHeight,
+    t2.country_code2                 as positionCountry2code,
+    t4.vessel_id                     as t4_vessel_id,
+    t1.shipname                      as sourceShipname,
+    t1.country_code                  as sourceCountryCode,
+    t1.country_name                  as sourceCountryName,
+    cast(t1.mmsi as varchar)         as sourceMmsi,
+    cast(t1.imo as varchar)          as sourceImo,
+    cast(t1.callsign as varchar)     as sourceCallsign,
+    cast(t1.length as double)        as sourceLength,
+    cast(t1.width as double)         as sourceWidth,
+
     case
-        when cn_iso2 in('IN','US','JP','AU') and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR') then 'ENEMY' -- 敌 - 美印日澳 军事
-        when cn_iso2 ='CN' and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then 'OUR_SIDE'               -- 我 中国 军事
-        when cn_iso2 ='CN' and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then 'FRIENDLY_SIDE'      -- 友 中国 非军事
-        else 'NEUTRALITY'
+        when t1.country_code in('IN','US','JP','AU') and t4.vessel_class_code = 5 then '1' -- 敌 - 美印日澳 军事
+        when t1.country_code ='CN' and t4.vessel_class_code = 5  then 'OUR_SIDE'               -- 我 中国 军事
+        when t1.country_code ='CN' and (t4.vessel_class_code <> 5 or t4.vessel_class_code is null)  then '3'      -- 友 中国 非军事
+        else '4'
         end as friendFoe,
 
     if(t2.country_code2 is null
@@ -591,11 +684,13 @@ select
     ex_info
 
 from tmp_marinetraffic_ship_list_01 t1
-         left join dws_ais_vessel_detail_static_attribute  FOR SYSTEM_TIME AS OF t1.proctime as t4  -- 实体信息
+
+         left join dws_vessel_et_info_rt  FOR SYSTEM_TIME AS OF t1.proctime as t4  -- 实体信息
                    on t1.vessel_id = t4.vessel_id
 
          left join dim_country_code_name_info FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.position_country_3code = t2.country_code3
+                       and 'COMMON' = t2.source
 
          left join dim_sea_area
     FOR SYSTEM_TIME AS OF t1.proctime as t3
@@ -614,7 +709,7 @@ begin statement set;
 
 
 
--- 数据直接入库
+-- 数据直接入库-单独的全量表
 insert into dwd_vessel_list_all_rt
 select
     ship_id                  as vessel_id,
@@ -623,8 +718,8 @@ select
     shipname          as vessel_name,
     source_speed      as speed,
     destination,
-    cn_iso2           as country_code,
-    country_c_name    as country_name,
+    country_code,
+    country_name,
     lng,
     lat,
     elapsed,
@@ -648,7 +743,7 @@ from tmp_marinetraffic_ship_list_01;
 
 
 
--- 数据直接入库
+-- 数据直接入库-单独的状态表
 insert into dws_vessel_list_status_rt
 select
     ship_id                  as vessel_id,
@@ -657,8 +752,8 @@ select
     shipname          as vessel_name,
     source_speed      as speed,
     destination,
-    cn_iso2           as country_code,
-    country_c_name    as country_name,
+    country_code,
+    country_name,
     lng,
     lat,
     elapsed,
@@ -678,15 +773,8 @@ select
 from tmp_marinetraffic_ship_list_01;
 
 
--- 没有实体详情的入kafka
--- insert into marinetraffic_no_detail_list
--- select
---     cast(id - 1000000000 as varchar) as vessel_id,
---     from_unixtime(unix_timestamp()) as update_time
--- from tmp_marinetraffic_ship_list_02
--- where t4_vessel_id is null
---   and id > 1000000000;
 
+-- 没有详情数据入kafka
 insert into marinetraffic_no_detail_list
 select
     SHIP_ID as vessel_id,
@@ -694,6 +782,9 @@ select
 from tmp_mtf_list
 where b_ship_id is null  -- 没关联上详情并且不是回流的数据
   and typeFlag is null ;
+
+
+
 
 -- ****************************规则引擎写入数据******************************** --
 insert into vessel_source
@@ -707,7 +798,7 @@ select
     mmsi,
     imo,
     callsign,
-    cnIso2,
+    countryCode as cnIso2,
     countryName,
     vesselClass,
     vesselClassName,
@@ -717,8 +808,6 @@ select
     positionCountryCode2,
     seaId,
     seaName,
-    navStatus,
-    navStatusName,
     lng,
     lat,
     orientation,
@@ -735,13 +824,8 @@ select
     sourceMmsi,
     sourceImo,
     sourceCallsign,
-    sourceVesselClass,
-    sourceVesselClassName,
-    sourceVesselType,
-    sourceVesselTypeName,
     sourceLength,
     sourceWidth,
-    sourceHeight,
     blockMapIndex,
     blockRangeX,
     blockRangeY,
@@ -750,6 +834,7 @@ select
     from_unixtime(unix_timestamp()) as updateTime
 from tmp_marinetraffic_ship_list_02
 where t4_vessel_id is not null ;
+
 
 
 insert into dwd_vessel_mtf_cache_list_rt

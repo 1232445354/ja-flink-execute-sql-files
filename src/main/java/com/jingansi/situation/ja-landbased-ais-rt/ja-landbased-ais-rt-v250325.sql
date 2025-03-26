@@ -2,6 +2,7 @@
 -- author:      write your name here
 -- create time: 2024/4/13 21:15:54
 -- description: 岸基船舶轨迹
+-- version: ja-landbased-ais-rt-250325
 --********************************************************************--
 set 'pipeline.name' = 'ja-landbased-ais-rt';
 
@@ -22,8 +23,6 @@ SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-landbased-ais-
 
  -----------------------
 
-
-drop table if exists ais_landbased_list;
 create table ais_landbased_list(
                                    `type` TINYINT COMMENT '类型标识',
                                    `forward` TINYINT COMMENT '船首向，单位：度',
@@ -69,7 +68,6 @@ create table ais_landbased_list(
 
 
 -- 全量数据表
-drop table if exists dwd_ais_landbased_vessel_list;
 create table dwd_ais_landbased_vessel_list (
                                                `mmsi` bigint NULL COMMENT '海上移动服务身份码',
                                                `acquire_time` string NULL COMMENT '时间戳格式化',
@@ -114,7 +112,6 @@ create table dwd_ais_landbased_vessel_list (
 
 
 -- 全量状态表 - 最后位置
-drop table if exists dws_ais_landbased_vessel_status;
 create table dws_ais_landbased_vessel_status (
                                                  `mmsi` bigint NULL COMMENT '海上移动服务身份码',
                                                  `acquire_time` string NULL COMMENT '时间戳格式化',
@@ -160,7 +157,6 @@ create table dws_ais_landbased_vessel_status (
 
 
 -- 实体详情 - 合并的实体表
-drop table if exists dws_ais_vessel_detail_static_attribute;
 create table dws_ais_vessel_detail_static_attribute (
                                                         vessel_id      	 			bigint		comment '船ID',
                                                         imo      					bigint      comment 'IMO',
@@ -176,23 +172,6 @@ create table dws_ais_vessel_detail_static_attribute (
                                                         vessel_type_name            string      comment '船类别-小类中文',
                                                         vessel_class               	string	 	comment '船类别',
                                                         vessel_class_name           string      comment '船类型-大类中文',
-    -- year_built                	double      comment '建成年份',
-    -- service_status            	string	 	comment '服务状态',
-    -- service_status_name         string      comment '服务状态中文',
-    -- gross_tonnage             	double      comment '总吨位',
-    -- deadweight               	double      comment '重物，载重吨位',
-    -- `timestamp`					bigint 		comment '采集船只详情数据时间',
-    -- height                   	double      comment '高度',
-    -- draught_average           	double      comment '吃水平均值',
-    -- speed_average             	double      comment '速度平均值',
-    -- speed_max                 	double      comment '速度最大值',
-    --  	`owner`             		string      comment '所有者',
-    -- risk_rating               	string	 	comment '风险评级',
-    --  	risk_rating_name            string      comment '风险评级中文',
-    -- rate_of_turn 				double		comment '转向率',
-    -- is_on_my_fleet				boolean		comment '是我的船队',
-    -- is_on_shared_fleet			boolean		comment '是否共享船队',
-    -- is_on_own_fleet				boolean 	comment '是否拥有船队',
                                                         update_time					string		comment '数据入库时间'
 ) with (
       'connector' = 'doris',
@@ -211,7 +190,6 @@ create table dws_ais_vessel_detail_static_attribute (
 
 
 -- 海域
-drop table if exists dim_sea_area;
 create table dim_sea_area (
                               id 			string,  -- 海域编号
                               name 		string,  -- 名称
@@ -231,7 +209,6 @@ create table dim_sea_area (
 
 
 -- 船国家数据匹配库（Source：doris）
-drop table if exists dim_country_code_name_info;
 create table dim_country_code_name_info (
                                             id              string  comment 'id',
                                             source          string  comment '来源',
@@ -255,7 +232,6 @@ create table dim_country_code_name_info (
 
 
 -- 实体信息表数据
-drop table if exists dws_ais_vessel_detail_static_attribute_source;
 create table dws_ais_vessel_detail_static_attribute_source (
                                                                vessel_id 	       bigint,
                                                                imo                bigint,
@@ -288,7 +264,6 @@ create table dws_ais_vessel_detail_static_attribute_source (
 
 
 -- marinetraffic、vt的船舶对应关系
-drop table if exists dim_mtf_vt_reletion_info;
 create table dim_mtf_vt_reletion_info (
                                           vessel_id    string        comment '编号',
                                           vt_mmsi      string        comment 'vt数据的mmsi',
@@ -308,7 +283,6 @@ create table dim_mtf_vt_reletion_info (
 
 
 -- 船舶类型对应关系
-drop table if exists dim_ais_lb_fm_type_info;
 create table dim_ais_lb_fm_type_info (
                                          `ship_and_carg_type` int NULL COMMENT '船舶和货物类型id',
                                          `vessel_type` varchar(20) NULL COMMENT '类型代码',
@@ -331,7 +305,6 @@ create table dim_ais_lb_fm_type_info (
 
 
 -- 航行状态数据匹配库（Source：doris）
-drop table if exists dim_vessel_nav_status_list;
 create table dim_vessel_nav_status_list (
                                             nav_status_num_code         string        comment '航向状态代码code',
                                             nav_status_name             string        comment '航行状态名称',
@@ -351,8 +324,6 @@ create table dim_vessel_nav_status_list (
 
 
 -- ****************************规则引擎写入数据******************************** --
-
-drop table if exists vessel_source;
 create table vessel_source(
                               id                    bigint, -- id
                               acquireTime           string, -- 采集事件年月日时分秒
@@ -386,8 +357,8 @@ create table vessel_source(
                               width                 double, -- 宽度
                               height                double, -- 高度
                               sourceShipname        string,
-                              sourceCountryCode     string,
-                              sourceCountryName     string,
+    -- sourceCountryCode     string,
+    -- sourceCountryName     string,
                               sourceMmsi            string,
                               sourceImo             string,
                               sourceCallsign        string,
@@ -397,16 +368,10 @@ create table vessel_source(
                               sourceVesselTypeName  string,
                               sourceLength          double,
                               sourceWidth           double,
-                              sourceHeight          double,
-
-    -- masterImageId         bigint, -- 图像id
-    -- dimensions01          double,
-    -- dimensions02          double,
-    -- dimensions03          double,
-    -- dimensions04          double,
-                              blockMapIndex         bigint, -- 图层层级
-                              blockRangeX           bigint, -- 块x
-                              blockRangeY           bigint, -- 块y
+    -- sourceHeight          double,
+    -- blockMapIndex         bigint, -- 图层层级
+    -- blockRangeX           bigint, -- 块x
+    -- blockRangeY           bigint, -- 块y
                               targetType            string, -- 实体类型 固定值 VESSEL
                               ex_info               map<String,String>, -- 扩展信息
                               updateTime            string -- flink处理时间
@@ -419,8 +384,6 @@ create table vessel_source(
       'key.fields' = 'mmsi',
       'format' = 'json'
       );
-
-
 
 
 -----------------------
@@ -493,8 +456,6 @@ from ais_landbased_list t1
 
 
 
-
-drop view if exists tmp_02;
 create view tmp_02 as
 select
     t1.vessel_id                                 as id,   -- bigint
@@ -505,7 +466,7 @@ select
     t1.mmsi                                      as mmsi,
     coalesce(cast(t4.imo as varchar),t1.imo)     as imo,
     coalesce(t4.callsign,t1.callsign)            as callsign,
-    t4.flag_country_code                         as cnIso2,
+    t4.flag_country_code                         as countryCode,
     if(t4.country_name <> '',t4.country_name,cast(null as varchar)) as countryName,
     'lb'                                                as source,             -- 数据来源简称
     coalesce(t4.vessel_class,t1.vessel_class)           as vesselClass,        -- 大类型编码
@@ -539,16 +500,12 @@ select
     t1.vessel_type_name   as sourceVesselTypeName,
     t1.length             as sourceLength,
     t1.width              as sourceWidth,
-    cast(null as double)  as sourceHeight,
-    cast(null as bigint)  as blockMapIndex,
-    cast(null as bigint)  as blockRangeX,
-    cast(null as bigint)  as blockRangeY,
 
     case
-        when t4.flag_country_code in('IN','US','JP','AU') and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR') then 'ENEMY' -- 敌 - 美印日澳 军事
-        when t4.flag_country_code ='CN' and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then 'OUR_SIDE'               -- 我 中国 军事
-        when t4.flag_country_code ='CN' and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then 'FRIENDLY_SIDE'      -- 友 中国 非军事
-        else 'NEUTRALITY'
+        when t4.flag_country_code in('IN','US','JP','AU') and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR') then '1' -- 敌 - 美印日澳 军事
+        when t4.flag_country_code ='CN' and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then '2'               -- 我 中国 军事
+        when t4.flag_country_code ='CN' and t4.vessel_type in ('PTA','FRT','SRV','CRO','AMT','FPS','MOU','DMN','SMN','PTH','ICN','ESC','LCR','VDO','CGT','COR','DES','AMR')  then '3'      -- 友 中国 非军事
+        else '4'
         end as friendFoe,
 
     if(t2.country_code2 is null
@@ -589,7 +546,7 @@ select
     vesselName as name,
     length,
     width,
-    cnIso2 as flag_country_code,
+    countryCode as flag_country_code,
     countryName,
     source,
     vesselClass,
@@ -601,7 +558,7 @@ from tmp_02
 where t4_vessel_id is null;
 
 
-
+-- 权量数据表
 insert into dwd_ais_landbased_vessel_list
 select
     cast(mmsi as bigint) as mmsi,
@@ -636,6 +593,7 @@ select
 from ais_landbased_list;
 
 
+-- 状态数据表
 insert into dws_ais_landbased_vessel_status
 select
     cast(mmsi as bigint) as mmsi,
@@ -682,7 +640,7 @@ select
     mmsi,
     imo,
     callsign,
-    cnIso2,
+    countryCode as cnIso2,
     countryName,
     source,
     vesselClass,
@@ -706,8 +664,8 @@ select
     width,
     height,
     sourceShipname,
-    sourceCountryCode,
-    sourceCountryName,
+    -- sourceCountryCode,
+    -- sourceCountryName,
     sourceMmsi,
     sourceImo,
     sourceCallsign,
@@ -717,10 +675,10 @@ select
     sourceVesselTypeName,
     sourceLength,
     sourceWidth,
-    sourceHeight,
-    blockMapIndex,
-    blockRangeX,
-    blockRangeY,
+    -- sourceHeight,
+    -- blockMapIndex,
+    -- blockRangeX,
+    -- blockRangeY,
     'VESSEL'                        as targetType,
     ex_info,
     from_unixtime(unix_timestamp()) as updateTime
