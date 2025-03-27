@@ -8,20 +8,20 @@ source ${DIR}/config.sh
 sleep_time=3  # 每执行完一个表sleep时间
 
 declare -a table_infos=(
-"dwd_gps_url_rt acquire_timestamp_format"                 # gps表
-"dwd_weather_save_url_rt acquire_time"        # 天气表
-"dws_bhv_satellite_list_fd today_time"        # 卫星行为轨道表
-"dws_atr_satellite_image_info acquire_time"   # 卫星图片表
+"dwd_gps_url_rt file_time 2"                    # gps表
+"dwd_weather_save_url_rt acquire_time 2"        # 天气表
+"dws_bhv_satellite_list_fd today_time 1"        # 卫星行为轨道表
+"dws_atr_satellite_image_info acquire_time 1"   # 卫星图片表
 )
 
 max_retries=10
 retry_count=0
 for table_info in "${table_infos[@]}"; do
-  IFS=' ' read -r table_name time_column <<< "$table_info"
+  IFS=' ' read -r table_name time_column pre_day_cnt<<< "$table_info"
   echo -e "-----------${table_name}-----------\n"
 
   while [ $retry_count -lt $max_retries ]; do
-    sh ${DIR}/sql_file.sh "$table_name" "$time_column"
+    sh ${DIR}/sql_file.sh "$table_name" "$time_column" "$pre_day_cnt"
     if [ $? -eq 0 ]; then
       echo -e "执行成功\n"
       break
