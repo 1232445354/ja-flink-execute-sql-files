@@ -8,8 +8,6 @@ source ${DIR}/config.sh
 sleep_time=3  # 每执行完一个表sleep时间
 
 declare -a table_infos=(
-"dwd_gps_url_rt file_time 2"                    # gps表
-"dwd_weather_save_url_rt acquire_time 2"        # 天气表
 "dws_bhv_satellite_list_fd today_time 1"        # 卫星行为轨道表
 "dws_atr_satellite_image_info acquire_time 1"   # 卫星图片表
 )
