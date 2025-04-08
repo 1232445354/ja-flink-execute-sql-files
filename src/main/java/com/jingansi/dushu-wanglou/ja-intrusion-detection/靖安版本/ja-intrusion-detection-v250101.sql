@@ -1,7 +1,7 @@
 --********************************************************************--
 -- author:     yibo@jingan-inc.com
 -- create time: 2024/06/28 16:28:19
--- description: 告警、区分object_label类型、并且合并车牌，新增天朗雷达告警
+-- description: 告警、区分object_label类型、并且合并车牌
 -- version:ja-intrusion-detection-250101
 --********************************************************************--
 
@@ -470,7 +470,7 @@ select
          when object_label = '非机动车'      then 'non_car'
          when object_label = '交通事故'      then 'traffic_accident'
          when object_label = '烟雾'         then 'smoke'
-         when object_label = '烟火'         then 'fire_detection'
+         when object_label in ('烟火','明火')         then 'fire_detection'
         end as eventType
     -- count(*) over(partition by object_id,device_id order by proctime ) as cnt
 from tmp_frame_infer_data_02
