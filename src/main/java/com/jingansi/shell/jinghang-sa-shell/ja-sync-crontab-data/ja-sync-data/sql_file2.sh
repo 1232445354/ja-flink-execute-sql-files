@@ -5,7 +5,7 @@ DIR=$(cd `dirname $0`; pwd)
 source ${DIR}/config.sh
 
 sql="
-insert into doris_jh132.sa.dws_vessel_et_info_rt(
+insert into sa.dws_vessel_et_info_rt(
 	vessel_id
   ,vessel_name
   ,vessel_c_name

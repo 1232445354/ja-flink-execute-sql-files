@@ -11,11 +11,12 @@ per_day_cnt=1
 echo -e "摆渡数据中，table_name =${table_name},开始time = $(date +"%Y-%m-%d %H:%M:%S")\n"
 
 sql1="
-insert into doris_jh132.sa.${table_name}
+insert into sa.${table_name}
 select
   *
 from ${catalog_name}.sa.${table_name}
-where ${time_column} >= to_date(date_sub(now(),interval ${per_day_cnt} day));
+where ${time_column} >= to_date(date_sub(now(),interval ${per_day_cnt} day))
+  and type in('PRES','TEMP','WIND');
 "
 
 echo -e "开始同步表数据\n"
@@ -33,7 +34,7 @@ select
  distinct substring_index(file_url,'/',4) as file_url_split
 from ${catalog_name}.sa.${table_name}
 where ${time_column} >= to_date(date_sub(now(),interval ${per_day_cnt} day))
-
+  and type in('PRES','TEMP','WIND')
 "
 
 query_result=$(mysql -h"$host" -P"$port" -u"$username" -p"$password" -N -e "${sql2}")

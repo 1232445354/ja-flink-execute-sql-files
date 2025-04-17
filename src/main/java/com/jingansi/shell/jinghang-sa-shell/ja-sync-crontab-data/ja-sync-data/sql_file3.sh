@@ -5,7 +5,7 @@ DIR=$(cd `dirname $0`; pwd)
 source ${DIR}/config.sh
 
 sql="
-insert into doris_jh132.sa.dws_et_aircraft_info(
+insert into sa.dws_et_aircraft_info(
 	flight_id
   ,acquire_time
   ,src_code

@@ -9,7 +9,7 @@ DIR=$(cd `dirname $0`; pwd)
 source ${DIR}/config.sh
 
 sql="
-insert into doris_jh132.sa.${table_name}
+insert into sa.${table_name}
 select
   *
 from doris_idc.sa.${table_name}

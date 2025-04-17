@@ -11,7 +11,7 @@ per_day_cnt=0
 echo -e "摆渡数据中，table_name =${table_name},开始time = $(date +"%Y-%m-%d %H:%M:%S")\n"
 
 sql1="
-insert into doris_jh132.sa.${table_name}
+insert into sa.${table_name}
 select
   *
 from ${catalog_name}.sa.${table_name}
