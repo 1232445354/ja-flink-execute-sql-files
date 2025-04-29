@@ -1,7 +1,7 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2025/04/23 16:48:50
--- description: rid设备数据采集数据,aoa采集数据，rid和aoa数据融合,过滤经纬度范围
+-- description: rid设备数据采集数据,aoa采集数据，rid和aoa数据融合
 -- version: ja-uav-target-merge-v250428
 --********************************************************************--
 
@@ -12,7 +12,9 @@ SET 'table.planner' = 'blink';
 SET 'table.exec.state.ttl' = '60000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
-SET 'parallelism.default' = '3';
+
+
+-- SET 'parallelism.default' = '3';
 set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 
 SET 'execution.checkpointing.interval' = '120000';
@@ -122,14 +124,14 @@ create table iot_device_message_kafka_01 (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      'properties.bootstrap.servers' = '135.100.11.110:30090',
-      -- 'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = '135.100.11.110:30090',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.group.id' = 'iot-rid-data6',
       -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',  -- 1745564415000
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '0',  -- 1745564415000
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -140,16 +142,12 @@ create table iot_device_message_kafka_01 (
 
 -- 融合全量表
 create table dwd_bhv_target_rt (
-                                   device_id                      string  comment 'RID、AOA设备id',
                                    uav_id                         string  comment '无人机的id-sn号',
                                    control_station_id             string  comment '控制站的id',
+                                   device_id                      string  comment 'RID、AOA设备id',
                                    acquire_time                   string  comment '采集时间',
-                                   max_acquire_time               string  comment 'aoa-rid最大时间',
-                                   src_code                       string  comment '数据类型 RID、AOA Merge',
-                                   pk_type					     string  comment '数据本身的来源是RID还是AOA',
-                                   src_pk                	     string  comment '数据自身的id',
-                                   rid_device_id                  string  comment 'RID的设备id-牍术接入的',
-                                   aoa_device_id                  string  comment 'AOA的设备id-牍术接入的',
+                                   src_code                       string  comment '数据类型 RID、AOA',
+                                   src_pk                         string  comment '自己网站的id',
                                    uav_device_id                  string  comment '无人机设备id-牍术接入的',
                                    rid_devid                      string  comment 'rid设备的id-飞机上报的',
                                    msgtype                        bigint  comment '消息类型',
@@ -167,10 +165,6 @@ create table dwd_bhv_target_rt (
                                    control_station_longitude      double  comment '控制无人机人员经度',
                                    control_station_latitude       double  comment '控制无人机人员纬度',
                                    control_station_height 	     double  comment '控制站高度',
-                                   aoa_longitude                  double  comment 'AOA数据的无人机经度',
-                                   aoa_latitude                   double  comment 'AOA数据的无人机纬度',
-                                   aoa_control_station_longitude  double  comment 'AOA数据的控制站纬度',
-                                   aoa_control_station_latitude   double  comment 'AOA数据的控制站纬度',
                                    target_name             	     string  comment 'aoa-目标名称',
                                    altitude                	     double  comment 'aoa-无人机所在海拔高度',
                                    pressure_altitude		         double  comment 'aoa-无人机所在气压高度',
@@ -184,8 +178,9 @@ create table dwd_bhv_target_rt (
                                    update_time                    string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
       -- 'fenodes' = '172.21.30.245:8030',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dwd_bhv_target_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -198,18 +193,15 @@ create table dwd_bhv_target_rt (
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
+
 -- 融合状态表
 create table dws_bhv_target_last_location_rt (
-                                                 device_id                      string  comment 'RID、AOA设备id',
                                                  uav_id                         string  comment '无人机的id-sn号',
                                                  control_station_id             string  comment '控制站的id',
+                                                 device_id                      string  comment 'RID、AOA设备id',
                                                  acquire_time                   string  comment '采集时间',
-                                                 max_acquire_time               string  comment 'aoa-rid最大时间',
+                                                 src_pk                         string  comment '自己网站的id',
                                                  src_code                       string  comment '数据类型 RID、AOA Merge',
-                                                 pk_type					     string  comment '数据本身的来源是RID还是AOA',
-                                                 src_pk                	     string  comment '数据自身的id',
-                                                 rid_device_id                  string  comment 'RID的设备id-牍术接入的',
-                                                 aoa_device_id                  string  comment 'AOA的设备id-牍术接入的',
                                                  uav_device_id                  string  comment '无人机设备id-牍术接入的',
                                                  rid_devid                      string  comment 'rid设备的id-飞机上报的',
                                                  msgtype                        bigint  comment '消息类型',
@@ -227,10 +219,6 @@ create table dws_bhv_target_last_location_rt (
                                                  control_station_longitude      double  comment '控制无人机人员经度',
                                                  control_station_latitude       double  comment '控制无人机人员纬度',
                                                  control_station_height 	     double  comment '控制站高度',
-                                                 aoa_longitude                  double  comment 'AOA数据的无人机经度',
-                                                 aoa_latitude                   double  comment 'AOA数据的无人机纬度',
-                                                 aoa_control_station_longitude  double  comment 'AOA数据的控制站纬度',
-                                                 aoa_control_station_latitude   double  comment 'AOA数据的控制站纬度',
                                                  target_name             	     string  comment 'aoa-目标名称',
                                                  altitude                	     double  comment 'aoa-无人机所在海拔高度',
                                                  pressure_altitude		         double  comment 'aoa-无人机所在气压高度',
@@ -244,8 +232,9 @@ create table dws_bhv_target_last_location_rt (
                                                  update_time                    string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
       -- 'fenodes' = '172.21.30.245:8030',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dws_bhv_target_last_location_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -271,8 +260,9 @@ create table `dws_et_control_station_info` (
                                                update_time     string  comment '数据入库时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
       -- 'fenodes' = '172.21.30.245:8030',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dws_et_control_station_info',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -290,7 +280,6 @@ create table `dws_et_control_station_info` (
 -- 无人机实体表
 create table `dws_et_uav_info` (
                                    id                      string  comment '无人机id-sn号',
-                                   device_id               string  comment '无人机设备id-牍术接入的',
                                    sn                      string  comment '序列号',
                                    name                    string  comment '无人机名称',
                                    recvmac                 string  comment 'MAC地址',
@@ -308,8 +297,9 @@ create table `dws_et_uav_info` (
                                    update_time             string  comment '数据入库时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
       -- 'fenodes' = '172.21.30.245:8030',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dws_et_uav_info',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -334,8 +324,9 @@ create table `dws_rl_rid_uav_rt` (
                                      update_time          string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
       -- 'fenodes' = '172.21.30.245:8030',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dws_rl_rid_uav_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -349,54 +340,31 @@ create table `dws_rl_rid_uav_rt` (
       );
 
 
--- 融合关系表
-create table dws_rl_merge_id_rt (
-                                    rid_uav_id            string, -- rid的无人机id
-                                    aoa_uav_id            string, -- aoa的无人机id
-                                    max_rid_acquire_time  string, -- rid的入库时间
-                                    max_aoa_acquire_time  string, -- aoa的入库时间
-                                    update_time           string -- 更新时间
-) with (
-      'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      -- 'fenodes' = '172.21.30.245:8030',
-      'table.identifier' = 'sa.dws_rl_merge_id_rt',
-      'username' = 'root',
-      'password' = 'Jingansi@110',
-      'doris.request.tablet.size'='5',
-      'doris.request.read.timeout.ms'='30000',
-      'sink.batch.size'='10000',
-      'sink.batch.interval'='1s',
-      'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
-      );
-
 
 -- ********************************** doris数据表读取 ***********************************
 
 -- 无人机实体表来源
-create table `dws_et_uav_info_source` (
-                                          id                      string  comment '无人机id-sn号',
-                                          device_id               string  comment '无人机设备id-牍术接入的',
-                                          sn                      string  comment '序列号',
-                                          name                    string  comment '无人机名称',
-                                          recvmac                 string  comment 'MAC地址',
-                                          manufacturer            string  comment '厂商',
-                                          model                   string  comment '型号',
-                                          owner                   string  comment '所有者',
-                                          type                    string  comment '类型',
-                                          source                  string  comment '数据来源',
-                                          category                string  comment '类别',
-                                          phone                   string  comment '电话',
-                                          empty_weight            string  comment '空机重量',
-                                          maximum_takeoff_weight  string  comment '最大起飞重量',
-                                          purpose                 string  comment '用途',
-                                          PRIMARY KEY (id) NOT ENFORCED
+create table dws_et_uav_info_source (
+                                        id                      string  comment '无人机id-sn号',
+                                        sn                      string  comment '序列号',
+                                        name                    string  comment '无人机名称',
+                                        recvmac                 string  comment 'MAC地址',
+                                        manufacturer            string  comment '厂商',
+                                        model                   string  comment '型号',
+                                        owner                   string  comment '所有者',
+                                        type                    string  comment '类型',
+                                        source                  string  comment '数据来源',
+                                        category                string  comment '类别',
+                                        phone                   string  comment '电话',
+                                        empty_weight            string  comment '空机重量',
+                                        maximum_takeoff_weight  string  comment '最大起飞重量',
+                                        purpose                 string  comment '用途',
+                                        PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
+      -- 'url' = 'jdbc:mysql://doris-fe-service.bigdata-doris.svc.cluster.local:8888/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       -- 'url' = 'jdbc:mysql://172.21.30.244:9030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
+      'url' = 'jdbc:mysql://172.21.30.105:31030/sa?useSSL=false&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -405,7 +373,6 @@ create table `dws_et_uav_info_source` (
       'lookup.cache.ttl' = '86400s',
       'lookup.max-retries' = '10'
       );
-
 
 
 -- 无人机设备表（Sink：mysql）
@@ -424,8 +391,8 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://135.100.11.110:31306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      -- 'url' = 'jdbc:mysql://135.100.11.110:31306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       -- 'url' = 'jdbc:mysql://172.21.30.105:31306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
@@ -449,7 +416,6 @@ create table uav_source(
     -- purpose               string, -- 用途
     -- emptyWeight           double, -- 空机重量
     -- maximumTakeoffWeight  double, -- 最大起飞重量
-
                            ew                    double, -- 航迹角
                            height                double, -- 无人机距地高度
                            locationAlit          double, -- 气压高度
@@ -486,8 +452,6 @@ select
     productKey                                          as product_key,
     deviceId                                            as device_id,
     from_unixtime(message.`timestamp`/1000,'yyyy-MM-dd HH:mm:ss') acquire_time,
-    to_timestamp(from_unixtime(message.`timestamp`/1000,'yyyy-MM-dd HH:mm:ss'),'yyyy-MM-dd HH:mm:ss')  as acquire_time_timestamp_type, -- 接受时间的时间类型
-    message.`timestamp`                                 as acquire_timestamp,
     message.`method`                                    as `method`,
 
     message.`data`.longitude                            as longitude, -- 属性上报的
@@ -561,8 +525,7 @@ where message.`timestamp` is not null
 -- 关联设备位置，筛选距离范围内数据，较远数据丢弃 15km的距离
 create view temp02 as
 select
-    t1.*,
-    'JOIN' as join_column
+    t1.*
 from (
          select
              *
@@ -574,7 +537,7 @@ from (
            and uav_latitude <> 0
            and control_station_longitude between -180 and 180
            and control_station_latitude between -90 and 90
-           and control_station_longitude <>0
+           and control_station_longitude <> 0
            and control_station_latitude <> 0
      ) as t1
          left join device FOR SYSTEM_TIME AS OF t1.proctime as t2   -- 设备表 关联设备位置
@@ -582,125 +545,32 @@ from (
 where distance_udf(t1.uav_latitude,t1.uav_longitude,t2.latitude,t2.longitude) <= 15;
 
 
--- -- aoa的来源数据筛选处理 , 并融合关联无人机id
--- create view temp02_aoa as
--- select
---   tt.*
--- from (
--- select
---   t1.*,
---   abs(timestampdiff(second,t1.acquire_time_timestamp_type,t2.acquire_time)) as date_diff_s_flag,
---   distance_udf(
---                 t1.uav_latitude,
---                 t1.uav_longitude,
---                 t2.latitude,
---                 t2.longitude) as distance_pre_curr,
---   t2.uav_id
--- from (
---     select
---       drone_target_no,
---       target_name,
---       altitude,
---       pressure_altitude,
---       direction_angle,
---       distance_from_station,
---       control_station_longitude,
---       control_station_latitude,
---       target_frequency_khz,
---       target_bandwidth_khz,
---       target_signal_strength_db,
---       confidence,
---       drone_timestamp,
---       speed_ms,
---       uav_longitude,
---       uav_latitude,
---       product_key,
---       device_id,
---       acquire_time,
---       acquire_time_timestamp_type,
---       proctime
---     from temp02
---     where product_key = '9sMhTTcOrbv' and (aoa_uav_id is null or trim(aoa_uav_id) is null or trim(aoa_uav_id) = '')
---   ) as t1 left join dws_bhv_aoa_last_location_rt_source FOR SYSTEM_TIME AS OF t1.proctime as t2
---   on t1.device_id = t2.device_id
---   and t1.acquire_time_timestamp_type between t2.acquire_time - interval '30' second and t2.acquire_time + interval '30' second
--- ) as tt
---   where (uav_id is not null and distance_pre_curr < 100) or uav_id is null;
 
-
-
--- -- aoa开窗取时间最接近的,没有关联上取random id
--- create view temp03_aoa as
--- select
---   drone_target_no,
---   target_name,
---   altitude,
---   pressure_altitude,
---   direction_angle,
---   distance_from_station,
---   control_station_longitude,
---   control_station_latitude,
---   target_frequency_khz,
---   target_bandwidth_khz,
---   target_signal_strength_db,
---   confidence,
---   drone_timestamp,
---   speed_ms,
---   uav_longitude as longitude,
---   uav_latitude as latitude,
---   product_key,
---   device_id,
---   acquire_time,
---   acquire_time_timestamp_type,
---   proctime,
---   if(uav_id is not null,uav_id,b.uav_random_id) as uav_id,
---   'JOIN' as join_column
--- from (
--- select
---   *
--- from (
---   select
---     *,
---     row_number()over(partition by target_name,acquire_time order by distance_pre_curr asc,date_diff_s_flag asc) as rk
---   from temp02_aoa
--- ) as t1
---   where rk = 1
--- ) as tt1,lateral table(PassThroughUdtf(get_random_id())) as b(uav_random_id);
-
-
--- aoa数据ID整合
+-- 筛选aoa数据，aoa数据ID整合
 create view temp03_aoa as
 select
     device_id,     -- AOA的设备ID
     coalesce(aoa_uav_id_trim,uav_random_id) as uav_id,
-    'AOA'                               as src_code,
+    'AOA'                                   as src_code,
+    coalesce(aoa_uav_id_trim,uav_random_id) as src_pk,
     acquire_time,
-    acquire_time                        as max_acquire_time,
-    'AOA'                               as pk_type,
-    coalesce(aoa_uav_id_trim,uav_random_id)  as src_pk,
-    cast(null as varchar)               as rid_device_id,
-    device_id                           as aoa_device_id,
-    cast(null as varchar)               as rid_devid,
-    cast(null as bigint)                as msgtype,
-    cast(null as varchar)               as recvtype,
-    cast(null as varchar)               as recvmac,
-    cast(null as varchar)               as mac,
-    cast(null as bigint)                as rssi,
-    uav_longitude                       as longitude, -- rid的无人机经度
-    uav_latitude                        as latitude,  -- rid的无人机纬度
-    cast(null as double)                as location_alit,
-    cast(null as double)                as ew,      -- RID航迹角
-    cast(null as double)                as speed_h, -- RID水平速度
-    cast(null as double)                as speed_v, -- RID垂直速度
-    cast(null as double)                as height,  -- RID距地高度
-    cast(null as double)                as height_type, -- RID高度类型
+    cast(null as varchar)                   as rid_devid,
+    cast(null as bigint)                    as msgtype,
+    cast(null as varchar)                   as recvtype,
+    cast(null as varchar)                   as recvmac,
+    cast(null as varchar)                   as mac,
+    cast(null as bigint)                    as rssi,
+    uav_longitude                           as longitude, -- rid的无人机经度
+    uav_latitude                            as latitude,  -- rid的无人机纬度
+    cast(null as double)                    as location_alit,
+    cast(null as double)                    as ew,      -- RID航迹角
+    cast(null as double)                    as speed_h, -- RID水平速度
+    cast(null as double)                    as speed_v, -- RID垂直速度
+    cast(null as double)                    as height,  -- RID距地高度
+    cast(null as double)                    as height_type, -- RID高度类型
     control_station_longitude,         -- RID控制站经度
     control_station_latitude,          -- RID控制站纬度
     cast(null as double)                as control_station_height, -- RID控制站高度
-    uav_longitude                       as aoa_longitude,
-    uav_latitude                        as aoa_latitude,
-    control_station_longitude           as aoa_control_station_longitude,
-    control_station_latitude            as aoa_control_station_latitude,
     target_name,
     altitude,
     pressure_altitude,
@@ -711,11 +581,8 @@ select
     target_bandwidth_khz,
     target_signal_strength_db,
     drone_target_no,
-    acquire_time_timestamp_type as aoa_acquire_time_timestamp_type,
     drone_timestamp,
     confidence,
-    cast(null as varchar) as aoa_uav_id,
-    join_column,
     proctime
 from (
          select
@@ -727,96 +594,14 @@ from (
 
 
 
--- 筛选rid数据
-create view temp01_rid as
-select
-    *
-from temp02
-where product_key = 'iiCC6Y7Qhmz';
-
-
 -- 筛选rid数据,与aoa数据关联融合
-create view temp01_rid_merge as
-select
-    *
-from (
-         select
-             t1.product_key,
-             t1.device_id,
-             t1.acquire_time,
-             t1.acquire_time_timestamp_type,
-             t1.acquire_timestamp,
-             t1.rid_devid,
-             t1.msgtype,
-             t1.recvtype,
-             t1.recvmac,
-             t1.mac,
-             t1.rssi,
-             t1.uav_id,
-             t1.speed_v,
-             t1.height_type,
-             t1.ew,
-             t1.height,
-             t1.speed_h,
-             t1.location_alit,
-             t1.control_station_height,
-             t1.control_station_longitude,
-             t1.control_station_latitude,
-             t1.uav_longitude  as longitude,
-             t1.uav_latitude   as latitude,
-             t1.join_column,
-             t1.proctime,
-
-             t2.drone_target_no,
-             t2.acquire_time as aoa_acquire_time,
-             t2.aoa_acquire_time_timestamp_type,
-             t2.target_name,
-             t2.altitude,
-             t2.pressure_altitude,
-             t2.direction_angle,
-             t2.distance_from_station,
-             t2.aoa_control_station_longitude,
-             t2.aoa_control_station_latitude,
-             t2.target_frequency_khz,
-             t2.target_bandwidth_khz,
-             t2.target_signal_strength_db,
-             t2.confidence,
-             t2.speed_ms,
-             t2.drone_timestamp,
-             t2.aoa_longitude,
-             t2.aoa_latitude,
-             t2.uav_id        as aoa_uav_id,
-             t2.device_id     as aoa_device_id,
-             abs(timestampdiff(second,t1.acquire_time_timestamp_type,t2.aoa_acquire_time_timestamp_type)) as date_diff_s_flag,
-             distance_udf(
-                     t1.uav_longitude,
-                     t1.uav_latitude,
-                     t2.longitude,
-                     t2.latitude) * 1000 as distance_pre_curr        -- udf返回为km
-         from temp01_rid as t1
-                  left join temp03_aoa as t2
-                            on t1.join_column = t2.join_column
-                                and t1.acquire_time_timestamp_type between t2.aoa_acquire_time_timestamp_type - interval '30' second and t2.aoa_acquire_time_timestamp_type + interval '30' second
-     ) as tt
-where (aoa_longitude is not null and distance_pre_curr < 100)
-   or aoa_longitude is null;
-
-
--- RID数据融合结束
-create view temp02_rid_merge as
+create view temp03_rid as
 select
     device_id,
     uav_id,
-    if(aoa_uav_id is not null,'RID,AOA','RID') as src_code,
+    'RID'       as src_code,
+    uav_id      as src_pk,
     acquire_time,
-    case when aoa_acquire_time_timestamp_type is null then acquire_time
-         when timestampdiff(second,acquire_time_timestamp_type,aoa_acquire_time_timestamp_type) >0 then acquire_time
-         else aoa_acquire_time
-        end as max_acquire_time,
-    'RID'                 as pk_type,
-    uav_id                as src_pk,
-    device_id             as rid_device_id,
-    aoa_device_id,
     rid_devid,
     msgtype,
     recvtype,
@@ -834,11 +619,6 @@ select
     control_station_longitude,
     control_station_latitude,
     control_station_height,
-
-    aoa_longitude,
-    aoa_latitude,
-    aoa_control_station_longitude,
-    aoa_control_station_latitude,
     target_name,
     altitude,
     pressure_altitude,
@@ -849,20 +629,11 @@ select
     target_bandwidth_khz,
     target_signal_strength_db,
     drone_target_no,
-    acquire_time_timestamp_type,
     drone_timestamp,
     confidence,
-    aoa_uav_id,
-    join_column,
     proctime
-from(
-        select
-            *,
-            row_number()over(partition by device_id,uav_id,acquire_time_timestamp_type order by date_diff_s_flag asc,distance_pre_curr asc) as rk
-        from temp01_rid_merge
-    ) as ttt
-where rk = 1;
-
+from temp02
+where product_key = 'iiCC6Y7Qhmz';
 
 
 -- 数据union 整合字段，入库融合表
@@ -870,13 +641,10 @@ create view temp_04 as
 select
     t1.device_id,
     t1.uav_id,
+    coalesce(t2.id,t3.id,t4.id,t1.uav_id) as uav_id,
     src_code,
+    t1.uav_id as src_pk,
     acquire_time,
-    max_acquire_time,
-    pk_type,
-    src_pk,
-    rid_device_id,
-    aoa_device_id,
     rid_devid,
     msgtype,
     recvtype,
@@ -894,10 +662,6 @@ select
     control_station_longitude,
     control_station_latitude,
     control_station_height,
-    aoa_longitude,
-    aoa_latitude,
-    aoa_control_station_longitude,
-    aoa_control_station_latitude,
     target_name,
     altitude,
     pressure_altitude,
@@ -907,28 +671,17 @@ select
     target_frequency_khz,
     target_bandwidth_khz,
     target_signal_strength_db,
-    concat('cs',uav_id)    as control_station_id,
+    concat('cs',coalesce(t2.id,t3.id,t4.id,t1.uav_id))  as control_station_id,
 
-    t2.device_id              as join_dushu_uav_device_id,
-    t2.name                   as join_dushu_uav_name,
-    t2.manufacturer           as join_dushu_uav_manufacturer,
-    t2.model                  as join_dushu_uav_model,
-    t2.owner                  as join_dushu_uav_owner,
-    t2.type                   as join_dushu_uav_type,
-    t2.status                 as join_dushu_uav_status,
+    t5.device_id              as join_dushu_uav_device_id,
+    t5.name                   as join_dushu_uav_name,
+    t5.manufacturer           as join_dushu_uav_manufacturer,
+    t5.model                  as join_dushu_uav_model,
+    t5.owner                  as join_dushu_uav_owner,
+    t5.type                   as join_dushu_uav_type,
 
-    t3.id                     as doris_uav_join_id,
-    t3.name                   as doris_uav_join_name,
-    t3.recvmac                as doris_uav_join_recvmac,
-    t3.manufacturer           as doris_uav_join_manufacturer,
-    t3.model                  as doris_uav_join_model,
-    t3.owner                  as doris_uav_join_owner,
-    t3.type                   as doris_uav_join_type,
-    t3.category               as doris_uav_join_category,
-    t3.phone                  as doris_uav_join_phone,
-    t3.empty_weight           as doris_uav_join_empty_weight,
-    t3.maximum_takeoff_weight as doris_uav_join_maximum_takeoff_weightn,
-    t3.purpose                as doris_uav_join_purpose,
+    coalesce(t2.id,t3.id,t4.id)   as doris_uav_join_id,
+
     concat(
             ifnull(cast(t1.longitude as varchar),''),'¥',
             ifnull(cast(t1.latitude as varchar),''),'¥',
@@ -939,16 +692,10 @@ select
             ifnull(cast(speed_h as varchar),''),'¥',
             ifnull(recvtype,''),'¥',
             ifnull(cast(rssi as varchar),''),'¥',
-            ifnull(t2.`status`,''),'¥',
+            ifnull(rid_devid,''),'¥',
             ifnull(cast(control_station_longitude as varchar),''),'¥',
             ifnull(cast(control_station_latitude as varchar),''),'¥',
-            ifnull(rid_devid,''),'¥',
 
-            ifnull(src_code,''),'¥',
-            ifnull(cast(aoa_longitude as varchar),''),'¥',
-            ifnull(cast(aoa_latitude as varchar),''),'¥',
-            ifnull(cast(aoa_control_station_longitude as varchar),''),'¥',
-            ifnull(cast(aoa_control_station_latitude as varchar),''),'¥',
             ifnull(target_name,''),'¥',
             ifnull(cast(altitude as varchar),''),'¥',
             ifnull(cast(pressure_altitude as varchar),''),'¥',
@@ -961,16 +708,25 @@ select
         ) as filter_col
 
 from (
-         select * from temp02_rid_merge
+         select * from temp03_aoa
 
          union all
 
-         select * from temp03_aoa
+         select * from temp03_rid
      ) as t1
-         left join device FOR SYSTEM_TIME AS OF t1.proctime as t2   -- 设备表 关联无人机
-                   on t1.uav_id = t2.sn and 'UAV' = t2.type
+         left join dws_et_uav_info_source FOR SYSTEM_TIME AS OF t1.proctime as t2   -- 设备表 关联无人机
+                   on t1.uav_id = t2.id
          left join dws_et_uav_info_source FOR SYSTEM_TIME AS OF t1.proctime as t3   -- 设备表 关联无人机
-                   on t1.uav_id = t3.id;
+                   on concat('1581',t1.uav_id) = t3.id
+         left join dws_et_uav_info_source FOR SYSTEM_TIME AS OF t1.proctime as t4   -- 设备表 关联无人机
+                   on substring(t1.uav_id,5) = t4.id
+
+         left join device FOR SYSTEM_TIME AS OF t1.proctime as t5   -- 设备表 关联无人机
+                   on 'UAV' = t5.type
+                       and coalesce(t2.id,t3.id,t4.id) = t5.sn;
+
+-- or REGEXP(t1.uav_id,t3.id) = true
+-- or REGEXP(t3.id,t1.uav_id) = true;
 
 
 -----------------------
@@ -988,9 +744,9 @@ insert into dws_rl_rid_uav_rt
 select
     uav_id,
     control_station_id,
-    coalesce(rid_device_id,aoa_device_id) as device_id,
+    device_id,
     rid_devid,
-    max_acquire_time as acquire_time,
+    acquire_time,
     from_unixtime(unix_timestamp()) as update_time
 from temp_04;
 
@@ -1000,22 +756,22 @@ insert into dws_et_control_station_info
 select
     control_station_id     as id,
     acquire_time,
-    coalesce(target_name,uav_id)     as name, -- 无人机id-sn号
+    coalesce(target_name,uav_id)      as name, -- 无人机id-sn号
     uav_id                            as register_uav,
     src_code as source,
     uav_id                 as search_content,
     from_unixtime(unix_timestamp()) as update_time
 from temp_04
-where doris_uav_join_id is null;
+where doris_uav_join_id is null
+   or src_code = 'AOA';
 
 
 -- 无人机实体表
 insert into dws_et_uav_info
 select
     uav_id                       as id,
-    join_dushu_uav_device_id     as device_id,
     uav_id                       as sn,
-    coalesce(join_dushu_uav_name,target_name,uav_id)    as name,
+    coalesce(join_dushu_uav_name,target_name,uav_id)             as name,
     recvmac,
     join_dushu_uav_manufacturer  as manufacturer,
     join_dushu_uav_model         as model,
@@ -1034,24 +790,19 @@ select
         )         as search_content,
     from_unixtime(unix_timestamp()) as update_time
 from temp_04
-where doris_uav_join_id is null;
-
-
+where doris_uav_join_id is null
+   or src_code = 'AOA';
 
 
 -- rid、aoa的融合数据入库
 insert into dwd_bhv_target_rt
 select
-    device_id,
     uav_id                         ,
     control_station_id             ,
+    device_id,
     acquire_time                   ,
-    max_acquire_time               ,
     src_code                       ,
-    pk_type					     ,
     src_pk                	     ,
-    rid_device_id                  ,
-    aoa_device_id                  ,
     join_dushu_uav_device_id as uav_device_id,
     rid_devid                      ,
     msgtype                        ,
@@ -1069,10 +820,6 @@ select
     control_station_longitude      ,
     control_station_latitude       ,
     control_station_height 	     ,
-    aoa_longitude                  ,
-    aoa_latitude                   ,
-    aoa_control_station_longitude  ,
-    aoa_control_station_latitude   ,
     target_name             	     ,
     altitude                	     ,
     pressure_altitude		         ,
@@ -1090,16 +837,12 @@ from temp_04;
 -- rid、aoa的融合状态数据入库
 insert into dws_bhv_target_last_location_rt
 select
-    device_id,
     uav_id                         ,
     control_station_id             ,
+    device_id,
     acquire_time                   ,
-    max_acquire_time               ,
     src_code                       ,
-    pk_type					     ,
     src_pk                	     ,
-    rid_device_id                  ,
-    aoa_device_id                  ,
     join_dushu_uav_device_id as uav_device_id,
     rid_devid                      ,
     msgtype                        ,
@@ -1117,10 +860,6 @@ select
     control_station_longitude      ,
     control_station_latitude       ,
     control_station_height 	     ,
-    aoa_longitude                  ,
-    aoa_latitude                   ,
-    aoa_control_station_longitude  ,
-    aoa_control_station_latitude   ,
     target_name             	     ,
     altitude                	     ,
     pressure_altitude		         ,
@@ -1133,19 +872,6 @@ select
     filter_col                     ,
     from_unixtime(unix_timestamp()) as update_time
 from temp_04;
-
-
--- 融合对应数据入库
-insert into dws_rl_merge_id_rt
-select
-    uav_id as rid_uav_id,
-    aoa_uav_id,
-    acquire_time as max_rid_acquire_time,
-    cast(null as varchar) as max_aoa_acquire_time,
-    from_unixtime(unix_timestamp()) as update_time
-from temp02_rid_merge
-where uav_id is not null
-  and aoa_uav_id is not null;
 
 
 

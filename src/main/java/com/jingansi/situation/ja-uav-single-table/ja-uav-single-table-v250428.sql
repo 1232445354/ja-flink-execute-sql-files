@@ -119,8 +119,8 @@ create table iot_device_message_kafka_01 (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      -- 'properties.bootstrap.servers' = '135.100.11.110:30090',
-      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = '135.100.11.110:30090',
+      -- 'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.group.id' = 'iot-rid-data7',
       -- 'scan.startup.mode' = 'group-offsets',
@@ -182,8 +182,8 @@ create table dwd_bhv_rid_rt (
                                 update_time                string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      'fenodes' = '172.21.30.245:8030',
+      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dwd_bhv_rid_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -243,8 +243,8 @@ create table dws_bhv_rid_last_location_rt (
                                               update_time                string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      'fenodes' = '172.21.30.245:8030',
+      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_bhv_rid_last_location_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -282,8 +282,8 @@ create table dwd_bhv_aoa_rt (
                                 update_time           		      string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      'fenodes' = '172.21.30.245:8030',
+      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dwd_bhv_aoa_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -322,8 +322,8 @@ create table dws_bhv_aoa_last_location_rt (
                                               update_time           		      string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      'fenodes' = '172.21.30.245:8030',
+      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      -- 'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'sa.dws_bhv_aoa_last_location_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -448,10 +448,14 @@ from (
              if(aoa_uav_id = '' or aoa_uav_id is null or trim(aoa_uav_id) = '' or trim(aoa_uav_id) is null,cast(null as varchar),trim(aoa_uav_id)) as aoa_uav_id_trim
          from temp01
          where `method` = 'event.aoaMessage.info'
-           and uav_longitude > -180
-           and uav_longitude < 180
+           and uav_longitude between -180 and 180
+           and uav_latitude between -90 and 90
            and uav_longitude <> 0
            and uav_latitude <> 0
+           and control_station_longitude between -180 and 180
+           and control_station_latitude between -90 and 90
+           and control_station_longitude <>0
+           and control_station_latitude <> 0
      ) as tt1 ,lateral table(PassThroughUdtf(get_random_id())) as b(uav_random_id);
 
 
