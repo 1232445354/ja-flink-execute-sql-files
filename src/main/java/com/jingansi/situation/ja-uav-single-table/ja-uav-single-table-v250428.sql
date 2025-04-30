@@ -192,8 +192,8 @@ create table dwd_bhv_rid_rt (
       'sink.batch.size'='10000',
       'sink.batch.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      'sink.properties.column_separator' = '=',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '*'		 -- 行分隔符
       );
 
 
@@ -253,8 +253,8 @@ create table dws_bhv_rid_last_location_rt (
       'sink.batch.size'='10000',
       'sink.batch.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      'sink.properties.column_separator' = '=',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '*'		 -- 行分隔符
       );
 
 
@@ -292,8 +292,8 @@ create table dwd_bhv_aoa_rt (
       'sink.batch.size'='10000',
       'sink.batch.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      'sink.properties.column_separator' = '=',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '*'		 -- 行分隔符
       );
 
 
@@ -332,8 +332,8 @@ create table dws_bhv_aoa_last_location_rt (
       'sink.batch.size'='10000',
       'sink.batch.interval'='1s',
       'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      'sink.properties.column_separator' = '=',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '*'		 -- 行分隔符
       );
 
 -----------------------
@@ -467,10 +467,14 @@ from temp01
 where `method` = 'event.ridMessage.info'
   and uav_id is not null
   and uav_id <> ''
-  and uav_longitude > -180
-  and uav_longitude < 180
+  and uav_longitude between -180 and 180
+  and uav_latitude between -90 and 90
   and uav_longitude <> 0
-  and uav_latitude <> 0;
+  and uav_latitude <> 0
+  and control_station_longitude between -180 and 180
+  and control_station_latitude between -90 and 90
+  and control_station_longitude <>0
+  and control_station_latitude <> 0;
 
 -----------------------
 

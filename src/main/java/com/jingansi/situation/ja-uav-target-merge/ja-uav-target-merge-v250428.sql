@@ -1,7 +1,7 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2025/04/23 16:48:50
--- description: rid设备数据采集数据,aoa采集数据，rid和aoa数据融合,过滤经纬度范围
+-- description: rid设备数据采集数据,aoa采集数据，rid和aoa数据融合
 -- version: ja-uav-target-merge-v250428
 --********************************************************************--
 
@@ -197,6 +197,8 @@ create table dwd_bhv_target_rt (
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
+
+
 
 -- 融合状态表
 create table dws_bhv_target_last_location_rt (
