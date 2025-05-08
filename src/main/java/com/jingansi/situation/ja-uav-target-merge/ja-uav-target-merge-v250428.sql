@@ -1,7 +1,7 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2025/04/23 16:48:50
--- description: rid设备数据采集数据,aoa采集数据，rid和aoa数据融合
+-- description: rid和aoa数据融合
 -- version: ja-uav-target-merge-v250428
 --********************************************************************--
 
@@ -292,8 +292,7 @@ create table `dws_et_control_station_info` (
 -- 无人机实体表
 create table `dws_et_uav_info` (
                                    id                      string  comment '无人机id-sn号',
-                                   device_id               string  comment '无人机设备id-牍术接入的',
-                                   sn                      string  comment '序列号',
+                                    sn                      string  comment '序列号',
                                    name                    string  comment '无人机名称',
                                    recvmac                 string  comment 'MAC地址',
                                    manufacturer            string  comment '厂商',
