@@ -119,8 +119,8 @@ create table iot_device_message_kafka_01 (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      'properties.bootstrap.servers' = '135.100.11.110:30090',
-      -- 'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      -- 'properties.bootstrap.servers' = '135.100.11.110:30090',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.group.id' = 'iot-rid-data7',
       -- 'scan.startup.mode' = 'group-offsets',
@@ -182,8 +182,8 @@ create table dwd_bhv_rid_rt (
                                 update_time                string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      -- 'fenodes' = '172.21.30.245:8030',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dwd_bhv_rid_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -192,8 +192,8 @@ create table dwd_bhv_rid_rt (
       'sink.batch.size'='10000',
       'sink.batch.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '=',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '*'		 -- 行分隔符
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
 
@@ -243,8 +243,8 @@ create table dws_bhv_rid_last_location_rt (
                                               update_time                string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      -- 'fenodes' = '172.21.30.245:8030',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dws_bhv_rid_last_location_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -253,8 +253,8 @@ create table dws_bhv_rid_last_location_rt (
       'sink.batch.size'='10000',
       'sink.batch.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '=',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '*'		 -- 行分隔符
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
 
@@ -282,8 +282,8 @@ create table dwd_bhv_aoa_rt (
                                 update_time           		      string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      -- 'fenodes' = '172.21.30.245:8030',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dwd_bhv_aoa_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -292,8 +292,8 @@ create table dwd_bhv_aoa_rt (
       'sink.batch.size'='10000',
       'sink.batch.interval'='10s',
       'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '=',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '*'		 -- 行分隔符
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
 
@@ -322,8 +322,8 @@ create table dws_bhv_aoa_last_location_rt (
                                               update_time           		      string  comment '更新时间'
 ) with (
       'connector' = 'doris',
-      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-      -- 'fenodes' = '172.21.30.245:8030',
+      -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
+      'fenodes' = '172.21.30.105:30030',
       'table.identifier' = 'sa.dws_bhv_aoa_last_location_rt',
       'username' = 'root',
       'password' = 'Jingansi@110',
@@ -332,8 +332,8 @@ create table dws_bhv_aoa_last_location_rt (
       'sink.batch.size'='10000',
       'sink.batch.interval'='1s',
       'sink.properties.escape_delimiters' = 'true',
-      'sink.properties.column_separator' = '=',	 -- 列分隔符
-      'sink.properties.line_delimiter' = '*'		 -- 行分隔符
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
 -----------------------
@@ -465,8 +465,6 @@ select
     *
 from temp01
 where `method` = 'event.ridMessage.info'
-  and uav_id is not null
-  and uav_id <> ''
   and uav_longitude between -180 and 180
   and uav_latitude between -90 and 90
   and uav_longitude <> 0
