@@ -2,16 +2,16 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/3/8 09:33:33
 -- description: 饿了么数据存储、内部新版本测试的，现在已经是正式的了
--- version：ja-hunger-project-v250214
+-- version：ja-hunger-project-v2-250214
 --********************************************************************--
 set 'pipeline.name' = 'ja-hunger-project';
 
-SET 'parallelism.default' = '2';
+SET 'parallelism.default' = '1';
 set 'table.exec.state.ttl' = '300000';
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
-SET 'sql-client.display.max-column-width' = '100';
+-- SET 'sql-client.display.max-column-width' = '200';
 
 -- -- checkpoint的时间和位置
 SET 'execution.checkpointing.interval' = '300000';
@@ -21,7 +21,8 @@ SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-hunger-project
 
 -- kafka来源的数据给外部饿了么测试的（Source：kafka）
 create table test_infer_result (
-                                   `partition` BIGINT METADATA VIRTUAL,
+    -- `partition`             BIGINT METADATA VIRTUAL,
+                                   `partition` BIGINT METADATA FROM 'partition' VIRTUAL,
                                    batch_id                bigint,                        -- 批处理ID
                                    is_cover                boolean,
                                    uncover_confidence      string,
@@ -74,18 +75,24 @@ create table test_infer_result (
       'connector' = 'kafka',
       'topic' =  'ja_infer_result2', -- test_infer_result3
       'properties.bootstrap.servers' = '172.22.219.30:9092',
-      'properties.group.id' = 'test-infer-result-rt',
+      'properties.group.id' = 'test-infer-result-rt1',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1739466067000',
-
+      'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
+      'json.ignore-parse-errors' = 'true',
+
+      -- 新增超时和重试配置
+      'properties.request.timeout.ms' = '40000',
+      'properties.retry.backoff.ms' = '1000',
+      'properties.metadata.max.age.ms' = '300000',
+      'properties.connections.max.idle.ms' = '540000',
+
+      -- SASL认证配置
       'properties.security.protocol' = 'SASL_PLAINTEXT',
       'properties.sasl.mechanism' = 'PLAIN',
-      'properties.sasl.jaas.config' = 'org.apache.kafka.common.security.plain.PlainLoginModule required username="jingansi" password="jingansi110";',
-
-      'json.ignore-parse-errors' = 'true'
+      'properties.sasl.jaas.config' = 'org.apache.kafka.common.security.plain.PlainLoginModule required username="jingansi" password="jingansi110";'
       );
 
 
@@ -195,9 +202,7 @@ select * from test_infer_result
 where `partition` = 5;
 
 
-
 -- 数据展开
-drop view if exists tmp_frame_infer_data_external_01;
 create view tmp_frame_infer_data_external_01 as
 select
     a.batch_id,
@@ -247,7 +252,6 @@ where a.ntp_timestamp is not null
 
 
 -- 数据展开kafka-topic1给定外部饿了么的数据进行告警筛选
-drop view if exists tmp_frame_infer_data_external_02;
 create view tmp_frame_infer_data_external_02 as
 select
     *
