@@ -12,7 +12,7 @@ SET 'table.planner' = 'blink';
 SET 'table.exec.state.ttl' = '60000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
--- SET 'parallelism.default' = '3';
+SET 'parallelism.default' = '4';
 set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 
 SET 'execution.checkpointing.interval' = '120000';
@@ -56,7 +56,8 @@ create table uav_merge_target_kafka (
                                         speed_ms                  	double  comment 'aoa-无人机飞行速度 (m/s)',
                                         target_frequency_khz    		double  comment 'aoa-目标使用频率 (k_hz)',
                                         target_bandwidth_khz		    double  comment 'aoa-目标带宽 (k_hz)',
-                                        target_signal_strength_db		double  comment 'aoa-目标信号强度 (d_b)'
+                                        target_signal_strength_db		double  comment 'aoa-目标信号强度 (d_b)',
+                                        target_type bigint
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'uav_merge_target',
@@ -65,9 +66,9 @@ create table uav_merge_target_kafka (
       -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.group.id' = 'uav_merge_target2',
       -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',  -- 1745564415000
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '1747150872000',  -- 1745564415000
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -386,20 +387,52 @@ create table uav_source(
 -- 数据字段处理
 create view temp01 as
 select
-    *,
+    id                          , -- id
+    device_id                     , -- 数据来源的设备id
+    acquire_time          		, -- 采集时间
+    src_code              		, -- 自己本身数据类型 RID、AOA、RADAR
+    src_pk                        , -- 自己网站的目标id
+    device_name                   , -- 设备名称
+    rid_devid             		, -- rid设备的id-飞机上报的
+    msgtype               		, -- 消息类型
+    recvtype              		, -- 无人机数据类型,示例:2.4G
+    recvmac                       , -- 无人机的mac地址
+    mac                   		, -- rid设备MAC地址
+    rssi                  		, -- 信号强度
+    longitude             		, -- 探测到的无人机经度
+    latitude              		, -- 探测到的无人机纬度',
+    location_alit         		, -- 气压高度',
+    ew                    		, -- rid航迹角,aoa监测站识别的目标方向角
+    speed_h               		, -- 水平速度
+    speed_v               		, -- 垂直速度
+    height                		, -- 距地高度
+    height_type           		, -- 高度类型
+    control_station_longitude  	, -- 控制无人机人员经度
+    control_station_latitude   	, -- 控制无人机人员纬度
+    control_station_height 	   	, -- 控制站高度
+    target_name             		, -- aoa-目标名称
+    altitude                		, -- aoa-无人机所在海拔高度
+    distance_from_station   		, -- aoa-无人机距离监测站的距离
+    speed_ms                  	, -- aoa-无人机飞行速度 (m/s)
+    target_frequency_khz    		, -- aoa-目标使用频率 (k_hz)
+    target_bandwidth_khz		    , -- aoa-目标带宽 (k_hz)
+    target_signal_strength_db		, -- aoa-目标信号强度 (d_b)
     split_index(id,';',0) as uav_id,
-    split_index(id,';',1) as merge_type,
-    split_index(id,';',2) as merge_cnt,
-    split_index(id,';',3) as merge_target_cnt,
+    coalesce(split_index(id,';',1),'RADAR') as merge_type,
+    coalesce(split_index(id,';',2),'1') as merge_cnt,
+    coalesce(split_index(id,';',3),'1') as merge_target_cnt,
+    target_type,
     PROCTIME() as proctime
-from uav_merge_target_kafka;
+from uav_merge_target_kafka
+where src_code in ('RID','AOA')
+   or (src_code='RADAR' and (id is not null or target_type=9));
 
 
 
 -- 数据union 整合字段，入库融合表
 create view temp02 as
 select
-    t1.uav_id,
+    coalesce(t1.uav_id,src_pk) as uav_id,
     concat('cs',t1.uav_id) as control_station_id,
     t1.device_id,
     acquire_time,
@@ -481,7 +514,7 @@ select
             ifnull(cast(target_signal_strength_db as varchar),'')
         ) as filter_col
 
-from temp01 as t1
+from (select * from temp01 where id is not null or target_type=9 ) as t1
          left join device FOR SYSTEM_TIME AS OF t1.proctime as t2   -- 设备表 关联无人机
                    on t1.uav_id = t2.sn
                        and 'UAV' = t2.type
@@ -516,7 +549,7 @@ insert into dws_et_control_station_info
 select
     control_station_id                as id,
     acquire_time,
-    if(src_code in ('RID','AOA'),coalesce(target_name,uav_id),cast(null as varchar))     as name, -- 无人机id-sn号
+    coalesce(target_name,uav_id)      as name, -- 无人机id-sn号
     uav_id                            as register_uav,
     src_code                          as source,
     uav_id                            as search_content,
