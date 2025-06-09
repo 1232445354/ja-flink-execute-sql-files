@@ -98,6 +98,8 @@ create table dwd_bhv_merge_target_rt (
                                          rssi                           bigint  comment '信号强度',
                                          longitude                      double  comment 'rid-探测到的无人机经度',
                                          latitude                       double  comment 'rid-探测到的无人机纬度',
+                                         old_longitude                  double,
+                                         old_latitude                   double,
                                          location_alit                  double  comment '气压高度',
                                          ew                             double  comment '航迹角',
                                          speed_h                        double  comment '无人机地速-水平速度',
@@ -126,7 +128,7 @@ create table dwd_bhv_merge_target_rt (
       'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
       'sink.batch.size'='10000',
-      'sink.batch.interval'='2s',
+      'sink.batch.interval'='1s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
@@ -155,6 +157,8 @@ create table dws_bhv_merge_target_last_location_rt (
                                                        rssi                           bigint  comment '信号强度',
                                                        longitude                      double  comment 'rid-探测到的无人机经度',
                                                        latitude                       double  comment 'rid-探测到的无人机纬度',
+                                                       old_longitude                  double,
+                                                       old_latitude                   double,
                                                        location_alit                  double  comment '气压高度',
                                                        ew                             double  comment '航迹角',
                                                        speed_h                        double  comment '无人机地速-水平速度',
@@ -183,7 +187,7 @@ create table dws_bhv_merge_target_last_location_rt (
       'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
       'sink.batch.size'='10000',
-      'sink.batch.interval'='2s',
+      'sink.batch.interval'='1s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
@@ -210,7 +214,7 @@ create table `dws_et_control_station_info` (
       'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
       'sink.batch.size'='10000',
-      'sink.batch.interval'='5s',
+      'sink.batch.interval'='1s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
@@ -247,7 +251,7 @@ create table `dws_et_uav_info` (
       'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
       'sink.batch.size'='10000',
-      'sink.batch.interval'='5s',
+      'sink.batch.interval'='1s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
@@ -273,7 +277,7 @@ create table `dws_rl_rid_uav_rt` (
       'doris.request.tablet.size'='5',
       'doris.request.read.timeout.ms'='30000',
       'sink.batch.size'='10000',
-      'sink.batch.interval'='5s',
+      'sink.batch.interval'='1s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
@@ -401,8 +405,8 @@ select
     recvmac                       , -- 无人机的mac地址
     mac                   		, -- rid设备MAC地址
     rssi                  		, -- 信号强度
-    longitude             		, -- 探测到的无人机经度
-    latitude              		, -- 探测到的无人机纬度',
+    longitude   as old_longitude  , -- 探测到的无人机经度
+    latitude    as old_latitude   , -- 探测到的无人机纬度',
     location_alit         		, -- 气压高度',
     ew                    		, -- rid航迹角,aoa监测站识别的目标方向角
     speed_h               		, -- 水平速度
@@ -423,6 +427,8 @@ select
     coalesce(split_index(id,';',1),'RADAR') as merge_type,
     coalesce(split_index(id,';',2),'1') as merge_cnt,
     coalesce(split_index(id,';',3),'1') as merge_target_cnt,
+    coalesce(cast(split_index(id,';',4) as double),longitude) as longitude,
+    coalesce(cast(split_index(id,';',5) as double),latitude) as latitude,
     target_type,
     PROCTIME() as proctime
 from uav_merge_target_kafka
@@ -454,6 +460,8 @@ select
     rssi,
     t1.longitude,
     t1.latitude,
+    t1.old_longitude,
+    t1.old_latitude,
     location_alit,
     ew,
     speed_h,
@@ -479,18 +487,19 @@ select
     coalesce(t2.type,t4.type)                   as join_dushu_uav_type,
     coalesce(t2.status,t4.status)               as join_dushu_uav_status,
 
-    t3.id                     as doris_uav_join_id,
-    t3.name                   as doris_uav_join_name,
-    t3.recvmac                as doris_uav_join_recvmac,
-    t3.manufacturer           as doris_uav_join_manufacturer,
-    t3.model                  as doris_uav_join_model,
-    t3.owner                  as doris_uav_join_owner,
-    t3.type                   as doris_uav_join_type,
-    t3.category               as doris_uav_join_category,
-    t3.phone                  as doris_uav_join_phone,
-    t3.empty_weight           as doris_uav_join_empty_weight,
-    t3.maximum_takeoff_weight as doris_uav_join_maximum_takeoff_weightn,
-    t3.purpose                as doris_uav_join_purpose,
+    t3.id                                       as doris_uav_join_id,
+    t3.name                                     as doris_uav_join_name,
+    t3.recvmac                                  as doris_uav_join_recvmac,
+    t3.manufacturer                             as doris_uav_join_manufacturer,
+    t3.model                                    as doris_uav_join_model,
+    t3.owner                                    as doris_uav_join_owner,
+    t3.type                                     as doris_uav_join_type,
+    t3.category                                 as doris_uav_join_category,
+    t3.phone                                    as doris_uav_join_phone,
+    t3.empty_weight                             as doris_uav_join_empty_weight,
+    t3.maximum_takeoff_weight                   as doris_uav_join_maximum_takeoff_weightn,
+    t3.purpose                                  as doris_uav_join_purpose,
+
     concat(
             ifnull(cast(t1.longitude as varchar),''),'¥',
             ifnull(cast(t1.latitude as varchar),''),'¥',
@@ -556,14 +565,13 @@ insert into dws_et_control_station_info
 select
     control_station_id                as id,
     acquire_time,
-    coalesce(target_name,uav_id)      as name, -- 无人机id-sn号
+    coalesce(join_dushu_uav_name,doris_uav_join_name,uav_id)                as name, -- 无人机id-sn号
     uav_id                            as register_uav,
     src_code                          as source,
     uav_id                            as search_content,
     from_unixtime(unix_timestamp())   as update_time
 from temp02
-where doris_uav_join_id is null
-  and control_station_longitude is not null;
+where doris_uav_join_id is null;
 
 
 -- 无人机实体表
@@ -571,7 +579,7 @@ insert into dws_et_uav_info
 select
     uav_id                       as id,
     if(src_code in ('RID','AOA'),uav_id,cast(null as varchar))   as sn,
-    coalesce(join_dushu_uav_name,target_name,uav_id)    as name,
+    coalesce(join_dushu_uav_name,doris_uav_join_name,uav_id)    as name,
     join_dushu_uav_device_id as device_id,
     recvmac,
     join_dushu_uav_manufacturer  as manufacturer,
@@ -586,7 +594,7 @@ select
     -- cast(null as varchar)  as maximum_takeoff_weight,
     -- cast(null as varchar)  as purpose,
     concat(
-            ifnull(coalesce(join_dushu_uav_name,target_name),''),' ',
+            ifnull(coalesce(join_dushu_uav_name,doris_uav_join_name,uav_id),''),' ',
             ifnull(uav_id,'')
         )         as search_content,
     from_unixtime(unix_timestamp()) as update_time
@@ -618,6 +626,8 @@ select
     rssi                           ,
     longitude                      ,
     latitude                       ,
+    old_longitude,
+    old_latitude,
     location_alit                  ,
     ew                             ,
     speed_h                        ,
@@ -661,6 +671,8 @@ select
     rssi                           ,
     longitude                      ,
     latitude                       ,
+    old_longitude,
+    old_latitude,
     location_alit                  ,
     ew                             ,
     speed_h                        ,
