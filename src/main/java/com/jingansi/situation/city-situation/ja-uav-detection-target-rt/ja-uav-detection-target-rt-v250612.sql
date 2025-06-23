@@ -50,9 +50,13 @@ create table iot_device_message_kafka_01 (
                                                  status           string   ,-- 0 目标跟踪 1 目标丢失 2 跟踪终止
                                                  sourceType       string   , -- 数据来源类型：M300、RADAR
                                                  targetType       string   , -- 目标类型,信火一体时候的 ，天朗项目-也有，目标识别类型
-                                                 `timestamp`      bigint  , -- 录取时间信息（基日）
-                                                 confidence       string  , -- 置信度
-                                                 imageUrl         string
+                                                 `timestamp`      bigint   , -- 录取时间信息（基日）
+                                                 confidence       string   , -- 置信度
+                                                 imageUrl         string   ,
+                                                 bboxLeft         double   ,
+                                                 bboxTop          double   ,
+                                                 bboxWidth        double   ,
+                                                 bboxHeight       double
 
                                                  )
                                                  >
@@ -65,9 +69,9 @@ create table iot_device_message_kafka_01 (
       -- 'properties.bootstrap.servers' = '172.21.30.231:30090',
       'properties.group.id' = 'iot-device-message-group1',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1750297320000',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1750387320000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -91,6 +95,10 @@ create table dwd_bhv_uav_detection_target(
                                              target_type		string	comment '目标类型',
                                              acqu_timestamp	bigint  comment '内部的时间戳',
                                              image_url 		string 	comment '图片url',
+                                             bbox_left         double  comment '框信息',
+                                             bbox_top          double  comment '框信息',
+                                             bbox_width        double  comment '框信息',
+                                             bbox_height       double  comment '框信息',
                                              device_id			string	comment '设备id',
                                              product_key		string	comment '产品key',
                                              type				string	comment '类型',
@@ -115,6 +123,34 @@ create table dwd_bhv_uav_detection_target(
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
+
+-- 检测目标的图片（Sink：doris）
+create table dws_et_uav_detection_target_image(
+                                                  id     			string 	comment '目标id',
+                                                  device_id			string	comment '设备id',
+                                                  acquire_time 		string  comment '采集事件',
+                                                  image_url 		string 	comment '图片url',
+                                                  bbox_left         double  comment '框信息',
+                                                  bbox_top          double  comment '框信息',
+                                                  bbox_width        double  comment '框信息',
+                                                  bbox_height       double  comment '框信息',
+                                                  update_time       string  comment '数据入库时间'
+)WITH (
+     'connector' = 'doris',
+-- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     'fenodes' = '172.21.30.105:30030',
+-- 'fenodes' = '172.21.30.245:8030',
+     'table.identifier' = 'sa.dws_et_uav_detection_target_image',
+     'username' = 'admin',
+     'password' = 'Jingansi@110',
+     'doris.request.tablet.size'='3',
+     'doris.request.read.timeout.ms'='30000',
+     'sink.batch.size'='20000',
+     'sink.batch.interval'='5s',
+     'sink.properties.escape_delimiters' = 'true',
+     'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+     'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+     );
 
 
 -----------------------
@@ -143,9 +179,6 @@ where coalesce(deviceId,message.deviceId) is not null
   and abs(coalesce(`timestamp`,message.`timestamp`)/1000 - UNIX_TIMESTAMP()) <= 864000;
 
 
-
-
-
 -- 检测数据筛选处理
 create view tmp_source_kafka_03 as
 select
@@ -160,7 +193,7 @@ select
     targets            -- 目标字段
 from tmp_source_kafka_01
 where `method` = 'event.targetInfo.info'
-  and product_key in ('00000000002','zyrFih3kept');
+  and product_key in ('00000000002','zyrFih3kepx');
 
 
 
@@ -183,10 +216,14 @@ select
     t2.targetLatitude    as latitude,        -- 纬度
     t2.distance          as distance,
     t2.sourceType        as source_type,
-    if(t2.targetType = '',cast(null as varchar),t2.targetType)    as target_type,
+    if(t2.targetType <> '' and t2.targetType <> '未知目标',t2.targetType,'未知')    as target_type,
     t2.`timestamp`       as acqu_timestamp,
     t2.confidence,
-    t2.imageUrl as image_url
+    t2.imageUrl as image_url,
+    t2.bboxLeft as bbox_left,
+    t2.bboxTop as bbox_top,
+    t2.bboxWidth as bbox_width,
+    t2.bboxHeight as bbox_height
 
 from tmp_source_kafka_03 as t1
          cross join unnest (targets) as t2 (
@@ -200,10 +237,12 @@ from tmp_source_kafka_03 as t1
                                             targetType       ,
                                             `timestamp`      ,
                                             confidence       ,
-                                            imageUrl
-    )
-where t2.targetId is not null;
-
+                                            imageUrl         ,
+                                            bboxLeft         ,
+                                            bboxTop          ,
+                                            bboxWidth        ,
+                                            bboxHeight
+    );
 
 
 -----------------------
@@ -232,6 +271,10 @@ select
     target_type		,
     acqu_timestamp	,
     image_url 		,
+    bbox_left         ,
+    bbox_top          ,
+    bbox_width        ,
+    bbox_height       ,
     device_id			,
     product_key		,
     type				,
@@ -241,6 +284,22 @@ select
     from_unixtime(unix_timestamp()) as update_time
 from tmp_source_kafka_04;
 
+
+-- 检测图片数据入库doris
+insert into dws_et_uav_detection_target_image
+select
+    id     			,
+    device_id			,
+    acquire_time 		,
+    image_url 		,
+    bbox_left         ,
+    bbox_top          ,
+    bbox_width        ,
+    bbox_height       ,
+    from_unixtime(unix_timestamp()) as update_time
+from tmp_source_kafka_04
+where image_url is not null
+  and bbox_left is not null;
 
 end;
 

@@ -5,5 +5,4 @@
 4. ja-chingchi-icos3.0-rt-v250609 天朗雷达新增入库字段 和上个版本拍照经纬度没有合并代码呢
 5. ja-chingchi-icos3.0-rt-v250612 无人机检测目标入库 合并天朗雷达新增字段及其拍照经纬度
 6. ja-chingchi-icos3.0-rt-v250617 拍照数据切换topic,新增行动id
-
-
+7. ja-chingchi-icos3.0-rt-v250623 牍术3.18新增的事件-服务数据接入
