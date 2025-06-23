@@ -13,9 +13,9 @@ SET 'table.exec.state.ttl' = '600000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
-set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
-SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-uav-detection-target-rt';
+-- set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
+-- SET 'execution.checkpointing.interval' = '600000';
+-- SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-uav-detection-target-rt';
 
 
 
@@ -62,17 +62,16 @@ create table iot_device_message_kafka_01 (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      'properties.group.id' = 'iot-device-message-group-uav1',
+      -- 'properties.bootstrap.servers' = '172.21.30.231:30090',
+      'properties.group.id' = 'iot-device-message-group1',
       -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '1750297320000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
-
-
 
 
 
@@ -87,6 +86,8 @@ create table dwd_bhv_uav_detection_target(
                                              target_altitude	double 	comment '高度',
                                              longitude			double	comment '经度',
                                              latitude			double	comment '纬度',
+                                             object_label      string  comment '目标大类型代码',
+                                             object_label_name string  comment '目标大类型名称',
                                              target_type		string	comment '目标类型',
                                              acqu_timestamp	bigint  comment '内部的时间戳',
                                              image_url 		string 	comment '图片url',
@@ -108,7 +109,7 @@ create table dwd_bhv_uav_detection_target(
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
      'sink.batch.size'='20000',
-     'sink.batch.interval'='10s',
+     'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
@@ -135,12 +136,14 @@ select
     type,
 
     -- 雷达、振动仪检测目标数据
-    message.`data`.targets     as targets,
-    PROCTIME()  as proctime
+    message.`data`.targets     as targets
 from iot_device_message_kafka_01
 where coalesce(deviceId,message.deviceId) is not null
   -- 小于10天的数据
   and abs(coalesce(`timestamp`,message.`timestamp`)/1000 - UNIX_TIMESTAMP()) <= 864000;
+
+
+
 
 
 -- 检测数据筛选处理
@@ -154,11 +157,10 @@ select
     version,
     type,
     acquire_timestamp,
-    targets,            -- 目标字段
-    proctime
+    targets            -- 目标字段
 from tmp_source_kafka_01
 where `method` = 'event.targetInfo.info'
-  and product_key = '00000000002';
+  and product_key in ('00000000002','zyrFih3kept');
 
 
 
@@ -181,8 +183,8 @@ select
     t2.targetLatitude    as latitude,        -- 纬度
     t2.distance          as distance,
     t2.sourceType        as source_type,
-    if(t2.targetType is not null and t2.targetType <> '' and t2.targetType <> '未知目标',t2.targetType,'未知')    as target_type,
-    t2.`timestamp`               as acqu_timestamp,
+    if(t2.targetType = '',cast(null as varchar),t2.targetType)    as target_type,
+    t2.`timestamp`       as acqu_timestamp,
     t2.confidence,
     t2.imageUrl as image_url
 
@@ -199,7 +201,9 @@ from tmp_source_kafka_03 as t1
                                             `timestamp`      ,
                                             confidence       ,
                                             imageUrl
-    );
+    )
+where t2.targetId is not null;
+
 
 
 -----------------------
@@ -223,6 +227,8 @@ select
     target_altitude	,
     longitude			,
     latitude			,
+    'NONE' as object_label,
+    '未知'  as object_label_name,
     target_type		,
     acqu_timestamp	,
     image_url 		,
