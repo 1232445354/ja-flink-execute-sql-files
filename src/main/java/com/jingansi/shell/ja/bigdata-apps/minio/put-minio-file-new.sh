@@ -4,7 +4,7 @@ DIR=$(cd `dirname $0`; pwd)       # /home/jingansi/k8s/init/bigdata-apps
 echo "当前文件目录：${DIR}"
 
 # 1.获取minio的容器名称
-CONTAINER_NAME=$(kubectl get pod -n minio -o name | awk -F/ '{print $2}')
+CONTAINER_NAME=$(kubectl get pod -n minio --field-selector=status.phase=Running --no-headers -o custom-columns=":metadata.name" | head -n 1)
 echo "获取到minio的容器名称：${CONTAINER_NAME}"   # MinIO 容器的名称或ID
 
 # 2.设置相关变量

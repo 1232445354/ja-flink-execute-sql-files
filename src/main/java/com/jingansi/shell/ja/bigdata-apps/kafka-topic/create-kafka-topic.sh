@@ -18,14 +18,7 @@ do
   echo -e "创建Topic-->$value..."
   output=$(kubectl exec "${CONTAINER_NAME}" -c kafka -nbase -- sh -c "kafka-topics.sh --create --bootstrap-server kafka.base.svc.cluster.local:9092 --replication-factor 3 --partitions 1 --topic ${value} --if-not-exists ")
 
-  # 过滤掉不需要的输出
-  filtered_output=$(echo "$output" | grep -v -e "WARNING" -e "Defaulted container")
-#  echo "$filtered_output"
-  if [ -z "$filtered_output" ]; then
-      echo "Topic $value 创建成功！"
-    else
-      echo "Topic $value 创建失败！错误信息：$output"
-  fi
+  echo "${output}"
   echo -e "-------"
 done
 
