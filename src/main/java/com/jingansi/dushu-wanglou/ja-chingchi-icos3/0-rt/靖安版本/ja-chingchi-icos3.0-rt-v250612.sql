@@ -473,8 +473,8 @@ select
     proctime
 from tmp_source_kafka_02
 where `method` = 'event.targetInfo.info'
-  -- -- r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）、xjWO7NdIOYs（天朗雷达） 、00000000002（无人机检测目标数据）
-  and product_key in('r4ae3Loh78v','k8dNIRut1q3','xjWO7NdIOYs','00000000002');
+  -- -- r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）、xjWO7NdIOYs（天朗雷达） 、00000000002\zyrFih3kept（无人机检测目标数据）
+  and product_key in('r4ae3Loh78v','k8dNIRut1q3','xjWO7NdIOYs','00000000002','zyrFih3kept');
 
 
 
