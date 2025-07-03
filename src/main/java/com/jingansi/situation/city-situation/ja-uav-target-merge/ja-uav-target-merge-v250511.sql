@@ -16,7 +16,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 
 SET 'execution.checkpointing.interval' = '120000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-uav-target-merge';
+SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-uav-target-merge';
 
 
 -- 计算距离
@@ -446,7 +446,7 @@ select
     PROCTIME() as proctime
 from iot_device_message_kafka_01
 where message.`timestamp` is not null
-  -- 9sMhTTcOrbv:AOA  iiCC6Y7Qhmz:RID xjWO7NdIOYs:天朗雷达
+  -- 9sMhTTcOrbv(AOA)  iiCC6Y7Qhmz(RID) xjWO7NdIOYs(天朗雷达)
   and productKey in('9sMhTTcOrbv','iiCC6Y7Qhmz','xjWO7NdIOYs')
   and message.`method` in('event.ridMessage.info','event.aoaMessage.info','event.targetInfo.info');
 
@@ -555,9 +555,9 @@ select
     rssi,
     uav_longitude as longitude,
     uav_latitude as latitude,
-    coalesce(location_alit,pressure_altitude) as location_alit,
-    coalesce(ew,direction_angle) as ew,
-    coalesce(speed_h,speed_ms) as speed_h,
+    coalesce(location_alit,pressure_altitude) as location_alit, -- location_alit(RID气压高度)  pressure_altitude(AOA气压高度)
+    coalesce(ew,direction_angle) as ew,                         -- ew(RID航迹角) direction_angle(AOA监测站识别的目标方向角)
+    coalesce(speed_h,speed_ms) as speed_h,                      -- speed_h(RID水平速度) speed_ms（AOA无人机飞行速度）
     speed_v,
     height,
     height_type,
@@ -580,10 +580,10 @@ where `method` in('event.ridMessage.info','event.aoaMessage.info')
   and uav_latitude <> 0
   and control_station_longitude between -180 and 180
   and control_station_latitude between -90 and 90
-  and control_station_longitude <>0
-  and control_station_latitude <> 0
-  and distance_udf(uav_latitude,uav_longitude,device_latitude,device_longitude) <= 15
-  and (`method` ='event.ridMessage.info' or (`method`='event.aoaMessage.info' and coalesce(uav_id,aoa_uav_id)<>'F5BKB251P00F009S'));
+  -- and control_station_longitude <>0
+  -- and control_station_latitude <> 0
+  and distance_udf(uav_latitude,uav_longitude,device_latitude,device_longitude) <= 15;
+-- and (`method` ='event.ridMessage.info' or (`method`='event.aoaMessage.info' and coalesce(uav_id,aoa_uav_id)<>'F5BKB251P00F009S'));
 
 
 
