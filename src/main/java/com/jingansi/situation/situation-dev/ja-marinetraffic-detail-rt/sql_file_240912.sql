@@ -2,6 +2,7 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/3/14 11:36:13
 -- description: marinetraffic的详情数据入库
+-- version: ja-marinetraffic-detail-rt-v240328
 --********************************************************************--
 set 'pipeline.name' = 'ja-marinetraffic-detail-rt';
 
@@ -58,8 +59,8 @@ create table marinetraffic_ship_info(
       'topic' = 'marinetraffic_ship_info',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'marinetraffic_ship_info_1_idc',
-      'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'group-offsets',
+      'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
       -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
@@ -68,7 +69,6 @@ create table marinetraffic_ship_info(
       );
 
 
-drop table if exists marinetraffic_ship_info_error;
 create table marinetraffic_ship_info_error(
                                               vessel_id                        string,
                                               update_time                      string,
@@ -82,8 +82,8 @@ create table marinetraffic_ship_info_error(
       'topic' = 'marinetraffic_ship_info_error',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'marinetraffic_ship_info_1_idc',
-      'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'group-offsets',
+      'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
       -- 'scan.startup.timestamp-millis' = '1724653800000',
       'format' = 'json',
@@ -93,7 +93,6 @@ create table marinetraffic_ship_info_error(
 
 
 -- 创建doris的映射表 - 单独的实体表
-drop table if exists dwd_mtf_ship_info;
 create table dwd_mtf_ship_info (
                                    ship_id                            bigint        comment '船ID',
                                    name                               string        comment '船名',
@@ -136,7 +135,6 @@ create table dwd_mtf_ship_info (
 
 
 -- 创建doris的映射表 - 合并的实体表
-drop table if exists dws_ais_vessel_detail_static_attribute;
 create table dws_ais_vessel_detail_static_attribute (
                                                         vessel_id      	 			bigint		comment '船ID',
                                                         imo      					bigint      comment 'IMO',
@@ -186,7 +184,6 @@ create table dws_ais_vessel_detail_static_attribute (
       );
 
 
-drop table if exists dwd_vessel_mtf_error_ship_id_rt;
 create table dwd_vessel_mtf_error_ship_id_rt (
                                                  vessel_id            bigint,
                                                  src_update_time      string,
@@ -210,7 +207,6 @@ create table dwd_vessel_mtf_error_ship_id_rt (
 
 
 -- marinetraffic数据大类型对应关系（Source：doris）
-drop table if exists dim_mtf_fm_class;
 create table dim_mtf_fm_class (
                                   type_id        int,       -- marinetraffic 大类型id
                                   type_e_name    string,    -- marinetraffic 大类型英文名称
@@ -236,7 +232,6 @@ create table dim_mtf_fm_class (
 
 
 -- marinetraffic数据小类型对应关系（Source：doris）
-drop table if exists dim_mtf_fm_type;
 create table dim_mtf_fm_type (
                                  type_specific_id      string,  -- marinetraffic 具体小类型编码
                                  type_specific_name    string,  -- marinetraffic 具体小类型名称
@@ -262,7 +257,6 @@ create table dim_mtf_fm_type (
 
 
 -- 船国家数据匹配库（Source：doris）
-drop table if exists dim_country_code_name_info;
 create table dim_country_code_name_info (
                                             id              string  comment 'id',
                                             source          string  comment '来源',
@@ -306,7 +300,6 @@ create table dim_mtf_service_status_info (
       );
 
 -- marinetraffic 最新数据状态表（Source：doris）
-drop table if exists dws_vessel_list_status_rt;
 create table dws_vessel_list_status_rt (
                                            vessel_id              		string					, -- 船舶的唯一标识符
                                            vessel_name            		string 					, -- 船舶的名称
@@ -343,7 +336,6 @@ create function sendCacheVessel as 'com.jingan.udf.vessel.SendCacheVessel';
 
 
 -- 获取不到详情的数据处理
-drop view if exists tmp_marinetraffic_ship_info_error_01;
 create view tmp_marinetraffic_ship_info_error_01 as
 select
     cast(a.vessel_id as bigint)  as shipId          ,  -- 船ID
@@ -387,7 +379,6 @@ from (
 
 
 
-drop view if exists tmp_marinetraffic_detail_01;
 create view tmp_marinetraffic_detail_01 as
 select
     t1.shipId as ship_id,
@@ -521,6 +512,8 @@ select
     service_status_name,
     from_unixtime(unix_timestamp()) as update_time
 from tmp_marinetraffic_detail_01;
+
+
 
 insert into dwd_vessel_mtf_error_ship_id_rt
 select
