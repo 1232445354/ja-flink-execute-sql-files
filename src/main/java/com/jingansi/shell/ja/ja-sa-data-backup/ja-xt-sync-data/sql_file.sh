@@ -5,24 +5,22 @@ end_day=${2}
 table_name=${3}
 time_column=${4}
 catalog_info=${5}
+src_code=${6}
 
 DIR=$(cd `dirname $0`; pwd)
 
 source ${DIR}/config.sh
 
 sql="
-
 insert into sa.${table_name}
 select
    *
 from ${catalog_info}.sa.${table_name}
 where ${time_column} between '${start_day}' and '${end_day}'
-
 "
 
 
 sql1="
-
 insert into sa.${table_name}
 select
  flight_id
@@ -83,19 +81,39 @@ select
 ,update_time
 from ${catalog_info}.sa.${table_name}
 where acquire_time >= '${start_day}' and acquire_time < '${end_day}'
-
 "
 
-if [ "$table_name" = "dwd_bhv_aircraft_combine_rt" ]; then
-  mysql -h${host} \
-  -P${port} \
-  -u${username} \
-  -p${password} \
-  -e "${sql1}"
+sql2="
+insert into sa.${table_name}
+select
+  *
+from ${catalog_info}.sa.${table_name}
+where merge_time = '${start_day}'
+  and src_code = ${src_code};
+"
+
+
+if [ -z "$src_code" ]; then
+  if [ "$table_name" = "dwd_bhv_aircraft_combine_rt" ]; then
+    mysql -h${host} \
+    -P${port} \
+    -u${username} \
+    -p${password} \
+    -e "${sql1}"
+  else
+    mysql -h${host} \
+    -P${port} \
+    -u${username} \
+    -p${password} \
+    -e "${sql}"
+  fi
 else
   mysql -h${host} \
   -P${port} \
   -u${username} \
   -p${password} \
-  -e "${sql}"
+  -e "${sql2}"
 fi
+
+
+
