@@ -21,8 +21,6 @@ declare -a time_ranges=(
 #col="dws_bhv_satellite_list_fd today_time 864000"                      # 10 day
 # --------------------------------------------------
 
-
-
 date_format="+%Y-%m-%d %H:%M:%S"
 sleep_time=40
 catalog_info="doris_idc"
