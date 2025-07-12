@@ -2,14 +2,14 @@
 DIR=$(cd `dirname $0`; pwd)
 echo -e "程序开始执行.....$(date)\n"
 
-time="2024-10-01 00:00:00 2024-11-10 23:59:59"
+time="2025-07-07 00:00:00 2025-07-07 23:59:59"
 
 # table_name、time_column、durtion_time
 declare -a small_table_infos=(
   "dws_bhv_aircraft_last_location_dh merge_time 14400"               # 4hour
   "dws_bhv_vessel_last_location_dh merge_time 14400"                 # 4hour
-  "dws_vessel_bhv_track_rt acquire_time 3600"                        # 1hour
-  "dwd_bhv_aircraft_combine_rt acquire_time 1800"                    # 0.5hour
+  #"dws_vessel_bhv_track_rt acquire_time 3600"                        # 1hour
+  #"dwd_bhv_aircraft_combine_rt acquire_time 1800"                    # 0.5hour
   "dws_flight_segment_rt start_time 86400"                           # 24 hour
   "dws_bhv_satellite_list_fd today_time 864000"                      # 10 day
 )
@@ -18,7 +18,7 @@ date_format="+%Y-%m-%d %H:%M:%S"
 sleep_time=5
 catalog_info="doris_idc"
 
-IFS=' ' read -ra time_parts <<< "$time_range"
+IFS=' ' read -ra time_parts <<< "$time"
 # 输出开始时间和结束时间
 split_start_day="${time_parts[0]} ${time_parts[1]}"
 split_end_day="${time_parts[2]} ${time_parts[3]}"
