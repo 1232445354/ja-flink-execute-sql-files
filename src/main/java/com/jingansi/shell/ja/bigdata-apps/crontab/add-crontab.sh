@@ -2,7 +2,7 @@
 current_dir=$(pwd)
 echo "当前文件目录：${current_dir}"
 
-CRON_JOB="*/10 * * * * sh ${current_dir}/delete-error-pod.sh > ${current_dir}/error-pod-root.log 2>&1"
+CRON_JOB="*/5 * * * * sh ${current_dir}/delete-error-pod.sh > ${current_dir}/error-pod-root.log 2>&1"
 
 check_existing_cronjob() {
     # 精确匹配整行配置（包括重定向）

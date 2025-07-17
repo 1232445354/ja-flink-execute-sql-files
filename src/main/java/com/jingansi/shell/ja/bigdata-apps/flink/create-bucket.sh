@@ -12,7 +12,7 @@ ALIAS="myminio"                     # mc 配置中的 MinIO 服务别名
 MINIO_URL="http://minio.minio.svc.cluster.local:9000"     # MinIO 服务的 URL
 ACCESS_KEY="minio"                                # MinIO 访问密钥
 SECRET_KEY="jingansi110"                          # MinIO 私密密钥
-BUCKET_NAME="flink1"                               # MinIO 存储桶名称
+BUCKET_NAME="flink"                               # MinIO 存储桶名称
 
 
 # 1、创建mc和minio的连接
