@@ -108,8 +108,7 @@ create table iot_device_message_kafka_01 (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      -- 'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      'properties.bootstrap.servers' = '172.21.30.105:30090',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id4',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
@@ -146,13 +145,12 @@ create table iot_device_message_kafka_02 (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      'properties.bootstrap.servers' = '172.21.30.105:30090',
-      -- 'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id5',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1750521634000',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1750521634000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -234,9 +232,9 @@ create table dwd_radar_target_all_rt(
                                         update_time                string      -- 数据入库时间
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
-     'fenodes' = '172.21.30.105:30030',
--- 'fenodes' = '172.21.30.245:8030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     -- 'fenodes' = '172.21.30.105:30030',
+     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_radar_target_all_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -274,9 +272,9 @@ create table dwd_device_track_rt (
                                      update_time               string              comment '更新插入时间（数据入库时间'
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
-     'fenodes' = '172.21.30.105:30030',
--- 'fenodes' = '172.21.30.245:8030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     -- 'fenodes' = '172.21.30.105:30030',
+     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_track_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -305,9 +303,9 @@ create table dwd_device_attr_info (
                                       update_time               string          comment '数据入库时间'
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
-     'fenodes' = '172.21.30.105:30030',
--- 'fenodes' = '172.21.30.245:8030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     -- 'fenodes' = '172.21.30.105:30030',
+     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_attr_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -343,8 +341,8 @@ create table dwd_device_operate_report_info (
                                                 update_time               string          comment '数据入库时间'
 )WITH (
      'connector' = 'doris',
-     -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
-     'fenodes' = '172.21.30.105:30030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     -- 'fenodes' = '172.21.30.105:30030',
 --   'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_operate_report_info',
      'username' = 'admin',
@@ -379,8 +377,8 @@ create table dwd_dense_person_cnt (
                                       update_time               string          comment '数据入库时间'
 )WITH (
      'connector' = 'doris',
-     -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
-     'fenodes' = '172.21.30.105:30030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     -- 'fenodes' = '172.21.30.105:30030',
      -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_dense_person_cnt',
      'username' = 'admin',
@@ -445,7 +443,7 @@ create table device (
 create table enum_target_name (
                                   id                bigint,
                                   source_type       string, -- 项目来源的枚举
-                                  target_type_code  bigint, -- 目标的类型枚举代码
+                                  target_type_code  string, -- 目标的类型枚举代码
                                   target_name	   string, -- 目标类型名称
                                   primary key (id) NOT ENFORCED
 )with (
@@ -455,28 +453,6 @@ create table enum_target_name (
      'username' = 'root',
      'password' = 'jingansi110',
      'table-name' = 'enum_target_name',
-     'driver' = 'com.mysql.cj.jdbc.Driver',
-     'lookup.cache.max-rows' = '5000',
-     'lookup.cache.ttl' = '3600s',
-     'lookup.max-retries' = '10'
-     );
-
-
-
--- 建立映射mysql的表（为了查询组织id）
-create table users (
-                       user_id	    int,
-                       username	string,
-                       password	string,
-                       name	    string,
-                       group_id	string,
-                       primary key (user_id) NOT ENFORCED
-)with (
-     'connector' = 'jdbc',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/ja-4a?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-     'username' = 'root',
-     'password' = 'jingansi110',
-     'table-name' = 'users',
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
@@ -501,6 +477,27 @@ create table action_item (
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '20s',
+     'lookup.max-retries' = '10'
+     );
+
+
+-- 建立映射mysql的表（为了查询组织id）
+create table users (
+                       user_id	    int,
+                       username	string,
+                       password	string,
+                       name	    string,
+                       group_id	string,
+                       primary key (user_id) NOT ENFORCED
+)with (
+     'connector' = 'jdbc',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/ja-4a?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     'username' = 'root',
+     'password' = 'jingansi110',
+     'table-name' = 'users',
+     'driver' = 'com.mysql.cj.jdbc.Driver',
+     'lookup.cache.max-rows' = '5000',
+     'lookup.cache.ttl' = '3600s',
      'lookup.max-retries' = '10'
      );
 
