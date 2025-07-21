@@ -2,11 +2,11 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/3/8 09:33:33
 -- description: 饿了么数据存储、内部新版本测试的，现在已经是正式的了
--- version：ja-hunger-project-v2-250214
+-- version：ja-hunger-project-v250515
 --********************************************************************--
 set 'pipeline.name' = 'ja-hunger-project';
 
-SET 'parallelism.default' = '1';
+SET 'parallelism.default' = '6';
 set 'table.exec.state.ttl' = '300000';
 
 SET 'execution.type' = 'streaming';
@@ -14,15 +14,15 @@ SET 'table.planner' = 'blink';
 -- SET 'sql-client.display.max-column-width' = '200';
 
 -- -- checkpoint的时间和位置
-SET 'execution.checkpointing.interval' = '300000';
-SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-hunger-project' ;
+-- SET 'execution.checkpointing.interval' = '300000';
+-- SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-hunger-project' ;
 
 
 
 -- kafka来源的数据给外部饿了么测试的（Source：kafka）
 create table test_infer_result (
-    -- `partition`             BIGINT METADATA VIRTUAL,
-                                   `partition` BIGINT METADATA FROM 'partition' VIRTUAL,
+                                   `partition`             BIGINT METADATA VIRTUAL,
+    -- `partition`              BIGINT METADATA FROM 'partition' VIRTUAL,
                                    batch_id                bigint,                        -- 批处理ID
                                    is_cover                boolean,
                                    uncover_confidence      string,
@@ -51,7 +51,7 @@ create table test_infer_result (
                                        )
                                        >,
                                    user_meta
-                                       row(
+                                                           row(
                                        dateTime             string,
                                        id                   string,    -- 摄像头id
                                        imageUrl             string,
@@ -97,7 +97,6 @@ create table test_infer_result (
 
 
 -- 全量数据入库（Sink：doris）
-drop table if exists dwd_hunger_all_rt_test;
 create table dwd_hunger_all_rt_test (
                                         object_id               bigint          comment '目标ID',
                                         ntp_timestamp_format    timestamp       comment '时间戳格式化',
@@ -137,14 +136,13 @@ create table dwd_hunger_all_rt_test (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='50000',
-     'sink.batch.interval'='12s'
+     'sink.batch.size'='20000',
+     'sink.batch.interval'='10s'
      );
 
 
 
 -- Doris写入的告警数据（Sink：doris）
-drop table if exists dwd_hunger_alarm_test;
 create table dwd_hunger_alarm_test (
                                        object_id               bigint          comment '目标ID',
                                        ntp_timestamp_format    timestamp       comment '时间戳格式化',
@@ -184,8 +182,8 @@ create table dwd_hunger_alarm_test (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='1',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='50000',
-     'sink.batch.interval'='12s'
+     'sink.batch.size'='20000',
+     'sink.batch.interval'='10s'
 -- 'sink.properties.recover_with_empty_tablet' = 'true'
      );
 
@@ -284,11 +282,11 @@ from(
             image_path,
             is_cover,
             uncover_confidence,
-            cover_confidence,
-            row_number() over(partition by object_id,bbox_left,bbox_top,bbox_width,bbox_height,class_id order by ntp_timestamp) as rk
+            cover_confidence
+            -- row_number() over(partition by object_id,bbox_left,bbox_top,bbox_width,bbox_height,class_id order by ntp_timestamp) as rk
         from tmp_frame_infer_data_external_01
-    ) as t1
-where t1.rk = 1;
+    ) as t1 ;
+-- where t1.rk = 1;
 
 
 -----------------------
@@ -334,39 +332,39 @@ select
 from tmp_frame_infer_data_external_01;
 
 
--- 给定饿了吗的数据告警数据写入doris
-insert into dwd_hunger_alarm_test
-select
-    object_id,
-    ntp_timestamp_format, -- 时间戳格式化
-    ntp_timestamp,
-    pts,
-    batch_id,
-    frame_num,
-    source_id,
-    source_frame_width,
-    source_frame_height,
-    infer_done,
-    full_image_path,
-    frame_tensor_list,
-    object_label,
-    infer_id,
-    class_id,
-    bbox_left,
-    bbox_top,
-    bbox_width,
-    bbox_height,
-    cast(confidence as string) as confidence,
-    image_path,
-    `dateTime` as user_meta_dateTime,
-    id as user_meta_id,
-    imageUrl as user_meta_imageUrl,
-    `name` as user_meta_name,
-    is_cover,
-    uncover_confidence,
-    cover_confidence,
-    from_unixtime(unix_timestamp()) as update_time
-from tmp_frame_infer_data_external_02;
+-- -- 给定饿了吗的数据告警数据写入doris
+-- insert into dwd_hunger_alarm_test
+-- select
+--     object_id,
+--     ntp_timestamp_format, -- 时间戳格式化
+--     ntp_timestamp,
+--     pts,
+--     batch_id,
+--     frame_num,
+--     source_id,
+--     source_frame_width,
+--     source_frame_height,
+--     infer_done,
+--     full_image_path,
+--     frame_tensor_list,
+--     object_label,
+--     infer_id,
+--     class_id,
+--     bbox_left,
+--     bbox_top,
+--     bbox_width,
+--     bbox_height,
+--     cast(confidence as string) as confidence,
+--     image_path,
+--     `dateTime` as user_meta_dateTime,
+--     id as user_meta_id,
+--     imageUrl as user_meta_imageUrl,
+--     `name` as user_meta_name,
+--     is_cover,
+--     uncover_confidence,
+--     cover_confidence,
+--     from_unixtime(unix_timestamp()) as update_time
+-- from tmp_frame_infer_data_external_02;
 
 end;
 
