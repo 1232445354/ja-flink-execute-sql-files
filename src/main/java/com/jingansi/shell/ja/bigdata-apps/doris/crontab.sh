@@ -1,0 +1,1 @@
+1 * * * * sh /home/jingansi/k8s/init/bigdata-apps/decommission-be.sh > /home/jingansi/k8s/init/bigdata-apps/root-be.log 2>&1
