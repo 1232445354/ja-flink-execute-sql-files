@@ -12,7 +12,7 @@ SET 'table.planner' = 'blink';
 SET 'table.exec.state.ttl' = '600000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
--- SET 'parallelism.default' = '4';
+SET 'parallelism.default' = '6';
 -- set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 SET 'execution.checkpointing.interval' = '600000';
 SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt';
@@ -111,9 +111,9 @@ create table iot_device_message_kafka_01 (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id4',
       -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1750521634000',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '1754283295000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -148,9 +148,9 @@ create table iot_device_message_kafka_02 (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id5',
       -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1750521634000',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '1754283295000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -240,7 +240,7 @@ create table dwd_radar_target_all_rt(
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
+     'sink.batch.size'='10000',
      'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
@@ -311,7 +311,7 @@ create table dwd_device_attr_info (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
+     'sink.batch.size'='10000',
      'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
@@ -349,7 +349,7 @@ create table dwd_device_operate_report_info (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
+     'sink.batch.size'='10000',
      'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
@@ -385,7 +385,7 @@ create table dwd_dense_person_cnt (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
+     'sink.batch.size'='10000',
      'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
@@ -760,7 +760,7 @@ select
 
 from tmp_source_kafka_04 as t1
          left join enum_target_name FOR SYSTEM_TIME AS OF t1.proctime as t2
-                   on t1.object_label1 = t2.target_type_code
+                   on t1.object_label1 = cast(t2.target_type_code as varchar)
                        and '天朗雷达' = t2.source_type;
 
 
