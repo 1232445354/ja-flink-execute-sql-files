@@ -1,11 +1,11 @@
 --********************************************************************--
 -- author:     yibo@jingan-inc.com
--- create time: 2024/05/09 16:28:19
+-- create time: 2024/06/28 16:28:19
 -- description: 望楼检测告警
 --********************************************************************--
 
 
-set 'pipeline.name' = 'ja-intrusion-detection-new';
+set 'pipeline.name' = 'ja-intrusion-detection';
 
 
 -- SET 'parallelism.default' = '2';
@@ -16,7 +16,7 @@ SET 'sql-client.display.max-column-width' = '100';
 
 -- checkpoint的时间和位置
 SET 'execution.checkpointing.interval' = '60000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-intrusion-detection-new' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-intrusion-detection' ;
 
 create function rectangle_intersect_polygon as 'com.jingan.udf.geohash.RectangleIntersectPolygon';
 create function merge_plate_no as 'com.jingan.udf.merge.MergePlateNoAllColumnUdf';
@@ -38,17 +38,15 @@ create table frame_infer_data (
                                   infer_done              boolean,
                                   image_path              string,                        -- 大图图片存储路径
                                   record_path             string,                        -- 告警视频地址
-
                                   pts                     bigint,                        -- pts 值
                                   source_id               string,                        -- 数据源ID
                                   source_frame_width      int,                           -- 原始帧宽度
                                   source_frame_height     int,                           -- 原始帧高度
                                   frame_tensor_list       string,                        -- 输出基于帧的特征向量
-                                  radar_id                string,                        -- 雷达id
                                   object_list             array<
                                       row(
                                       object_id           bigint,                -- 目标ID
-                                      object_label        string,                -- 目标类型大类(Face,Person,MotorVehicle,NonMotorVehicle)
+                                      object_label        string,                -- 目标类型大类(Face,Person,MotorVehicle,NonMotorVehicle),这一版本也更改为中文了
                                       object_sub_label    string,                -- 目标类型小类（轿车、卡车、自行车、摩托车...）
                                       infer_id            int,                   -- 推理算子ID
                                       class_id            int,
@@ -64,6 +62,7 @@ create table frame_infer_data (
                                       speed               double,                -- 速度m/s
                                       distance            double,                -- 距离 单位m
                                       radar_target_id     double,                -- 雷达目标id
+                                      radar_device_id     string,                -- 雷达设备id
                                       video_time          double,
                                       yaw                 double,
                                       source_type         string,                -- 来源类型
@@ -90,21 +89,21 @@ create table frame_infer_data (
                                       >
 ) WITH (
       'connector' = 'kafka',
-      'topic' = 'wanglou_test',  -- photoelectric_inspection_result
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
-      'properties.group.id' = 'ja-intrusion-detection',
---       'scan.startup.mode' = 'group-offsets',
+      'topic' = 'ja-ai-detection-output',  -- ja-ai-detection-output
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-intrusion-detection-rt',
+      -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1714960846000',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
 
 
-
 -- 框选监控区域表（Source：mysql）
+drop table if exists video_area;
 create table video_area (
                             id                             bigint        comment '主键',
                             device_id                      string        comment '设备id',
@@ -113,8 +112,8 @@ create table video_area (
                             PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -149,6 +148,7 @@ create table event_warn_kafka(
                                  radarId             string,
                                  radarTargetId       double,
                                  sourceType          string,
+                                 altitude            double,
                                  objList             array<
                                      row(
                                      image               string     , -- 异常物的小图uri地址
@@ -168,7 +168,7 @@ create table event_warn_kafka(
 ) with (
       'connector' = 'upsert-kafka',
       'topic' = 'event_warn',
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'ja-intrusion-detection',
       'key.format' = 'json',
       'value.format' = 'json'
@@ -186,8 +186,8 @@ create table iot_device (
                             PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -207,8 +207,8 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -220,6 +220,8 @@ create table device (
 -- 数据处理
 
 ---------------
+
+
 
 -- 数据展开并将数据传入自定义函数中
 drop view if exists tmp_frame_infer_data_01;
@@ -236,7 +238,7 @@ select
     a.record_path,
     a.image_path as big_image_path,
     a.frame_tensor_list,
-    a.radar_id,
+    t.radar_device_id as radar_id,
     t.radar_target_id,
     t.video_time,
     t.yaw,
@@ -256,6 +258,7 @@ select
     t.image_path,
     t.longitude,
     t.latitude,
+    t.altitude,
     t.speed,
     t.distance,
     t.obj_tensor_list,
@@ -279,6 +282,7 @@ from (select *,merge_plate_no(object_list) as object_list1 from frame_infer_data
                                                 speed,
                                                 distance,
                                                 radar_target_id,
+                                                radar_device_id,
                                                 video_time,
                                                 yaw,
                                                 source_type,
@@ -290,6 +294,8 @@ from (select *,merge_plate_no(object_list) as object_list1 from frame_infer_data
 
 
 -- 判断布控摄像头，并且出现在画框的区域,过滤数据
+-- 有区域的在区域内告警，不在区域内不告警
+-- 没有区域都告警
 drop view if exists tmp_frame_infer_data_02;
 create view tmp_frame_infer_data_02 as
 select
@@ -298,7 +304,7 @@ from (
          select
              a.*,
              b.device_id,
-             rectangle_intersect_polygon(a.bbox_left,a.bbox_top,a.bbox_width,a.bbox_height,b.points) as flag
+             rectangle_intersect_polygon(a.bbox_left,a.bbox_top,a.bbox_width,a.bbox_height,b.points) as flag   -- 判断是否在区域内
          from tmp_frame_infer_data_01 a
                   left join video_area FOR SYSTEM_TIME AS OF a.proctime as b
                             on a.source_id = b.device_id
@@ -313,14 +319,15 @@ create view tmp_frame_infer_data_03 as
 select
     *,
     case
-        when object_label='Person' and flag = true then 'climbing'             -- device_id不为空 说明关联上video_area flag为true说明在区域内   攀爬告警
-        when object_label='Person' and device_id is null then 'person'         -- 人员不在区域内 人员告警
-        when object_label in ('MotorVehicle','NonMotorVehicle') then 'car'     -- 车辆告警
-    -- when object_label in ('MotorVehicle','NonMotorVehicle') and object_sub_label <> 'license_plate' then 'car'     -- 车辆告警
+        when object_label in ('人员','Person') and flag = true then 'climbing'             -- device_id不为空 说明关联上video_area flag为true说明在区域内   攀爬告警
+        when object_label in ('人员','Person') and device_id is null then 'person'         -- 人员不在区域内 人员告警
+        when object_label not in ('人员','Person') and object_label is not null then 'car'
+        -- when object_label in ('摩托车','车','MotorVehicle','NonMotorVehicle') then 'car'                       -- 车辆告警
+        -- when object_label in ('MotorVehicle','NonMotorVehicle') and object_sub_label <> 'license_plate' then 'car'     -- 车辆告警
         end as eventType
     -- count(*) over(partition by object_id,device_id order by proctime ) as cnt
 from tmp_frame_infer_data_02
-where object_sub_label <> 'license_plate';
+where object_sub_label <> 'license_plate' or object_sub_label is null;
 
 
 
@@ -357,6 +364,7 @@ select
     radar_id                         as radarId,
     radar_target_id                  as radarTargetId,
     source_type                      as sourceType,
+    altitude,
     array[row(
             image_path,
             bbox_left,

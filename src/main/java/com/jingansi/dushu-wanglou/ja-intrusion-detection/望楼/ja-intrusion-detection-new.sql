@@ -88,7 +88,7 @@ create table frame_infer_data (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'wanglou_test',  -- photoelectric_inspection_result
-      'properties.bootstrap.servers' = 'kafka-0.kafka-headless.base.svc.cluster.local:9092,kafka-1.kafka-headless.base.svc.cluster.local:9092,kafka-2.kafka-headless.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'ja-intrusion-detection',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',

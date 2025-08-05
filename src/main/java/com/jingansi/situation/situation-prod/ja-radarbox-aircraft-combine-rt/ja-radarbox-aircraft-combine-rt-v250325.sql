@@ -105,7 +105,6 @@ create table dim_airline_list_info (
 
 
 -- 飞机实体表（Source：doris）
-drop table if exists dws_et_aircraft_info;
 create table dws_et_aircraft_info (
                                       flight_id           string        comment '',
                                       icao_code           string        comment '飞机的 24 位 ICAO 标识符，为 6 个十六进制数字 大写',
@@ -343,7 +342,9 @@ select
     if(speed = '',cast(null as double),cast(speed as double))                                  as speed,
     if(heading = '',cast(null as double),cast(heading as double))                              as heading,
     dataSource                                                                                 as data_source,
-    if(t2.registration is not null,t2.registration,if(t1.registration in ('BLOCKED','VARIOUS','TACTICAL',''),cast(null as varchar),t1.registration)) as registration,
+
+    if(t1.registration is null or t1.registration in ('BLOCKED','VARIOUS','TACTICAL',''),t2.registration,t1.registration) as registration,
+
     if(originAirport3Code = '',cast(null as varchar),originAirport3Code)                       as origin_airport3_code,
     if(destinationAirport3Code='',cast(null as varchar),destinationAirport3Code)               as destination_airport3_code,
     if(airlinesIcao = '',cast(null as varchar),airlinesIcao)                                   as airlines_icao,
@@ -371,13 +372,20 @@ select
     split_index(flightDepartureTime,':',1)                                                     as flight_departure_time_minute,
     t2.is_military,
     proctime
-from radarbox_aircraft_list_kafka as t1
+from (
+         select * from radarbox_aircraft_list_kafka
+         where acquireTimestamp is not null
+           and flightTraceId is not null
+           and flightTraceId <> ''
+           and longitude is not null
+           and longitude <> ''
+           and latitude is not null
+           and latitude <> ''
+     ) as t1
          left join dws_et_aircraft_info
     FOR SYSTEM_TIME AS OF t1.proctime as t2
-                   on if(t1.sMode is null or t1.sMode = '',t1.flightTraceId,t1.sMode) = t2.flight_id
-where acquireTimestamp is not null
-  and flightTraceId is not null
-  and flightTraceId <> '';
+                   on if(t1.sMode is null or t1.sMode = '',t1.flightTraceId,t1.sMode) = t2.flight_id;
+
 
 
 

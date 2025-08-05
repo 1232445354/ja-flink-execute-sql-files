@@ -233,7 +233,6 @@ create table device_media_datasource (
 
 
 -- 检测目标全量数据入库（Sink：doris）
-drop table  if exists dwd_radar_target_all_rt;
 create table dwd_radar_target_all_rt(
                                         device_id                  string     , -- '雷达设备id',
                                         target_id                  string     , -- '目标id',
