@@ -2,11 +2,11 @@
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/05/09 14:06:19
 -- description: 旌旗、望楼、最新版本、信火一体
--- version: 240521
+-- version: v20240521
 --********************************************************************--
 
 
-set 'pipeline.name' = 'ja-chingchi-icos3.0-rt-new';
+set 'pipeline.name' = 'ja-chingchi-icos3.0-rt';
 
 SET 'execution.type' = 'streaming';
 SET 'table.planner' = 'blink';
@@ -15,7 +15,7 @@ SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
 -- SET 'parallelism.default' = '4';
 SET 'execution.checkpointing.interval' = '600000';
-SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt-new' ;
+SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt' ;
 
 
 
@@ -233,6 +233,7 @@ create table device_media_datasource (
 
 
 -- 检测目标全量数据入库（Sink：doris）
+drop table  if exists dwd_radar_target_all_rt;
 create table dwd_radar_target_all_rt(
                                         device_id                  string     , -- '雷达设备id',
                                         target_id                  string     , -- '目标id',
