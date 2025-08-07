@@ -4,6 +4,18 @@ DIR=$(cd `dirname $0`; pwd)  # /home/jingansi/k8s/init/bigdata-apps
 echo -e "当前文件目录：${DIR}"
 CONTAINER_NAME="kafka-0"     # Kafka 容器的名称或ID
 
+DEFAULT_REPLICATION=1
+# 检查是否传入了IP参数，没有则使用默认值
+if [ $# -ge 1 ]; then
+    REPLICATION=$1
+    echo "提供参数，副本数量：$REPLICATION"
+else
+    REPLICATION=$DEFAULT_REPLICATION
+    echo "未提供副本参数,使用默认副本数量: $REPLICATION"
+fi
+
+
+
 # 定义Topic数组
 topicList=(
 "jinghang_detection_result"   # 快出易培的图片
@@ -16,7 +28,7 @@ topicList=(
 for value in "${topicList[@]}"
 do
   echo -e "创建Topic-->$value..."
-  output=$(kubectl exec "${CONTAINER_NAME}" -c kafka -nbase -- sh -c "kafka-topics.sh --create --bootstrap-server kafka.base.svc.cluster.local:9092 --replication-factor 3 --partitions 1 --topic ${value} --if-not-exists ")
+  output=$(kubectl exec "${CONTAINER_NAME}" -c kafka -nbase -- sh -c "kafka-topics.sh --create --bootstrap-server kafka.base.svc.cluster.local:9092 --replication-factor ${REPLICATION} --partitions 1 --topic ${value} --if-not-exists ")
 
   echo "${output}"
   echo -e "-------"
