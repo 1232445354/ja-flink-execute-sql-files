@@ -21,7 +21,7 @@ fi
 
 
 while true; do
-#  sh "${DIR}/sql_file.sh" "$start_time" "$end_time"
+#  sh "${DIR}/sql_file.sql" "$start_time" "$end_time"
   if [ $? -eq 0 ]; then
     echo -en "执行成功\n"
     break
