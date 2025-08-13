@@ -104,6 +104,69 @@ where merge_time = '${start_day}'
 "
 
 
+sql5="
+insert into sa.${table_name} (
+flight_id
+,merge_time
+,acquire_time
+,src_code
+,flight_no
+,longitude
+,latitude
+,speed_km
+,altitude_baro_m
+,heading
+,squawk_code
+,flight_status
+,origin_airport3_code
+,origin_airport_e_name
+,origin_airport_c_name
+,dest_airport3_code
+,dest_airport_e_name
+,dest_airport_c_name
+,flight_departure_time
+,expected_landing_time
+,to_destination_distance
+,estimated_landing_duration
+,data_source
+,position_country_code2
+,sea_id
+,update_time
+)
+select
+  flight_id
+  ,merge_time
+  ,acquire_time
+  ,src_code
+  ,flight_no
+  ,longitude
+  ,latitude
+  ,speed_km
+  ,altitude_baro_m
+  ,heading
+  ,squawk_code
+  ,flight_status
+  ,origin_airport3_code
+  ,origin_airport_e_name
+  ,origin_airport_c_name
+  ,dest_airport3_code
+  ,dest_airport_e_name
+  ,dest_airport_c_name
+  ,flight_departure_time
+  ,expected_landing_time
+  ,to_destination_distance
+  ,estimated_landing_duration
+  ,data_source
+  ,position_country_code2
+  ,sea_id
+  ,update_time
+from ${catalog_info}.sa.${table_name}
+where merge_time = '${start_day}'
+  and src_code = ${src_code};
+"
+
+
+
 if [ -z "$src_code" ]; then  # 如果为空
   if [ "$table_name" = "dwd_bhv_aircraft_combine_rt" ]; then
     mysql -h${host} \
@@ -119,11 +182,20 @@ if [ -z "$src_code" ]; then  # 如果为空
     -e "${sql}"
   fi
 else
-  mysql -h${host} \
-  -P${port} \
-  -u${username} \
-  -p${password} \
-  -e "${sql2}"
+  if [ "$table_name" = "dws_bhv_aircraft_last_location_fd" ]; then
+    mysql -h${host} \
+      -P${port} \
+      -u${username} \
+      -p${password} \
+      -e "${sql5}"
+  else
+    mysql -h${host} \
+      -P${port} \
+      -u${username} \
+      -p${password} \
+      -e "${sql2}"
+  fi
+
 fi
 
 
