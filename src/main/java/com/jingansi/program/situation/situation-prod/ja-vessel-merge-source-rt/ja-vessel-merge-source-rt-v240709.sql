@@ -81,9 +81,9 @@ create table vessel_source(
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'vessel_source_source_idc',
       --'scan.startup.mode' = 'group-offsets',
-      --'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1724580000000',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1724580000000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -233,8 +233,8 @@ select
     friendFoe                                            as friend_foe,
     seaId                                                as sea_id,
     seaName                                              as sea_name
-from vessel_source;
--- where flag is not null;
+from vessel_source
+where abs(acquireTimestamp - UNIX_TIMESTAMP()) <= 172800;
 
 
 
