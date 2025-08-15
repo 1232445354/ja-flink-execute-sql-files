@@ -166,9 +166,9 @@ create table iot_device_message_kafka_02 (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id5',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1750521634000',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1750521634000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -251,16 +251,16 @@ create table dwd_radar_target_all_rt(
                                         update_time                string      -- 数据入库时间
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
      'fenodes' = '172.21.30.105:30030',
--- 'fenodes' = '172.21.30.245:8030',
+     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_radar_target_all_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='20000',
-     'sink.batch.interval'='10s',
+     'sink.batch.size'='5000',
+     'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -291,9 +291,9 @@ create table dwd_device_track_rt (
                                      update_time               string              comment '更新插入时间（数据入库时间'
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
      'fenodes' = '172.21.30.105:30030',
--- 'fenodes' = '172.21.30.245:8030',
+     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_track_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -322,16 +322,16 @@ create table dwd_device_attr_info (
                                       update_time               string          comment '数据入库时间'
 )WITH (
      'connector' = 'doris',
--- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
+     -- 'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
      'fenodes' = '172.21.30.105:30030',
--- 'fenodes' = '172.21.30.245:8030',
+     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_attr_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='50000',
-     'sink.batch.interval'='10s',
+     'sink.batch.size'='5000',
+     'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -368,8 +368,8 @@ create table dwd_device_operate_report_info (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='50000',
-     'sink.batch.interval'='10s',
+     'sink.batch.size'='5000',
+     'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -404,8 +404,8 @@ create table dwd_dense_person_cnt (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='50000',
-     'sink.batch.interval'='10s',
+     'sink.batch.size'='5000',
+     'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -877,7 +877,8 @@ select
     version,
     t1.`type`,
     t1.operator,
-    JSON_VALUE(properties,'$.healthInfo[0]') as health_info
+    if(t1.type = 'properties',JSON_VALUE(properties,'$.healthInfo[0]'),JSON_VALUE(properties,'$.message')) as health_info
+
 from (
          select
              type,
@@ -1037,7 +1038,7 @@ select
     device_type               ,
     parent_id                 ,
     acquire_timestamp         ,
-    properties                ,
+    cast(null as varchar) as properties,
     health_info               ,
     operator                  ,
     tid                       ,
