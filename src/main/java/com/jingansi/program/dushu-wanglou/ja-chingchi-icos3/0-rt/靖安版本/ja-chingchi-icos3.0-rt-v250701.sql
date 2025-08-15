@@ -807,7 +807,7 @@ select
     version,
     t1.`type`,
     t1.operator,
-    JSON_VALUE(properties,'$.healthInfo[0]') as health_info
+    if(t1.type = 'properties',JSON_VALUE(properties,'$.healthInfo[0]'),JSON_VALUE(properties,'$.message')) as health_info
 from (
          select
              type,
@@ -966,7 +966,7 @@ select
     device_type               ,
     parent_id                 ,
     acquire_timestamp         ,
-    properties                ,
+    cast(null as varchar) as properties,
     health_info               ,
     operator                  ,
     tid                       ,

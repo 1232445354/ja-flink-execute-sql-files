@@ -111,9 +111,9 @@ create table iot_device_message_kafka_01 (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id4',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1754283295000',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1754283295000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -148,9 +148,9 @@ create table iot_device_message_kafka_02 (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id5',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1754283295000',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '1754283295000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -311,7 +311,7 @@ create table dwd_device_attr_info (
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='10000',
+     'sink.batch.size'='5000',
      'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
@@ -807,7 +807,8 @@ select
     version,
     t1.`type`,
     t1.operator,
-    JSON_VALUE(properties,'$.healthInfo[0]') as health_info
+    if(t1.type = 'properties',JSON_VALUE(properties,'$.healthInfo[0]'),JSON_VALUE(properties,'$.message')) as health_info
+
 from (
          select
              type,
@@ -966,7 +967,7 @@ select
     device_type               ,
     parent_id                 ,
     acquire_timestamp         ,
-    properties                ,
+    cast(null as varchar) as properties,
     health_info               ,
     operator                  ,
     tid                       ,
