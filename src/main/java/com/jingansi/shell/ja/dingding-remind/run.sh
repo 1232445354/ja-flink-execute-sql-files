@@ -60,9 +60,9 @@ read_data() {
 
   if [ "duty" = "$type" ]; then
     duty_res=${line}
-  else 
+  else
     week_res=${line}
-  fi 
+  fi
   echo "${next_number}" > ${value_file}
   echo "---------"
 }
@@ -86,33 +86,33 @@ echo "本周周会主持人员：${week_res} name3:${name3}"
 
 declare -a webhook_url_ranges=(
 "研发群 https://oapi.dingtalk.com/robot/send?access_token=37548884da2fbf2883a5b2984193e0f8ef1116d3b4826d23b6658b9af12abae4"
+#"自己群测试 https://oapi.dingtalk.com/robot/send?access_token=2d793718becb77530034f226fdb275a554581404d736c20aa544945f004ee15e"
 )
 
 
 
 # 定义发送函数
 send_ding_msg() {
-  local i=$1
-  local type=$2
-  local webhook_url=$3
-  local name1=$4
-  local name2=$5
-  local name3=$6
+  local type=$1
+  local webhook_url=$2
+  local name1=$3
+  local name2=$4
+  local name3=$5
   if [ "研发群" = "$type" ]; then
     json_data=$(cat <<EOF
       {
         "msgtype": "text",
         "text": {
-          "content": "工作提醒通知${i},下周值班人员:@${name1},@${name2}\n周会主持人员@${name3}"
+          "content": "工作提醒通知,下周值班人员:@${name1},@${name2}\n周会主持人员@${name3}"
         },
         "at": {
-          "atMobiles": ["${name1}", "${name2}", "${name3}"], 
+          "atMobiles": ["${name1}", "${name2}", "${name3}"],
           "isAtAll": false
         }
       }
 EOF
     )
-    
+
     curl "$webhook_url" \
     -H 'Content-Type: application/json' \
     -d "$json_data"
@@ -121,16 +121,16 @@ EOF
       {
         "msgtype": "text",
         "text": {
-          "content": "工作提醒通知${i},下周值班人员:@${name1},@${name2}"
+          "content": "工作提醒通知,下周值班人员:@${name1},@${name2}"
         },
         "at": {
-          "atMobiles": ["${name1}", "${name2}"], 
+          "atMobiles": ["${name1}", "${name2}"],
           "isAtAll": false
         }
       }
 EOF
     )
-    
+
     curl "$webhook_url" \
     -H 'Content-Type: application/json' \
     -d "$json_data"
@@ -143,11 +143,5 @@ for webhook_url_range in "${webhook_url_ranges[@]}"; do
   IFS=' ' read -ra webhook_info <<< "$webhook_url_range"
   comment=${webhook_info[0]}
   webhook_url=${webhook_info[1]}
-  for i in {1..3}; do
-    send_ding_msg "$i" "${comment}" "${webhook_url}" "${name1}" "${name2}" "${name3}"
-
-  done
+  send_ding_msg "${comment}" "${webhook_url}" "${name1}" "${name2}" "${name3}"
 done
-
-
-
