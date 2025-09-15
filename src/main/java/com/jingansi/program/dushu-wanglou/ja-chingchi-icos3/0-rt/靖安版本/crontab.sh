@@ -9,6 +9,7 @@
 8.  ja-chingchi-icos3.0-rt-v250701 密集数据接入
 9.  ja-chingchi-icos3.0-rt-v250703 雷莫雷达数据
 10. ja-chingchi-icos3.0-rt-v250909 拍照数据新增类型 - 互联网需求,暂不合并代码
+11. ja-chingchi-icos3.0-rt-v250915  接入媒体视频数据
 
 
 
