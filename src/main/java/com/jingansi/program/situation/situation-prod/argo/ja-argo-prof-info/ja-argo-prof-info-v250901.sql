@@ -123,9 +123,9 @@ create table argo_prof_kafka(
       -- 'properties.bootstrap.servers' = 'kafka.idc.jing-an.com:30090',
       'properties.group.id' = 'argo-prof-group1',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -800,35 +800,35 @@ from tmp_03;
 
 
 
--- 剖面数据入库 - 无用的字段数据表
-insert into dws_bhv_prof_base_no_use_info
-select
-    cast(id as bigint) as id        ,
-    cycle_number                    ,
-    acquire_juld                    ,
-    acquire_juld_location           ,
+-- -- 剖面数据入库 - 无用的字段数据表
+-- insert into dws_bhv_prof_base_no_use_info
+-- select
+--   cast(id as bigint) as id        ,
+--   cycle_number                    ,
+--   acquire_juld                    ,
+--   acquire_juld_location           ,
 
-    vertical_sampling_scheme,
-    config_mission_number,
-    `parameter_name`,
-    scientific_calib_equation,
-    scientific_calib_coefficient,
-    scientific_calib_comment,
-    scientific_calib_date,
-    history_institution,
-    history_step,
-    history_software,
-    history_software_release,
-    history_reference,
-    history_date,
-    history_action,
-    history_parameter,
-    history_start_pres,
-    history_stop_pres,
-    history_previous_value,
-    history_qctest,
-    from_unixtime(unix_timestamp()) as update_time   -- 更新时间
-from tmp_03;
+--   vertical_sampling_scheme,
+--   config_mission_number,
+--   `parameter_name`,
+--   scientific_calib_equation,
+--   scientific_calib_coefficient,
+--   scientific_calib_comment,
+--   scientific_calib_date,
+--   history_institution,
+--   history_step,
+--   history_software,
+--   history_software_release,
+--   history_reference,
+--   history_date,
+--   history_action,
+--   history_parameter,
+--   history_start_pres,
+--   history_stop_pres,
+--   history_previous_value,
+--   history_qctest,
+--   from_unixtime(unix_timestamp()) as update_time   -- 更新时间
+-- from tmp_03;
 
 
 

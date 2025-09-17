@@ -103,9 +103,9 @@ create table argo_meta_kafka(
       -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.group.id' = 'argo-meta-group1',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -116,7 +116,8 @@ create table argo_meta_kafka(
 create table argo_chart_kafka(
                                  id        string,
                                  `key`     string,
-                                 url       string
+                                 url       string,
+                                 flag      string
 ) with (
       'connector' = 'kafka',
       'topic' = 'argo-sec-ove-chart',
@@ -124,9 +125,9 @@ create table argo_chart_kafka(
       -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.group.id' = 'argo-sec-ove-chart-group1',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -338,6 +339,28 @@ create table dws_atr_argo_sec_ove_chart (
       -- 'fenodes' = '172.21.30.202:30030',
       'fenodes' = '172.21.30.245:8030',
       'table.identifier' = 'ja_argo.dws_atr_argo_sec_ove_chart',
+      'username' = 'admin',
+      'password' = 'Jingansi@110',
+      'doris.request.tablet.size'='5',
+      'doris.request.read.timeout.ms'='30000',
+      'sink.batch.size'='2000',
+      'sink.batch.interval'='10s',
+      'sink.properties.escape_delimiters' = 'true',
+      'sink.properties.column_separator' = '\x01',  	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'  	     -- 行分隔符
+      );
+
+
+-- 6. dws_atr_argo_sec_ove_chart_error
+create table dws_atr_argo_sec_ove_chart_error (
+                                                  id            bigint        comment 'WMO编号',
+                                                  flag          string,
+                                                  update_time   string        comment '数据入库时间'
+) with (
+      'connector' = 'doris',
+      -- 'fenodes' = '172.21.30.202:30030',
+      'fenodes' = '172.21.30.245:8030',
+      'table.identifier' = 'ja_argo.dws_atr_argo_sec_ove_chart_error',
       'username' = 'admin',
       'password' = 'Jingansi@110',
       'doris.request.tablet.size'='5',
@@ -1039,8 +1062,17 @@ select
     `key` as type,
     url as image_url,
     from_unixtime(unix_timestamp()) as update_time
-from argo_chart_kafka;
+from argo_chart_kafka
+where flag is null or flag <> 'FAIL';
 
+
+insert into dws_atr_argo_sec_ove_chart_error
+select
+    cast(id as bigint) as id,
+    flag,
+    from_unixtime(unix_timestamp()) as update_time
+from argo_chart_kafka
+where flag is not null and  flag = 'FAIL';
 
 end;
 
