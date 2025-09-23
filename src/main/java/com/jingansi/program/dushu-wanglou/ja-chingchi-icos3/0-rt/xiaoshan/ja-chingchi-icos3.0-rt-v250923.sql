@@ -2,7 +2,7 @@
 -- author:      write your name here
 -- create time: 2024/12/2 19:42:10
 -- description: 截图拍照、属性、轨迹、雷达、振动仪
--- version:ja-chingchi-icos3.0-rt-v250923  轨迹表新增4个字段
+-- version:ja-chingchi-icos3.0-rt-v250923-xiaoshan 拍照视频数据根据来源分类处理
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-chingchi-icos3.0-rt';
@@ -12,11 +12,14 @@ SET 'table.planner' = 'blink';
 SET 'table.exec.state.ttl' = '600000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
-SET 'parallelism.default' = '2';
+-- SET 'parallelism.default' = '4';
 -- set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 SET 'execution.checkpointing.interval' = '600000';
 SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-chingchi-icos3.0-rt';
 
+set 'table.exec.sink.not-null-enforcer'='drop';
+
+create function get_row_udf as 'com.jingan.udf.row.RowTransUdf';
 
 
 -- 设备检测数据上报 （Source：kafka）
@@ -54,6 +57,11 @@ create table iot_device_message_kafka_01 (
                                                  -- 视频数据
                                                  videoId             string,
                                                  videoUrl            string,
+                                                 createTime          string,
+                                                 taskId              string,
+                                                 expectedFileCount   double,
+                                                 flightType          double,
+                                                 uploadedFileCount   double,
 
                                                  -- 执法仪轨迹
                                                  longitude           double, -- 经度
@@ -61,10 +69,6 @@ create table iot_device_message_kafka_01 (
                                                  attitudeHead        double, -- 无人机机头朝向
                                                  gimbalHead          double, -- 无人机云台朝向
                                                  altitude            double, -- 海拔
-                                                 taskId              string, -- 当前执行的航线，*机场无人机特有
-                                                 taskWaylineId       string, -- 当前执行航线的模版uuid，*机场无人机特有
-                                                 taskCurrentWaylineStatus string, -- 当前执行航线的状态，上云透传，*机场无人机特有
-                                                 taskCurrentWaylineIndex int, -- 当前执行航线任务所在序号，*机场无人机特有
                                                  -- height              double, -- 跟海拔差不多的字段，一起给前段，回溯轨迹需要海拔，3维
 
                                                  -- 密集数据统计
@@ -108,23 +112,7 @@ create table iot_device_message_kafka_01 (
                                                  targetState       bigint, -- 目标状态，
                                                  `timestamp`       bigint, -- 录取时间信息（基日）
                                                  timestampBase     bigint, -- 录取时间信息（时间）
-                                                 uploadMode        string,
-
-                                                 -- 雷莫雷达
-                                                 targetHeight      double,
-                                                 pilotLongitude    double,
-                                                 pilotLatitude     double,
-                                                 esp               double,
-                                                 nsp               double,
-                                                 azi               double,
-                                                 vsp               double,
-                                                 feq               double,
-                                                 wh                boolean,
-                                                 isL               boolean,
-                                                 isA               boolean,
-                                                 name              string,
-                                                 cti               string,
-                                                 sn                string
+                                                 uploadMode        string
                                                  )
                                                  >
                                                  )
@@ -133,12 +121,11 @@ create table iot_device_message_kafka_01 (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.group.id' = 'iot-device-message-group-id4',
       -- 'scan.startup.mode' = 'group-offsets',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1750521634000',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -170,16 +157,97 @@ create table iot_device_message_kafka_02 (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id5',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.timestamp-millis' = '1750521634000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
+      );
+
+
+
+-- minio事件数据
+create table minio_event_kafka (
+                                   EventName   string,
+                                   `Key`       string,
+                                   proctime    as PROCTIME()
+) WITH (
+      'connector' = 'kafka',
+      'topic' = 'fh_minio_sync',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'minio_event_kafka_01',
+      -- 'scan.startup.mode' = 'group-offsets',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '0',
+      'format' = 'json',
+      'json.fail-on-missing-field' = 'false',
+      'json.ignore-parse-errors' = 'true'
+      );
+
+
+
+create table file_upload_callback_sink_kafka (
+                                                 event    string,
+                                                 `time`   bigint,
+                                                 `data`   row<
+                                                     fileType   string,
+                                                 filePath   string,
+                                                 ext  row <
+                                                     longitude           double,
+                                                 latitude            double,
+                                                 height              double,
+                                                 createTime          string,
+                                                 taskId              string,
+                                                 expectedFileCount   double,
+                                                 flightType          double,
+                                                 uploadedFileCount   double
+                                                     >
+                                                     >
+) WITH (
+      'connector' = 'kafka',
+      'topic' = 'OPEN_API_DEVICE_EVENT',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'file-upload-01',
+      'value.format' = 'json'
+      );
+
+
+
+-- 媒体拍照数据入库 - 临时表（Sink：mysql）
+create table device_media_datasource_temp (
+                                              device_id                      string        comment '设备编码',
+                                              source_id                      string        comment '来源,截图(SCREENSHOT)，拍照(PHOTOGRAPH)',
+                                              source_name                    string        comment '来源名称/应用名称',
+                                              type                           string        comment 'PICTURE/HISTORY_VIDEO',
+                                              action_id                      bigint        comment '行动id',
+                                              action_item_id                 bigint        comment '子行动id',
+                                              start_time                     timestamp     comment '开始时间',
+                                              end_time                       timestamp     comment '结束时间',
+                                              url                            string        comment '原图/视频 url',
+                                              longitude                      double        comment '经度',
+                                              latitude                       double        comment '纬度',
+                                              width                          int           comment '图片宽度',
+                                              height                         int           comment '图片高度',
+                                              bid                            string        comment '长连接整个业务的ID',
+                                              tid                            string        comment '当前请求的事务唯一ID',
+                                              extends                        string        comment 'json字符串 {}',
+                                              PRIMARY KEY (device_id,start_time,url) NOT ENFORCED
+) with (
+      'connector' = 'jdbc',
+      -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true', -- ECS环境
+      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',  -- 201环境
+      'driver' = 'com.mysql.cj.jdbc.Driver',
+      'username' = 'root',
+      'password' = 'jingansi110',
+      'table-name' = 'device_media_datasource_temp',
+      'sink.buffer-flush.interval' = '1s',
+      'sink.buffer-flush.max-rows' = '10',
+      'lookup.max-retries' = '5'
       );
 
 
@@ -192,21 +260,17 @@ create table device_media_datasource (
                                          type                           string        comment 'PICTURE/HISTORY_VIDEO',
                                          action_id                      bigint        comment '行动id',
                                          action_item_id                 bigint        comment '子行动id',
-                                         start_time                     string        comment '开始时间',
-                                         end_time                       string        comment '结束时间',
+                                         start_time                     timestamp     comment '开始时间',
+                                         end_time                       timestamp     comment '结束时间',
                                          url                            string        comment '原图/视频 url',
-                                         photo_type                     string        comment '照片类型',
                                          longitude                      double        comment '经度',
                                          latitude                       double        comment '纬度',
                                          width                          int           comment '图片宽度',
                                          height                         int           comment '图片高度',
                                          bid                            string        comment '长连接整个业务的ID',
                                          tid                            string        comment '当前请求的事务唯一ID',
-                                         b_type                         string        comment '业务类型',
                                          extends                        string        comment 'json字符串 {}',
                                          gmt_create                     string        comment '创建时间',
-                                         gmt_create_by                  string        comment '创建人',
-                                         gmt_modified_by                string        comment '修改人',
                                          PRIMARY KEY (device_id,start_time,url) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
@@ -251,7 +315,6 @@ create table dwd_radar_target_all_rt(
                                         time1                      string     ,
                                         upload_mode                string     , -- 天朗雷达-模式
                                         target_state               bigint     , -- 天朗雷达-目标状态
-                                        extend_info                string     , -- 扩展字段
                                         tid                        string     , -- 当前请求的事务唯一ID
                                         bid                        string     , -- 长连接整个业务的ID
                                         `method`                   string     , -- 服务&事件标识
@@ -277,7 +340,6 @@ create table dwd_radar_target_all_rt(
 
 
 
-
 -- 设备执法仪、无人机轨迹数据（Sink：doris）
 create table dwd_device_track_rt (
                                      device_id                 string              comment '上报的设备id',
@@ -289,10 +351,6 @@ create table dwd_device_track_rt (
                                      height                    double              comment '跟海拔差不多的一个高度，用于回溯轨迹3维',
                                      lng_02                    DECIMAL(30,18)      comment '经度—高德坐标系、火星坐标系',
                                      lat_02                    DECIMAL(30,18)      comment '纬度—高德坐标系、火星坐标系',
-                                     task_id	                string              comment '当前执行的航线，*机场无人机特有',
-                                     task_wayline_id	        string              comment '当前执行航线的模版uuid，*机场无人机特有',
-                                     task_current_wayline_status string            comment '当前执行航线的状态，上云透传，*机场无人机特有',
-                                     task_current_wayline_index  int               comment '当前执行航线任务所在序号，*机场无人机特有',
                                      username                  string              comment '设备用户',
                                      group_id                  string              comment '组织id',
                                      product_key               string              comment '产品key',
@@ -304,7 +362,6 @@ create table dwd_device_track_rt (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_track_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -334,7 +391,6 @@ create table dwd_device_attr_info (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_attr_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -371,7 +427,6 @@ create table dwd_device_operate_report_info (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
---   'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_operate_report_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -406,7 +461,6 @@ create table dwd_dense_person_cnt (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_dense_person_cnt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -420,8 +474,7 @@ create table dwd_dense_person_cnt (
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
-
-
+-- *************************************************************************** 维表
 
 -- 建立映射mysql的表（为了查询用户名称）
 create table iot_device (
@@ -487,28 +540,6 @@ create table enum_target_name (
      );
 
 
--- 行动任务表
-create table action_item (
-                             id                bigint, -- 子任务ID
-                             action_id         bigint, -- 行动任务ID
-                             status            string, -- 子任务状态，PENDING：未开始,PROCESSING：行动中，FINISHED：已完成
-                             device_id	        string, -- 设备ID
-                             start_time        timestamp, -- 开始时间
-
-                             primary key (id) NOT ENFORCED
-)with (
-     'connector' = 'jdbc',
-     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
-     'username' = 'root',
-     'password' = 'jingansi110',
-     'table-name' = 'action_item',
-     'driver' = 'com.mysql.cj.jdbc.Driver',
-     'lookup.cache.max-rows' = '5000',
-     'lookup.cache.ttl' = '20s',
-     'lookup.max-retries' = '10'
-     );
-
 
 -- 建立映射mysql的表（为了查询组织id）
 create table users (
@@ -527,6 +558,27 @@ create table users (
      'driver' = 'com.mysql.cj.jdbc.Driver',
      'lookup.cache.max-rows' = '5000',
      'lookup.cache.ttl' = '3600s',
+     'lookup.max-retries' = '10'
+     );
+
+
+-- 行动任务表
+create table action_item (
+                             id                bigint, -- 子任务ID
+                             action_id         bigint, -- 行动任务ID
+                             status            string, -- 子任务状态，PENDING：未开始,PROCESSING：行动中，FINISHED：已完成
+                             device_id	        string, -- 设备ID
+                             primary key (id) NOT ENFORCED
+)with (
+     'connector' = 'jdbc',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+     'username' = 'root',
+     'password' = 'jingansi110',
+     'table-name' = 'action_item',
+     'driver' = 'com.mysql.cj.jdbc.Driver',
+     'lookup.cache.max-rows' = '5000',
+     'lookup.cache.ttl' = '20s',
      'lookup.max-retries' = '10'
      );
 
@@ -565,10 +617,6 @@ select
     message.`data`.gimbalHead    as gimbal_head,
     message.`data`.height        as uav_height,
     message.`data`.altitude      as altitude,
-    message.`data`.taskId        as task_id,
-    message.`data`.taskWaylineId  as task_wayline_id,
-    message.`data`.taskCurrentWaylineStatus as task_current_wayline_status,
-    message.`data`.taskCurrentWaylineIndex as task_current_wayline_index,
 
     -- 密集检测
     message.`data`.statisticalInterval      as statistical_interval,
@@ -576,10 +624,15 @@ select
     message.`data`.densityMap               as density_map,
 
     -- 手动拍照
-    message.`data`.photoUrl    as photo_url,
-    message.`data`.isCapture   as is_capture, -- 为了过滤截图截图送检的
-    message.`data`.videoId     as video_id,
-    message.`data`.videoUrl    as video_url,
+    message.`data`.photoUrl            as photo_url,
+    message.`data`.isCapture           as is_capture, -- 为了过滤截图截图送检的
+    message.`data`.videoId             as video_id,
+    message.`data`.videoUrl            as video_url,
+    message.`data`.createTime          as create_time,
+    message.`data`.taskId              as task_id,
+    message.`data`.expectedFileCount   as expected_file_count,
+    message.`data`.flightType          as flight_type,
+    message.`data`.uploadedFileCount   as uploaded_file_count,
     PROCTIME()  as proctime
 from iot_device_message_kafka_01
 where coalesce(deviceId,message.deviceId) is not null
@@ -587,15 +640,16 @@ where coalesce(deviceId,message.deviceId) is not null
   and abs(coalesce(`timestamp`,message.`timestamp`)/1000 - UNIX_TIMESTAMP()) <= 864000;
 
 
+
 -- 关联设备表取出设备名称,取出父设备望楼id，数据来源都是子设备id
 create view tmp_source_kafka_02 as
 select
     t1.*,
-    t2.gmt_create_by   as username,
-    t2.device_name     as device_name_join,
+    t2.gmt_create_by as username,
+    t2.device_name as device_name_join,
     if(t2.parent_id = '',cast(null as varchar),t2.parent_id) as parent_id,
     t3.group_id,
-    t4.type            as device_type_join
+    t4.type as device_type_join
 from tmp_source_kafka_01 as t1
          left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.device_id = t2.device_id
@@ -605,56 +659,89 @@ from tmp_source_kafka_01 as t1
                    on t1.device_id = t4.device_id;
 
 
--- 拍照截图数据处理
+-- 拍照截图数据处理 - 截图数据直接入库
 create view tmp_image_01 as
 select
     t1.device_id,
-    case when t1.`method` = 'platform.capture.post' then 'SCREENSHOT'    -- 截图
+    case when t1.`method` = 'platform.capture.post' then 'SCREENSHOT'     -- 截图
          when t1.`method` = 'event.mediaFileUpload.info' then 'PHOTOGRAPH' -- 拍照
         end as source_id,
     t1.device_name_join                                                      as source_name,
-    if(`method` = 'event.videoMediaFileUpload.info','VIDEO','PICTURE')       as type,
-    from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss')           as start_time,
-    from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss')           as end_time,
-
-    case when t1.`method` = 'platform.capture.post' then concat('/',picture_url)
-         when t1.`method` = 'event.mediaFileUpload.info' then photo_url
-         when t1.`method` = 'event.videoMediaFileUpload.info' then concat('/',video_url)
-        end as url,
-
-    case when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'-V') >0 then '可见光'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'-W') >0 then '广角'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'-Z') >0 then '变焦'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'-T') >0 then '红外'
-        end as photo_type,
-
+    if(`method` = 'event.videoMediaFileUpload.info','VIDEO','PICTURE')       as type,        -- 视频、照片
+    to_timestamp(from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss'),'yyyy-MM-dd HH:mm:ss') as start_time,
+    to_timestamp(from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss'),'yyyy-MM-dd HH:mm:ss') as end_time,
+    coalesce(picture_url,photo_url,video_url) as url,
+    -- if(`method` = 'platform.capture.post',concat('/',picture_url),coalesce(photo_url,video_url)) as url,
     t1.longitude,
     t1.latitude,
     t1.width,
     t1.height,
     t1.bid,
     t1.tid,
-    cast(null as varchar) as b_type,
-    '{}'                  as extends,
+    '{}'    as extends,
     from_unixtime(unix_timestamp()) as gmt_create,
-    'ja-flink' as gmt_create_by,
-    'ja-flink' as gmt_modified_by,
     t2.action_id,
-    t2.id as action_item_id
+    t2.id as action_item_id,
+    t1.create_time,
+    `method`,
+    t1.task_id,
+    t1.expected_file_count,
+    t1.flight_type,
+    t1.uploaded_file_count
 from (
          select
              *
          from tmp_source_kafka_02
          where (
-                       (`method` = 'platform.capture.post' and picture_url is not null)  -- 截图
-                       or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null and SPLIT_INDEX(photo_url,'.',1) <> 'MP4') -- 拍照数据过滤截图的，如果是截图（is_capture=1）
-                       or (`method` = 'event.videoMediaFileUpload.info' and video_url is not null)
-                   )
+                 (`method` = 'platform.capture.post' and picture_url is not null)  -- 截图
+                 or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null and split_index(photo_url,'.',1) <> 'MP4') -- 拍照数据过滤截图的，如果是截图（is_capture=1）
+                 or (`method` = 'event.videoMediaFileUpload.info' and video_url is not null) -- 视频
+             )
+           and acquire_timestamp is not null
      ) as t1
          left join action_item FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.device_id = t2.device_id
                        and 'PROCESSING' = t2.status;
 -- and ('PENDING' = t2.status or 'PROCESSING' = t2.status);
+
+
+
+-- 对拍照视频数据重新处理写入临时表mysql
+create view tmp_image_02 as
+select
+    device_id,
+    source_id,
+    source_name,
+    type,
+    action_id,
+    action_item_id,
+    start_time,
+    end_time,
+    url,
+    longitude,
+    latitude,
+    width,
+    height,
+    bid,
+    tid,
+    concat('{',
+           trim(',' FROM concat(
+                   if(longitude is null,'',concat('"longitude":',cast(longitude as string),',')),
+                   if(latitude is null,'',concat('"latitude":',cast(latitude as string),',')),
+                   if(height is null,'',concat('"height":"',cast(height as string),'",')),
+                   if(create_time is null,'',concat('"create_time":"',create_time,'",')),
+                   if(task_id is null,'',concat('"task_id":"',task_id,'",')),
+                   if(expected_file_count is null,'',concat('"expected_file_count":',cast(expected_file_count as string),',')),
+                   if(flight_type is null,'',concat('"flight_type":',cast(flight_type as string),',')),
+                   if(uploaded_file_count is null,'',concat('"uploaded_file_count":',cast(uploaded_file_count as string)))
+               )),
+
+           '}'
+        ) as extends
+from tmp_image_01
+where `method` <> 'platform.capture.post'
+  and instr(url,'fh_sync') > 0;
+-- and split_index(url,'/',1) = 'fh_sync';
 
 
 
@@ -674,6 +761,7 @@ select
     t2.h3Code as h3_code,
     t2.averageDensity as average_density,
     t3.action_id
+
 from (
          select
              *
@@ -687,7 +775,8 @@ from (
 
          left join action_item FOR SYSTEM_TIME AS OF t1.proctime as t3
                    on t1.device_id = t3.device_id
-                       and ('PENDING' = t3.status or 'PROCESSING' = t3.status)
+                       and 'PROCESSING' = t3.status
+     -- and ('PENDING' = t3.status or 'PROCESSING' = t3.status)
 where t2.h3Code is not null;
 
 
@@ -709,8 +798,8 @@ select
     proctime
 from tmp_source_kafka_02
 where `method` = 'event.targetInfo.info'
-  -- r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）、xjWO7NdIOYs（天朗雷达） 、00000000002（无人机检测目标数据）、aby554pqic0（雷莫雷达）
-  and product_key in('r4ae3Loh78v','k8dNIRut1q3','xjWO7NdIOYs','00000000002','aby554pqic0');
+  -- -- r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）、xjWO7NdIOYs（天朗雷达） 、00000000002（无人机检测目标数据）
+  and product_key in('r4ae3Loh78v','k8dNIRut1q3','xjWO7NdIOYs','00000000002');
 
 
 
@@ -729,7 +818,6 @@ select
     t1.acquire_timestamp                 as acquire_timestamp,
     t1.device_name_join                  as device_name,    -- 设备名称
     coalesce(t1.parent_id,t1.device_id)  as parent_id,
-
     t2.targetId                          as target_id,     -- 目标id
     t2.xDistance                         as x_distance,
     t2.yDistance                         as y_distance,
@@ -745,35 +833,16 @@ select
     t2.tracked_times,
     t2.loss_times,
     t2.targetCredibility                 as target_credibility,
-    t2.`time`                            as time1,
-    t2.targetState                       as target_state,
-    t2.uploadMode                        as upload_mode,
-    t2.targetHeight   ,
-    t2.pilotLongitude ,
-    t2.pilotLatitude  ,
-    t2.esp            ,
-    t2.nsp            ,
-    t2.azi            ,
-    t2.vsp            ,
-    t2.feq            ,
-    if(t2.wh = true,'1','0')  as wh,
-    if(t2.isL = true,'1','0') as isL,
-    if(t2.isA = true,'1','0') as isA,
-    t2.name           ,
-    t2.cti            ,
-    t2.sn             ,
+    t2.`time` as time1,
+    t2.targetState as target_state,
+    t2.uploadMode  as upload_mode,
+
     t1.device_type_join as source_type,         -- RADAR、振动仪 的method是一样的
     t1.device_name_join as source_type_name,
 
     -- 雷达无目标类型都给未知｜可见光红外需要null、''、未知目标更改为未知｜ 信火一体的需要'' 改为未知,不是最终的，天朗雷达数据还需要关联一下
     coalesce(t2.objectLabel,cast(t2.targetType as varchar)) as object_label1,
-
-    concat('[{',
-           concat('"deviceName":"',t1.device_name_join,'",'),
-           concat('"deviceId":"',t1.device_id,'",'),
-           concat('"targetId":"',t2.targetId,'",'),
-           concat('"type":"',t1.device_type_join,'"}]')
-        ) as device_info
+    cast(null as varchar) as device_info
 
 from tmp_source_kafka_03 as t1
          cross join unnest (targets) as t2 (
@@ -798,66 +867,28 @@ from tmp_source_kafka_03 as t1
                                             objectLabel      ,
                                             targetCredibility,
                                             `time`,
-
     -- 天朗雷达
                                             RCS              ,
                                             radialDistance   ,
                                             targetState      ,
                                             `timestamp`      ,
                                             timestampBase    ,
-                                            uploadMode       ,
+                                            uploadMode
 
-    -- 雷莫雷达
-                                            targetHeight   ,
-                                            pilotLongitude ,
-                                            pilotLatitude  ,
-                                            esp            ,
-                                            nsp            ,
-                                            azi            ,
-                                            vsp            ,
-                                            feq            ,
-                                            wh             ,
-                                            isL            ,
-                                            isA            ,
-                                            name           ,
-                                            cti            ,
-                                            sn
-    )
-where t2.sourceType in('RADAR','VIBRATOR')
-   -- 天朗雷达数据是空的
-   or t2.sourceType is null;
+    );
+-- where t2.sourceType in('RADAR','VIBRATOR')
+--   -- 天朗雷达数据是空的
+--   or t2.sourceType is null;
 
 
 
--- 天朗雷达数据类型关联  r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）、xjWO7NdIOYs（天朗雷达） 、00000000002（无人机检测目标数据）、aby554pqic0（雷莫雷达）
+-- 天朗雷达数据类型关联，
 create view tmp_source_kafka_05 as
 select
     t1.*,
     case when t1.product_key = 'xjWO7NdIOYs' then t2.target_name
          when t1.product_key <> 'xjWO7NdIOYs' and object_label1 is not null and object_label1 <> '' and object_label1 <> '未知目标' then object_label1
-         else '未知' end as object_label,
-
-    if(t1.product_key = 'aby554pqic0',
-       concat(
-               '{',
-               '"targetHeight":', cast(targetHeight as varchar), ',',
-               '"pilotLongitude":', cast(pilotLongitude as varchar), ',',
-               '"pilotLatitude":', cast(pilotLatitude as varchar), ',',
-               '"esp":', cast(esp as varchar), ',',
-               '"nsp":', cast(nsp as varchar), ',',
-               '"azi":', cast(azi as varchar), ',',
-               '"vsp":', cast(vsp as varchar), ',',
-               '"feq":', cast(feq as varchar), ',',
-               '"wh":', wh, ',',
-               '"wh":', isL, ',',
-               '"isA":', isA, ',',
-               '"name":"', name, '",',
-               '"cti":"', cti, '",',
-               '"sn":"', sn, '"',
-               '}'
-           ),
-       cast(null as varchar)
-        )as extend_info
+         else '未知' end as object_label
 
 from tmp_source_kafka_04 as t1
          left join enum_target_name FOR SYSTEM_TIME AS OF t1.proctime as t2
@@ -881,10 +912,6 @@ select
     longitude,
     latitude,
     username,
-    task_id,
-    task_wayline_id,
-    task_current_wayline_status,
-    task_current_wayline_index,
     group_id as group_id,
     device_type_join as device_type,
     device_name_join as device_name
@@ -913,7 +940,6 @@ select
     t1.`type`,
     t1.operator,
     if(t1.type = 'properties',JSON_VALUE(properties,'$.healthInfo[0]'),JSON_VALUE(properties,'$.message')) as health_info
-
 from (
          select
              type,
@@ -943,6 +969,33 @@ from (
 
 
 
+-- 拍照数据重新关联入库
+create view tmp_datasource_photo_01 as
+select
+    t2.device_id,
+    t2.source_id,
+    t2.source_name,
+    t2.type,
+    t2.action_id,
+    t2.action_item_id,
+    t2.start_time,
+    t2.end_time,
+    if(type = 'PICTURE',t2.url,concat('/',t2.url)) as url, -- 视频的数据需要加/拼接在开头
+    t2.longitude,
+    t2.latitude,
+    t2.width,
+    t2.height,
+    t2.bid,
+    t2.tid,
+    t2.extends
+
+from (
+         select * from minio_event_kafka where EventName in('s3:ObjectCreated:Put','s3:ObjectCreated:CompleteMultipartUpload')
+     ) as t1
+         left join device_media_datasource_temp FOR SYSTEM_TIME AS OF t1.proctime as t2
+                   on t1.`Key` = t2.url
+where t2.url is not null;
+
 
 -----------------------
 
@@ -958,7 +1011,7 @@ begin statement set;
 insert into dwd_device_track_rt
 select
     device_id               ,
-    from_unixtime(acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format  ,
+    from_unixtime(acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as acquire_timestamp_format,
     acquire_timestamp         ,
     attitude_head             ,
     gimbal_head               ,
@@ -966,10 +1019,6 @@ select
     height,
     longitude   as lng_02     ,
     latitude    as lat_02     ,
-    task_id,
-    task_wayline_id,
-    task_current_wayline_status,
-    task_current_wayline_index,
     username                  ,
     group_id                  ,
     product_key               ,
@@ -981,7 +1030,66 @@ select
 from tmp_track_01;
 
 
--- 截图拍照数据入库
+-- 拍照、视频数据写入kafka
+insert into file_upload_callback_sink_kafka
+select
+    'FILE_UPLOAD_CALLBACK' as event,
+    UNIX_TIMESTAMP(cast(start_time as varchar),'yyyy-MM-dd HH:mm:ss') * 1000 as `time`,
+    get_row_udf(type,url,extends) as data1
+from tmp_datasource_photo_01;
+
+
+
+-- 截图 & 拍照 & 视频 不是fh_sync开头的 数据直接入库
+insert into device_media_datasource
+select
+    device_id,
+    source_id,
+    source_name,
+    type,
+    action_id,
+    action_item_id,
+    start_time,
+    end_time,
+    case when `method` in ('platform.capture.post','event.videoMediaFileUpload.info') then concat('/',url) -- 截图 视频 拼接
+         else url end as url,
+    longitude,
+    latitude,
+    width,
+    height,
+    bid,
+    tid,
+    extends,
+    gmt_create
+from tmp_image_01
+where `method` = 'platform.capture.post'  -- 截图 或者 （拍照 &视频）不是fh_sync开头的
+   or instr(url,'fh_sync') = 0;
+
+
+
+-- 拍照数据入库 - 临时表
+insert into device_media_datasource_temp
+select
+    device_id,
+    source_id,
+    source_name,
+    type,
+    action_id,
+    action_item_id,
+    start_time,
+    end_time,
+    url,
+    longitude,
+    latitude,
+    width,
+    height,
+    bid,
+    tid,
+    extends
+from tmp_image_02;
+
+
+-- 关联的拍照视频数据入库 - mysql
 insert into device_media_datasource
 select
     device_id,
@@ -993,19 +1101,15 @@ select
     start_time,
     end_time,
     url,
-    photo_type,
     longitude,
     latitude,
     width,
     height,
     bid,
     tid,
-    b_type,
-    extends,
-    gmt_create,
-    gmt_create_by,
-    gmt_modified_by
-from tmp_image_01;
+    '{}' as extends,
+    from_unixtime(unix_timestamp()) as gmt_create
+from tmp_datasource_photo_01;
 
 
 -- 雷达目标 - 检测全量数据入库doris
@@ -1038,7 +1142,6 @@ select
     time1,
     upload_mode,
     target_state,
-    extend_info,
     tid,
     bid,
     `method`,
@@ -1078,7 +1181,7 @@ select
     parent_id                 ,
     acquire_timestamp         ,
     cast(null as varchar) as properties,
-    health_info               ,
+    health_info,
     operator                  ,
     tid                       ,
     bid                       ,
@@ -1092,8 +1195,6 @@ where type in ('services','events')
    or (type = 'properties' and health_info is not null);
 
 
-
--- 密集数据入库
 insert into dwd_dense_person_cnt
 select
     device_id,
