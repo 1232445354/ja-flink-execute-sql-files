@@ -6,11 +6,11 @@
 5.  ja-chingchi-icos3.0-rt-v250612 无人机检测目标入库 合并天朗雷达新增字段及其拍照经纬度
 6.  ja-chingchi-icos3.0-rt-v250617 拍照数据新增行动id
 7.  ja-chingchi-icos3.0-rt-v250623 牍术3.18新增的事件-服务数据接入
-8.  ja-chingchi-icos3.0-rt-v250701 密集数据接入
+8.  ja-chingchi-icos3.0-rt-v250701 密集数据接入 - 完整版本
 9.  ja-chingchi-icos3.0-rt-v250703 雷莫雷达数据
 10. ja-chingchi-icos3.0-rt-v250909 拍照数据新增类型 - 互联网需求,暂不合并代码
-11. ja-chingchi-icos3.0-rt-v250915  接入媒体视频数据
-
+11. ja-chingchi-icos3.0-rt-v250915 接入媒体视频数据
+12. ja-chingchi-icos3.0-rt-v250923 轨迹表新增4个字段
 
 
 
