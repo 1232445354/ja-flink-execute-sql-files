@@ -123,9 +123,9 @@ create table iot_device_message_kafka_01 (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'iot-device-message-group-id4',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -181,9 +181,9 @@ create table minio_event_kafka (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'minio_event_kafka_01',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0',
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -668,10 +668,9 @@ select
         end as source_id,
     t1.device_name_join                                                      as source_name,
     if(`method` = 'event.videoMediaFileUpload.info','VIDEO','PICTURE')       as type,        -- 视频、照片
-    to_timestamp(from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss'),'yyyy-MM-dd HH:mm:ss') as start_time,
-    to_timestamp(from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss'),'yyyy-MM-dd HH:mm:ss') as end_time,
+    to_timestamp(coalesce(t1.create_time,from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss')),'yyyy-MM-dd HH:mm:ss') as start_time,
+    to_timestamp(coalesce(t1.create_time,from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss')),'yyyy-MM-dd HH:mm:ss') as end_time,
     coalesce(picture_url,photo_url,video_url) as url,
-    -- if(`method` = 'platform.capture.post',concat('/',picture_url),coalesce(photo_url,video_url)) as url,
     t1.longitude,
     t1.latitude,
     t1.width,
@@ -741,7 +740,6 @@ select
 from tmp_image_01
 where `method` <> 'platform.capture.post'
   and instr(url,'fh_sync') > 0;
--- and split_index(url,'/',1) = 'fh_sync';
 
 
 
