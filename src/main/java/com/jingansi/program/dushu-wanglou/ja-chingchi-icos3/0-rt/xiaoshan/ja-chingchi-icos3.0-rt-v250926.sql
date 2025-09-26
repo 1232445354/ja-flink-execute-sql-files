@@ -1,3 +1,4 @@
+
 --********************************************************************--
 -- author:      write your name here
 -- create time: 2024/12/2 19:42:10
@@ -1002,6 +1003,20 @@ select
 from tmp_track_01;
 
 
+-- 截图 & 拍照 & 视频 不是fh_sync开头的 直接入kafka open
+insert into file_upload_callback_sink_kafka
+select
+    'FILE_UPLOAD_CALLBACK' as event,
+    UNIX_TIMESTAMP(cast(start_time as varchar),'yyyy-MM-dd HH:mm:ss') * 1000 as `time`,
+    get_row_udf(
+            type,
+            if (`method` in ('platform.capture.post','event.videoMediaFileUpload.info'),concat('/',url),url),
+            extends
+        ) as data1
+from tmp_image_01
+where `method` = 'platform.capture.post'  -- 截图 或者 （拍照 &视频）不是fh_sync开头的
+   or instr(url,'fh_sync') = 0;
+
 
 -- 截图 & 拍照 & 视频 不是fh_sync开头的 直接入库msyql
 insert into device_media_datasource
@@ -1026,6 +1041,7 @@ select
 from tmp_image_01
 where `method` = 'platform.capture.post'  -- 截图 或者 （拍照 &视频）不是fh_sync开头的
    or instr(url,'fh_sync') = 0;
+
 
 
 -- 拍照数据入库 - 包含 fh_sync 开头的先入临时表
