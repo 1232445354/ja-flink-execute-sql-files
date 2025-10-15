@@ -1,8 +1,8 @@
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/07/30 16:48:50
--- description: 飞机数据源合之后的数据全部写入doris
--- version: ja-aircraft-merge-source-rt-v20240708
+-- description: 新增航班号对应表
+-- version: ja-aircraft-merge-source-rt-v20251014
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-aircraft-merge-source-rt';
@@ -25,7 +25,6 @@ set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
  -----------------------
 
 -- 来源kafka的源数据
-drop table if exists aircraft_source;
 create table aircraft_source(
                                 id                         string, -- id
                                 srcCode                    bigint, --网站标识
@@ -175,7 +174,6 @@ create table dwd_bhv_aircraft_combine_rt (
 
 
 -- 飞机各个网站数据融合状态表
-drop table if exists dws_bhv_aircraft_last_location_rt;
 create table dws_bhv_aircraft_last_location_rt (
                                                    flight_id						  string 	comment '飞机标识字段  1. 24位 icao编码 2. 来源站的标识如 a. radarbox flight_trace_id  b. adsbexchange ～开头的编码',
                                                    acquire_time					  string 	comment '采集时间',
@@ -252,7 +250,6 @@ create table dws_bhv_aircraft_last_location_rt (
 
 
 -- 飞机实体表（Source：doris）
-drop table if exists dws_et_aircraft_info_source;
 create table dws_et_aircraft_info_source (
                                              flight_id           string        comment '飞机id',
                                              primary key (flight_id) NOT ENFORCED
@@ -271,7 +268,6 @@ create table dws_et_aircraft_info_source (
 
 
 -- 飞机实体表（Source：doris）
-drop table if exists dws_et_aircraft_info;
 create table dws_et_aircraft_info (
                                       flight_id           string,
                                       acquire_time        string,
@@ -310,8 +306,7 @@ create table dws_et_aircraft_info (
 
 
 
--- 飞机各个网站数据融合表
-drop table if exists dws_aircraft_combine_list_rt;
+-- 飞机各个网站数据融合表 - 写给XT的老系统
 create table dws_aircraft_combine_list_rt (
                                               flight_id						  string 	comment '飞机标识字段  1. 24位 icao编码 2. 来源站的标识如 a. radarbox flight_trace_id  b. adsbexchange ～开头的编码',
                                               acquire_time					  string 	comment '采集时间',
@@ -385,8 +380,7 @@ create table dws_aircraft_combine_list_rt (
       );
 
 
--- 飞机各个网站数据融合状态表
-drop table if exists dws_aircraft_combine_status_rt;
+-- 飞机各个网站数据融合状态表 - 写给XT的老系统
 create table dws_aircraft_combine_status_rt (
                                                 flight_id						  string 	comment '飞机标识字段  1. 24位 icao编码 2. 来源站的标识如 a. radarbox flight_trace_id  b. adsbexchange ～开头的编码',
                                                 acquire_time					  string 	comment '采集时间',
@@ -455,11 +449,29 @@ create table dws_aircraft_combine_status_rt (
       'sink.batch.interval'='5s',
       'sink.properties.escape_delimiters' = 'true',
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
-
+-- 航班号对应关系表
+create table dim_rel_flightaware_no (
+                                        flight_no             string  comment '飞机航班号',
+                                        flight_id             string  comment '飞机id-icaoCode',
+                                        acquire_time          string  comment '数据时间',
+                                        update_time           string  comment '更新时间'
+) with (
+      'connector' = 'doris',
+      'fenodes' = '172.21.30.245:8030',
+      'table.identifier' = 'sa.dim_rel_flightaware_no',
+      'username' = 'admin',
+      'password' = 'Jingansi@110',
+      'doris.request.tablet.size'='5',
+      'doris.request.read.timeout.ms'='30000',
+      'sink.batch.size'='10000',
+      'sink.batch.interval'='5s',
+      'sink.properties.escape_delimiters' = 'true',
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      );
 
 
 -----------------------
@@ -468,7 +480,6 @@ create table dws_aircraft_combine_status_rt (
 
 -----------------------
 
-drop view if exists aircraft_merge_temp01;
 create view aircraft_merge_temp01 as
 select
     if(id='ABC123' and lng between 91 and 124 and lat between 15 and 46,'ABC123-JH',id)  as flight_id, -- 上海警航的飞机单独处理
@@ -551,7 +562,7 @@ select
     PROCTIME()                 as proctime
 from aircraft_source;
 
-drop view if exists aircraft_merge_temp02;
+
 create view aircraft_merge_temp02 as
 select
     *
@@ -597,6 +608,21 @@ where cnt <= 10;
 
 
 begin statement set;
+
+-- 航班对应关系表入库
+insert into dim_rel_flightaware_no
+select
+    flight_no,
+    flight_id,
+    acquire_time,
+    from_unixtime(unix_timestamp()) as update_time
+from aircraft_merge_temp01
+where src_code <=3
+  and flight_no is not null
+  and flight_no <> ''
+  and flight_id is not null;
+
+
 
 -- 飞机轨迹表
 insert into dwd_bhv_aircraft_combine_rt
