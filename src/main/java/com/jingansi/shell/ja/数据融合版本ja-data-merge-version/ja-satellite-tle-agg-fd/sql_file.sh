@@ -124,6 +124,12 @@ left join sa.dws_atr_satellite_image_info as t2
 on t1.id = t2.id
 where t2.id is null;
 
+update ja_argo.dws_et_argo_info
+set `status` = t2.status_code,
+country_code = t2.country_code,
+country_name = t2.country_name
+from ja_argo.dws_atr_argo_entity_info as t2
+where ja_argo.dws_et_argo_info.id = t2.id;
 
 "
 
