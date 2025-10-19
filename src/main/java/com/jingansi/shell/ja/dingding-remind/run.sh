@@ -38,8 +38,6 @@ read_data() {
   else
     next_number=$(( (current_number + 1) % $cnt ))
   fi
-  # 将下周值班人员写入文件
-  # sed -i "s/^current_value=.*/current_value=$next_number/" ${value_file}
   echo "下周值班序号: ${next_number}"
 
   line_num=0
@@ -63,6 +61,7 @@ read_data() {
   else
     week_res=${line}
   fi
+  # 将下周值班人员写入文件
   echo "${next_number}" > ${value_file}
   echo "---------"
 }
