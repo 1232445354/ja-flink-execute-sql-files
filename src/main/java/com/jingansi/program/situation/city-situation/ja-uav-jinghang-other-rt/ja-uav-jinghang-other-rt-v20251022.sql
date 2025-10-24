@@ -12,7 +12,7 @@ SET 'table.planner' = 'blink';
 SET 'table.exec.state.ttl' = '60000';
 SET 'sql-client.execution.result-mode' = 'TABLEAU';
 
--- SET 'parallelism.default' = '4';
+SET 'parallelism.default' = '6';
 set 'execution.checkpointing.tolerable-failed-checkpoints' = '10';
 
 SET 'execution.checkpointing.interval' = '120000';
@@ -123,9 +123,9 @@ create table jh_uav_data_kafka (
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'jh-uav-data1',
       -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0', -- 1747102253000
+      'scan.startup.mode' = 'latest-offset',
+      -- 'scan.startup.mode' = 'timestamp',
+      -- 'scan.startup.timestamp-millis' = '0', -- 1747102253000
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -134,36 +134,37 @@ create table jh_uav_data_kafka (
 
 
 
--- 三吉数据上报 （Source：kafka）
-create table sanji_uav_data_kafka (
-                                      uavId        string, -- 无人机sn
-                                      uavLat       double, -- 无人机纬度
-                                      uavLon       double, -- 无人机经度
-                                      velocity     double, -- 速度 m/s
-                                      yaw          double, -- 水平角度(正北为0度，顺时针360度)
-                                      uavAlt       double, -- 无人机海拔
-                                      pilotLat     double, -- 飞手纬度
-                                      pilotLon     double, -- 飞手经度
-                                      type         int,    -- 2代表通航数据、4代表无人机数据
-                                      createTime   bigint  -- 最新时间 毫秒
-) WITH (
-      'connector' = 'kafka',
-      'topic' = 'sanji-uav-data',
-      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      'properties.group.id' = 'sanji-uav-data1',
-      -- 'scan.startup.mode' = 'group-offsets',
-      -- 'scan.startup.mode' = 'latest-offset',
-      'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '0', -- 1747102253000
-      'format' = 'json',
-      'json.fail-on-missing-field' = 'false',
-      'json.ignore-parse-errors' = 'true'
-      );
+-- -- 三吉数据上报 （Source：kafka）
+-- create table sanji_uav_data_kafka (
+--   uavId        string, -- 无人机sn
+--   uavLat       double, -- 无人机纬度
+--   uavLon       double, -- 无人机经度
+--   velocity     double, -- 速度 m/s
+--   yaw          double, -- 水平角度(正北为0度，顺时针360度)
+--   uavAlt       double, -- 无人机海拔
+--   pilotLat     double, -- 飞手纬度
+--   pilotLon     double, -- 飞手经度
+--   type         int,    -- 2代表通航数据、4代表无人机数据
+--   createTime   bigint  -- 最新时间 毫秒
+-- ) WITH (
+--   'connector' = 'kafka',
+--   'topic' = 'sanji-uav-data',
+--   'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+--   'properties.group.id' = 'sanji-uav-data1',
+--   -- 'scan.startup.mode' = 'group-offsets',
+--   'scan.startup.mode' = 'latest-offset',
+--   -- 'scan.startup.mode' = 'timestamp',
+--   -- 'scan.startup.timestamp-millis' = '0', -- 1747102253000
+--   'format' = 'json',
+--   'json.fail-on-missing-field' = 'false',
+--   'json.ignore-parse-errors' = 'true'
+-- );
 
 
 -- 整合rid、aoa、雷达的数据 写入
 -- 在进行读取做数据融合生成id
 create table rid_m30_aoa(
+                            id string,
                             acquire_timestamp         bigint,
                             product_key               string,
                             device_id                 string,
@@ -210,7 +211,8 @@ create table rid_m30_aoa(
                             user_phone                string        --  持有者手机号
 ) with (
       'connector' = 'kafka',
-      'topic' = 'rid-m30-aoa',
+      -- 'topic' = 'rid-m30-aoa',
+      'topic' = 'uav_merge_target',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'uav_merge_target22',
       -- 'key.format' = 'json',
@@ -327,59 +329,60 @@ where t2.targetSn is not null
 
 
 
--- 三吉无人机数据接入
-create view sanji_temp_01 as
-select
-    createTime                      as acquire_timestamp,
-    cast(null as varchar)           as product_key,
-    cast(null as varchar)           as device_id,
-    cast(null as varchar)           as device_name,
-    from_unixtime(createTime/1000,'yyyy-MM-dd HH:mm:ss') as acquire_time,
-    cast(null as varchar)           as `method`,
-    '1'                             as src_code,
-    uavId                           as src_pk,
-    cast(null as varchar)           as rid_devid,
-    cast(null as bigint)            as msgtype,
-    cast(null as varchar)           as recvtype,
-    cast(null as varchar)           as mac,
-    cast(null as bigint)            as rssi,
-    uavLon                          as longitude,
-    uavLat                          as latitude,
-    cast(null as double)            as location_alit,
-    yaw                             as ew,
-    velocity                        as speed_h,
-    cast(null as double)            as speed_v,
-    cast(null as double)            as height,
-    cast(null as double)            as height_type,
-    pilotLon                        as control_station_longitude,
-    pilotLat                        as control_station_latitude,
-    cast(null as double)            as control_station_height,
-    cast(null as varchar)           as target_name,
-    uavAlt                          as altitude,
-    cast(null as double)            as distance_from_station,
-    velocity                        as speed_ms,
-    cast(null as double)            as target_frequency_khz,
-    cast(null as double)            as target_bandwidth_khz,
-    cast(null as double)            as target_signal_strength_db,
-    cast(null as int)               as target_type,
-    cast(null as int)               as target_list_status,
-    cast(null as int)               as target_list_type,
-    cast(null as varchar)           as user_company_name,
-    cast(null as varchar)           as user_full_name,
-    cast(null as double)            as target_direction,
-    cast(null as varchar)           as target_area_code,
-    cast(null as int)               as target_registered,
-    cast(null as int)               as target_fly_report_status,
-    cast(null as double)            as home_longitude,
-    cast(null as double)            as home_latitude,
-    cast(null as int)               as no_fly_zone_id,
-    cast(null as varchar)           as user_phone
-from sanji_uav_data_kafka
-where uavId is not null
-  and uavId <> ''
-  and uavLon is not null
-  and uavLat is not null
-  and createTime is not null;
+-- -- 三吉无人机数据接入
+-- create view sanji_temp_01 as
+-- select
+--   createTime                      as acquire_timestamp,
+--   cast(null as varchar)           as product_key,
+--   cast(null as varchar)           as device_id,
+--   cast(null as varchar)           as device_name,
+--   from_unixtime(createTime/1000,'yyyy-MM-dd HH:mm:ss') as acquire_time,
+--   cast(null as varchar)           as `method`,
+--   '治安'                           as src_code,
+--   uavId                           as src_pk,
+--   cast(null as varchar)           as rid_devid,
+--   cast(null as bigint)            as msgtype,
+--   cast(null as varchar)           as recvtype,
+--   cast(null as varchar)           as mac,
+--   cast(null as bigint)            as rssi,
+--   uavLon                          as longitude,
+--   uavLat                          as latitude,
+--   cast(null as double)            as location_alit,
+--   yaw                             as ew,
+--   velocity                        as speed_h,
+--   cast(null as double)            as speed_v,
+--   cast(null as double)            as height,
+--   cast(null as double)            as height_type,
+--   pilotLon                        as control_station_longitude,
+--   pilotLat                        as control_station_latitude,
+--   cast(null as double)            as control_station_height,
+--   cast(null as varchar)           as target_name,
+--   uavAlt                          as altitude,
+--   cast(null as double)            as distance_from_station,
+--   velocity                        as speed_ms,
+--   cast(null as double)            as target_frequency_khz,
+--   cast(null as double)            as target_bandwidth_khz,
+--   cast(null as double)            as target_signal_strength_db,
+--   cast(null as int)               as target_type,
+--   cast(null as int)               as target_list_status,
+--   cast(null as int)               as target_list_type,
+--   cast(null as varchar)           as user_company_name,
+--   cast(null as varchar)           as user_full_name,
+--   cast(null as double)            as target_direction,
+--   cast(null as varchar)           as target_area_code,
+--   cast(null as int)               as target_registered,
+--   cast(null as int)               as target_fly_report_status,
+--   cast(null as double)            as home_longitude,
+--   cast(null as double)            as home_latitude,
+--   cast(null as int)               as no_fly_zone_id,
+--   cast(null as varchar)           as user_phone
+-- from sanji_uav_data_kafka
+--   where uavId is not null
+--     and uavId <> ''
+--     and uavLon is not null
+--     and uavLat is not null
+--     and createTime is not null
+--     and (type = 4 or type is null);
 
 
 
@@ -394,6 +397,7 @@ begin statement set;
 
 insert into rid_m30_aoa
 select
+    concat(src_pk,';',src_code,';1;1;',cast(longitude as varchar),';',cast(latitude as varchar)) as id,
     acquire_timestamp         ,
     product_key               ,
     device_id                 ,
@@ -442,53 +446,54 @@ from temp_01;
 
 
 
-insert into rid_m30_aoa
-select
-    acquire_timestamp         ,
-    product_key               ,
-    device_id                 ,
-    device_name               ,
-    acquire_time              ,
-    `method`                  ,
-    src_code                  ,
-    src_pk                    ,
-    rid_devid                 ,
-    msgtype                   ,
-    recvtype                  ,
-    mac                       ,
-    rssi                      ,
-    longitude                 ,
-    latitude                  ,
-    location_alit             ,
-    ew                        ,
-    speed_h                   ,
-    speed_v                   ,
-    height                    ,
-    height_type               ,
-    control_station_longitude ,
-    control_station_latitude  ,
-    control_station_height    ,
-    target_name               ,
-    altitude                  ,
-    distance_from_station     ,
-    speed_ms                  ,
-    target_frequency_khz      ,
-    target_bandwidth_khz      ,
-    target_signal_strength_db ,
-    target_type               ,
-    target_list_status        ,
-    target_list_type          ,
-    user_company_name         ,
-    user_full_name            ,
-    target_direction          ,
-    target_area_code          ,
-    target_registered         ,
-    target_fly_report_status  ,
-    home_longitude            ,
-    home_latitude             ,
-    no_fly_zone_id            ,
-    user_phone
-from sanji_temp_01;
+-- insert into rid_m30_aoa
+-- select
+--   concat(src_pk,';',src_code,';1;1;',cast(longitude as varchar),';',cast(latitude as varchar)) as id,
+--   acquire_timestamp         ,
+--   product_key               ,
+--   device_id                 ,
+--   device_name               ,
+--   acquire_time              ,
+--   `method`                  ,
+--   src_code                  ,
+--   src_pk                    ,
+--   rid_devid                 ,
+--   msgtype                   ,
+--   recvtype                  ,
+--   mac                       ,
+--   rssi                      ,
+--   longitude                 ,
+--   latitude                  ,
+--   location_alit             ,
+--   ew                        ,
+--   speed_h                   ,
+--   speed_v                   ,
+--   height                    ,
+--   height_type               ,
+--   control_station_longitude ,
+--   control_station_latitude  ,
+--   control_station_height    ,
+--   target_name               ,
+--   altitude                  ,
+--   distance_from_station     ,
+--   speed_ms                  ,
+--   target_frequency_khz      ,
+--   target_bandwidth_khz      ,
+--   target_signal_strength_db ,
+--   target_type               ,
+--   target_list_status        ,
+--   target_list_type          ,
+--   user_company_name         ,
+--   user_full_name            ,
+--   target_direction          ,
+--   target_area_code          ,
+--   target_registered         ,
+--   target_fly_report_status  ,
+--   home_longitude            ,
+--   home_latitude             ,
+--   no_fly_zone_id            ,
+--   user_phone
+-- from sanji_temp_01;
 
 
 end;
