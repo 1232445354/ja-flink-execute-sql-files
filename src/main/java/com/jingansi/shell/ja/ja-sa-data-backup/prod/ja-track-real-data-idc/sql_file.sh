@@ -15,19 +15,18 @@ sql="
 insert into sa.${table_name}
 select
   *
-from doris_idc.sa.${table_name}
+from doris_idc_track.sa.${table_name}
 where \`${time_column}\` between '${start_time}' and '${end_time}';
 "
 
-# 船舶、飞机天聚合
 sql_merge="
 insert into sa.${table_name}
 select
   *
-from doris_idc.sa.${table_name}
-where \`${time_column}\` = '${start_time}'
-  and longitude >= ${min_lon}
-  and longitude < ${max_lon};
+from doris_idc_track.sa.${table_name}
+where ${time_column} = '${start_time}'
+  and lng_key >= ${min_lon}
+  and lng_key < ${max_lon};
 "
 
 if [ -z "$min_lon" ]; then

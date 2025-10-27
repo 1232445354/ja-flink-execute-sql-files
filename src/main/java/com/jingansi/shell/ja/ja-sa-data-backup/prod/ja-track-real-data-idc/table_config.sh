@@ -1,0 +1,11 @@
+#！/bin/bash
+
+# 表名称、时间字段、同一个表不同时间之间的间隔、每次同步几小时(s)
+arrayList=(
+"dws_vessel_bhv_track_rt acquire_time 5 1800"      # 30 minute
+"dwd_bhv_aircraft_combine_rt acquire_time 10 600"   # 10 minute
+)
+
+weather_list=(
+"dwd_weather_indices_all weather_time"
+)
