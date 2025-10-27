@@ -25,6 +25,8 @@ declare -a small_table_infos=(
 "dws_vessel_bhv_status_rt acquire_time 0 0"                 # 船舶最后位置状态表
 "dws_flight_segment_rt start_time 0 0"                      # 飞机航段表 - 自己计算的
 "dws_bhv_airport_weather_info acquire_time 0 0"             # 机场天气表
+"dws_airport_liveatc_audio_files update_time 0 0"           #机场ATC音频文件表
+"dwd_airport_liveatc_info update_time 0 0"                  #liveatc设施表"
 )
 
 # 聚合表
