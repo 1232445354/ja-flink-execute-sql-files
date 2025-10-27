@@ -50,22 +50,21 @@ create table iot_device_message_kafka_01 (
                                                  photoUrl            string, -- 媒体上报的拍照图片url
                                                  height              double,
                                                  isCapture           bigint, -- 筛选过滤字段
-
                                                  -- 视频数据
                                                  videoId             string,
                                                  videoUrl            string,
 
                                                  -- 执法仪轨迹
-                                                 longitude           double, -- 经度
-                                                 latitude            double, -- 纬度
-                                                 attitudeHead        double, -- 无人机机头朝向
-                                                 gimbalHead          double, -- 无人机云台朝向
-                                                 altitude            double, -- 海拔
-                                                 taskId              string, -- 当前执行的航线，*机场无人机特有
-                                                 taskWaylineId       string, -- 当前执行航线的模版uuid，*机场无人机特有
-                                                 taskCurrentWaylineStatus string, -- 当前执行航线的状态，上云透传，*机场无人机特有
-                                                 taskCurrentWaylineIndex int, -- 当前执行航线任务所在序号，*机场无人机特有
-                                                 -- height              double, -- 跟海拔差不多的字段，一起给前段，回溯轨迹需要海拔，3维
+                                                 longitude                  double, -- 经度
+                                                 latitude                   double, -- 纬度
+                                                 attitudeHead               double, -- 无人机机头朝向
+                                                 gimbalHead                 double, -- 无人机云台朝向
+                                                 altitude                   double, -- 海拔
+                                                 taskId                     string, -- 当前执行的航线，*机场无人机特有
+                                                 taskWaylineId              string, -- 当前执行航线的模版uuid，*机场无人机特有
+                                                 taskCurrentWaylineStatus   string, -- 当前执行航线的状态，上云透传，*机场无人机特有
+                                                 taskCurrentWaylineIndex    int, -- 当前执行航线任务所在序号，*机场无人机特有
+                                                 -- height                  double, -- 跟海拔差不多的字段，一起给前段，回溯轨迹需要海拔，3维
 
                                                  -- 密集数据统计
                                                  statisticalInterval  bigint, --
@@ -133,12 +132,11 @@ create table iot_device_message_kafka_01 (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
-      'properties.group.id' = 'iot-device-message-group-id4',
+      'properties.group.id' = 'iot-device-message-group4',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '1750521634000',
+      -- 'scan.startup.timestamp-millis' = '1751385629000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -170,13 +168,12 @@ create table iot_device_message_kafka_02 (
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      -- 'properties.bootstrap.servers' = '172.21.30.105:30090',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      'properties.group.id' = 'iot-device-message-group-id5',
+      'properties.group.id' = 'iot-device-message-group5',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.timestamp-millis' = '1750521634000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -260,15 +257,14 @@ create table dwd_radar_target_all_rt(
                                         update_time                string      -- 数据入库时间
 )WITH (
      'connector' = 'doris',
-     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     -- 'fenodes' = '172.21.30.245:8030',
+     'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',   -- k8s部署
      'table.identifier' = 'dushu.dwd_radar_target_all_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
      'doris.request.tablet.size'='3',
      'doris.request.read.timeout.ms'='30000',
-     'sink.batch.size'='5000',
-     'sink.batch.interval'='5s',
+     'sink.batch.size'='20000',
+     'sink.batch.interval'='10s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
      'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
@@ -280,31 +276,30 @@ create table dwd_radar_target_all_rt(
 
 -- 设备执法仪、无人机轨迹数据（Sink：doris）
 create table dwd_device_track_rt (
-                                     device_id                 string              comment '上报的设备id',
-                                     acquire_timestamp_format  string              comment '格式化时间',
-                                     acquire_timestamp         bigint              comment '上报时间戳',
-                                     attitude_head             DECIMAL(30,18)      comment '无人机机头朝向',
-                                     gimbal_head               DECIMAL(30,18)      comment '无人机云台朝向',
-                                     altitude                  double              comment '海拔高度',
-                                     height                    double              comment '跟海拔差不多的一个高度，用于回溯轨迹3维',
-                                     lng_02                    DECIMAL(30,18)      comment '经度—高德坐标系、火星坐标系',
-                                     lat_02                    DECIMAL(30,18)      comment '纬度—高德坐标系、火星坐标系',
-                                     task_id	                string              comment '当前执行的航线，*机场无人机特有',
-                                     task_wayline_id	        string              comment '当前执行航线的模版uuid，*机场无人机特有',
-                                     task_current_wayline_status string            comment '当前执行航线的状态，上云透传，*机场无人机特有',
-                                     task_current_wayline_index  int               comment '当前执行航线任务所在序号，*机场无人机特有',
-                                     username                  string              comment '设备用户',
-                                     group_id                  string              comment '组织id',
-                                     product_key               string              comment '产品key',
-                                     tid                       string              comment 'tid',
-                                     bid                       string              comment 'bid',
-                                     device_name               string              comment '设备名称',
-                                     device_type               string              comment '设备类型',
-                                     update_time               string              comment '更新插入时间（数据入库时间'
+                                     device_id                   string              comment '上报的设备id',
+                                     acquire_timestamp_format    string              comment '格式化时间',
+                                     acquire_timestamp           bigint              comment '上报时间戳',
+                                     attitude_head               DECIMAL(30,18)      comment '无人机机头朝向',
+                                     gimbal_head                 DECIMAL(30,18)      comment '无人机云台朝向',
+                                     altitude                    double              comment '海拔高度',
+                                     height                      double              comment '跟海拔差不多的一个高度，用于回溯轨迹3维',
+                                     lng_02                      DECIMAL(30,18)      comment '经度—高德坐标系、火星坐标系',
+                                     lat_02                      DECIMAL(30,18)      comment '纬度—高德坐标系、火星坐标系',
+                                     task_id	                  string              comment '当前执行的航线，*机场无人机特有',
+                                     task_wayline_id	          string              comment '当前执行航线的模版uuid，*机场无人机特有',
+                                     task_current_wayline_status string              comment '当前执行航线的状态，上云透传，*机场无人机特有',
+                                     task_current_wayline_index  int                 comment '当前执行航线任务所在序号，*机场无人机特有',
+                                     username                    string              comment '设备用户',
+                                     group_id                    string              comment '组织id',
+                                     product_key                 string              comment '产品key',
+                                     tid                         string              comment 'tid',
+                                     bid                         string              comment 'bid',
+                                     device_name                 string              comment '设备名称',
+                                     device_type                 string              comment '设备类型',
+                                     update_time                 string              comment '更新插入时间（数据入库时间'
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_track_rt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -334,7 +329,6 @@ create table dwd_device_attr_info (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_attr_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -344,7 +338,6 @@ create table dwd_device_attr_info (
      'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
@@ -371,7 +364,6 @@ create table dwd_device_operate_report_info (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
---   'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_device_operate_report_info',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -381,7 +373,6 @@ create table dwd_device_operate_report_info (
      'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
@@ -406,7 +397,6 @@ create table dwd_dense_person_cnt (
 )WITH (
      'connector' = 'doris',
      'fenodes' = 'doris-fe-service.bigdata-doris.svc.cluster.local:9999',
-     -- 'fenodes' = '172.21.30.245:8030',
      'table.identifier' = 'dushu.dwd_dense_person_cnt',
      'username' = 'admin',
      'password' = 'Jingansi@110',
@@ -416,7 +406,6 @@ create table dwd_dense_person_cnt (
      'sink.batch.interval'='5s',
      'sink.properties.escape_delimiters' = 'true',
      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
-     'sink.properties.escape_delimiters' = 'true',    -- 类似开启的意思
      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
      );
 
@@ -493,8 +482,6 @@ create table action_item (
                              action_id         bigint, -- 行动任务ID
                              status            string, -- 子任务状态，PENDING：未开始,PROCESSING：行动中，FINISHED：已完成
                              device_id	        string, -- 设备ID
-                             start_time        timestamp, -- 开始时间
-
                              primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
@@ -577,7 +564,7 @@ select
 
     -- 手动拍照
     message.`data`.photoUrl    as photo_url,
-    message.`data`.isCapture   as is_capture, -- 为了过滤截图截图送检的
+    message.`data`.isCapture   as is_capture,   -- 为了过滤截图截图送检的
     message.`data`.videoId     as video_id,
     message.`data`.videoUrl    as video_url,
     PROCTIME()  as proctime
@@ -587,22 +574,26 @@ where coalesce(deviceId,message.deviceId) is not null
   and abs(coalesce(`timestamp`,message.`timestamp`)/1000 - UNIX_TIMESTAMP()) <= 864000;
 
 
+
 -- 关联设备表取出设备名称,取出父设备望楼id，数据来源都是子设备id
 create view tmp_source_kafka_02 as
 select
     t1.*,
-    t2.gmt_create_by   as username,
-    t2.device_name     as device_name_join,
+    t2.gmt_create_by as username,
+    t2.device_name as device_name_join,
     if(t2.parent_id = '',cast(null as varchar),t2.parent_id) as parent_id,
     t3.group_id,
-    t4.type            as device_type_join
+    t4.type as device_type_join
 from tmp_source_kafka_01 as t1
          left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.device_id = t2.device_id
+
          left join users FOR SYSTEM_TIME AS OF t1.proctime as t3
                    on t2.gmt_create_by = t3.username
+
          left join device FOR SYSTEM_TIME AS OF t1.proctime as t4
                    on t1.device_id = t4.device_id;
+
 
 
 -- 拍照截图数据处理
@@ -612,20 +603,20 @@ select
     case when t1.`method` = 'platform.capture.post' then 'SCREENSHOT'    -- 截图
          when t1.`method` = 'event.mediaFileUpload.info' then 'PHOTOGRAPH' -- 拍照
         end as source_id,
-    t1.device_name_join                                                      as source_name,
-    if(`method` = 'event.videoMediaFileUpload.info','VIDEO','PICTURE')       as type,
-    from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss')           as start_time,
-    from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss')           as end_time,
 
+    t1.device_name_join as source_name,
+    if(`method` = 'event.videoMediaFileUpload.info','VIDEO','PICTURE')       as type,
+    from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as start_time,
+    from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss') as end_time,
     case when t1.`method` = 'platform.capture.post' then concat('/',picture_url)
          when t1.`method` = 'event.mediaFileUpload.info' then photo_url
          when t1.`method` = 'event.videoMediaFileUpload.info' then concat('/',video_url)
         end as url,
 
-    case when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'-V') >0 then '可见光'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'-W') >0 then '广角'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'-Z') >0 then '变焦'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'-T') >0 then '红外'
+    case when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'_V') >0 then '可见光'
+         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'_W') >0 then '广角'
+         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'_Z') >0 then '变焦'
+         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'_T') >0 then '红外'
         end as photo_type,
 
     t1.longitude,
@@ -687,7 +678,8 @@ from (
 
          left join action_item FOR SYSTEM_TIME AS OF t1.proctime as t3
                    on t1.device_id = t3.device_id
-                       and ('PENDING' = t3.status or 'PROCESSING' = t3.status)
+                       and 'PROCESSING' = t3.status
+     -- and ('PENDING' = t3.status or 'PROCESSING' = t3.status)
 where t2.h3Code is not null;
 
 
@@ -710,7 +702,7 @@ select
 from tmp_source_kafka_02
 where `method` = 'event.targetInfo.info'
   -- r4ae3Loh78v(振动仪)、k8dNIRut1q3（雷达）、xjWO7NdIOYs（天朗雷达） 、00000000002（无人机检测目标数据）、aby554pqic0（雷莫雷达）
-  and product_key in('r4ae3Loh78v','k8dNIRut1q3','xjWO7NdIOYs','00000000002','aby554pqic0');
+  and product_key in('r4ae3Loh78v','k8dNIRut1q3','xjWO7NdIOYs','aby554pqic0');
 
 
 
@@ -759,9 +751,9 @@ select
     if(t2.wh = true,'1','0')  as wh,
     if(t2.isL = true,'1','0') as isL,
     if(t2.isA = true,'1','0') as isA,
-    t2.name           ,
-    t2.cti            ,
-    t2.sn             ,
+    t2.name,
+    t2.cti ,
+    t2.sn  ,
     t1.device_type_join as source_type,         -- RADAR、振动仪 的method是一样的
     t1.device_name_join as source_type_name,
 
@@ -878,13 +870,13 @@ select
     gimbal_head,
     altitude,
     uav_height as height,
-    longitude,
-    latitude,
-    username,
     task_id,
     task_wayline_id,
     task_current_wayline_status,
     task_current_wayline_index,
+    longitude,
+    latitude,
+    username,
     group_id as group_id,
     device_type_join as device_type,
     device_name_join as device_name
@@ -913,7 +905,6 @@ select
     t1.`type`,
     t1.operator,
     if(t1.type = 'properties',JSON_VALUE(properties,'$.healthInfo[0]'),JSON_VALUE(properties,'$.message')) as health_info
-
 from (
          select
              type,
@@ -979,6 +970,7 @@ select
     device_type               ,
     from_unixtime(unix_timestamp()) as update_time
 from tmp_track_01;
+
 
 
 -- 截图拍照数据入库
@@ -1090,7 +1082,6 @@ select
 from tmp_attr_01    -- 筛选服务数据 & 事件数据入库（事件数据过滤雷达、拍照数据）
 where type in ('services','events')
    or (type = 'properties' and health_info is not null);
-
 
 
 -- 密集数据入库
