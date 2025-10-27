@@ -74,7 +74,7 @@ do
       current_min=$current
       current_max=$((current + step))
       echo -e "${pre_start_time} + ${next_end_time} 范围: [$current_min, $current_max]"
-      execute_with_retry "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "merge" "$current_min" "$current_max"
+      execute_with_retry "$table_name" "$time_column" "$start_time" "$end_time" "merge" "$current_min" "$current_max"
       sleep 2s
   done
 done
