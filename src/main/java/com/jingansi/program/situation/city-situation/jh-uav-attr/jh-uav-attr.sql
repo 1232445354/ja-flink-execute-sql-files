@@ -86,7 +86,7 @@ create table jh_uav_info (
       -- 'scan.startup.mode' = 'group-offsets',
       -- 'scan.startup.mode' = 'latest-offset',
       'scan.startup.mode' = 'timestamp',
-      'scan.startup.timestamp-millis' = '1761127250000',  -- 1745564415000
+      'scan.startup.timestamp-millis' = '0',  -- 1745564415000
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
@@ -193,6 +193,7 @@ create table `dws_et_uav_info` (
                                    gmt_expire              string  COMMENT '过期时间 ',
                                    real_name               boolean COMMENT '是否实名（0 未实名，1已实名） ',
                                    gmt_register            string  COMMENT '实名注册时间',
+                                   is_white_list           boolean comment '是否白名单',
                                    residence               string  COMMENT '居住地',
                                    purpose                 string  COMMENT '用途'
 ) with (
@@ -209,6 +210,8 @@ create table `dws_et_uav_info` (
       'sink.properties.column_separator' = '\x01',	 -- 列分隔符
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
+
+
 
 
 -- 飞手和无人机关系
@@ -232,6 +235,108 @@ create table `dws_rl_uav_pilot` (
       );
 
 
+-- 无人机实体信息表
+create table `dwd_et_uav_jh_info` (
+                                      id  bigint	comment '无人机id',
+                                      type  int	comment '无人机类型（0 未知，1 无人机，2 低慢小）',
+                                      type_name  varchar(20)	comment '无人机类型名称',
+                                      full_name  varchar(20)	comment '无人机持有者姓名',
+                                      sn  varchar(20)	comment '无人机序列号',
+                                      uav_model_name  varchar(20)	comment '无人机型号名称',
+                                      uav_company_name  varchar(20)	comment '无人机厂商名称',
+                                      gmt_register  string	comment '注册时间',
+                                      area_code  varchar(20)	comment '所属地区',
+                                      address  varchar(200)	comment '详细地址',
+                                      username  varchar(20)	comment '持有者姓名',
+                                      card_code  varchar(20)	comment '持有者身份证号',
+                                      phone  varchar(20)	comment '持有者手机号',
+                                      deleted  int	comment '是否删除（0 正常，1 已删除）',
+                                      gmt_create  string	comment '创建时间',
+                                      update_time  string	comment '更新时间'
+) with (
+      'connector' = 'doris',
+      'fenodes' = '135.100.11.132:30030',
+      -- 'fenodes' = '172.21.30.245:8030',
+      'table.identifier' = 'sa.dwd_et_uav_jh_info',
+      'username' = 'root',
+      'password' = 'Jingansi@110',
+      'doris.request.tablet.size'='5',
+      'doris.request.read.timeout.ms'='30000',
+      'sink.batch.size'='3000',
+      'sink.batch.interval'='2s',
+      'sink.properties.escape_delimiters' = 'true',
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      );
+
+
+-- 无人机白名单表
+create table `dwd_et_uav_jh_white_info` (
+                                            id  bigint  comment '无人机id',
+                                            sn  varchar(20)  comment '无人机序列号',
+                                            uav_model_name  varchar(20)  comment '无人机型号名称',
+                                            max_height  int  comment '最大高度（单位米）',
+                                            engine_type  varchar(20)  comment '动力类型',
+                                            company_name  varchar(50)  comment '持有单位',
+                                            list_status  int  comment '名单状态（0 正常，1 白名单，2 灰名单）',
+                                            list_type  int  comment '名单类型(1 警用白名单，2 低空经济白名单，3 政务白名单， 4 多次黑飞黑名单， 5 重点人员黑名单)',
+                                            gmt_expire  string  comment '过期时间',
+                                            deleted  int  comment '是否删除（0 正常，1 已删除）',
+                                            gmt_create  string  comment '创建时间',
+                                            update_time  string  comment '更新时间'
+) with (
+      'connector' = 'doris',
+      'fenodes' = '135.100.11.132:30030',
+      -- 'fenodes' = '172.21.30.245:8030',
+      'table.identifier' = 'sa.dwd_et_uav_jh_white_info',
+      'username' = 'root',
+      'password' = 'Jingansi@110',
+      'doris.request.tablet.size'='5',
+      'doris.request.read.timeout.ms'='30000',
+      'sink.batch.size'='3000',
+      'sink.batch.interval'='2s',
+      'sink.properties.escape_delimiters' = 'true',
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      );
+
+
+
+-- 无人机用户数据表
+create table `dwd_et_uav_jh_user_info` (
+                                           id  bigint comment  'id',
+                                           username  varchar(20) comment  '持有者姓名',
+                                           user_type_name  varchar(20) comment  '用户类型名称',
+                                           card_type_name  varchar(20) comment  '证件类型名称',
+                                           phone  varchar(20) comment  '持有者手机号',
+                                           card_code  varchar(20) comment  '证件号码',
+                                           area_code  varchar(20) comment  '所属地区',
+                                           real_name  Boolean comment  '是否实名（0 未实名，1已实名）',
+                                           gmt_register  string comment  '实名注册时间',
+                                           full_name  varchar(20) comment  '姓名',
+                                           residence  varchar(20) comment  '居住地',
+                                           list_status  int comment  '名单状态（0 正常，1 白名单，2 灰名单，3 黑名单）',
+                                           deleted  Boolean comment  '是否删除（0 正常，1 已删除）',
+                                           gmt_create  string comment  '创建时间',
+                                           update_time  string comment  '更新时间'
+) with (
+      'connector' = 'doris',
+      'fenodes' = '135.100.11.132:30030',
+      -- 'fenodes' = '172.21.30.245:8030',
+      'table.identifier' = 'sa.dwd_et_uav_jh_user_info',
+      'username' = 'root',
+      'password' = 'Jingansi@110',
+      'doris.request.tablet.size'='5',
+      'doris.request.read.timeout.ms'='30000',
+      'sink.batch.size'='3000',
+      'sink.batch.interval'='2s',
+      'sink.properties.escape_delimiters' = 'true',
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      );
+
+
+
 begin statement set;
 
 -- 警航数据写入实体表
@@ -239,7 +344,7 @@ insert into dws_et_uav_info
 select
     coalesce(uavInfo.sn,whiteInfo.sn)                       as id,
     coalesce(uavInfo.sn,whiteInfo.sn)            as sn,
-    coalesce(whiteInfo.uavModelName,uavInfo.uavModelName,uavInfo.sn,b.name)  as name,
+    coalesce(whiteInfo.uavModelName,uavInfo.uavModelName,whiteInfo.sn,uavInfo.sn,b.name)  as name,
     b.device_id                                              as device_id,
     b.recvmac as recvmac,
     coalesce(uavInfo.uavCompanyName,b.manufacturer)     as manufacturer,
@@ -248,7 +353,7 @@ select
     b.type                     as type,
     'ZHENDI' as source,
     concat(
-            ifnull(coalesce(whiteInfo.uavModelName,uavInfo.cardCode,uavInfo.sn),''),' ',
+            ifnull(coalesce(whiteInfo.uavModelName,uavInfo.uavModelName,b.model),''),' ',
             ifnull(coalesce(uavInfo.sn,whiteInfo.sn),'')
         )         as search_content,
     from_unixtime(unix_timestamp()) as update_time,
@@ -270,13 +375,85 @@ select
     coalesce(whiteInfo.listStatus,userInfo.listStatus) as list_status              , -- 名单状态（0 正常，1 白名单，2 灰名单）
     whiteInfo.listType as list_type                , -- 名单类型(1 警用白名单，2 低空经济白名单，3 政务白名单， 4 多次黑飞黑名单， 5 重点人员黑名单)
     replace(replace(whiteInfo.gmtExpire,'T',' '),'.000+00:00','') as gmt_expire               , -- 过期时间
-    userInfo.realName as real_name                , -- 是否实名（0 未实名，1已实名）
+    if(whiteInfo.sn is not null,true,userInfo.realName) as real_name                , -- 是否实名（0 未实名，1已实名）
     replace(replace(coalesce(uavInfo.gmtRegister,userInfo.gmtRegister),'T',' '),'.000+00:00','') as gmt_register             , -- 实名注册时间
+    whiteInfo.sn is not null as  is_white_list,
     userInfo.residence as residence                , -- 居住地
     b.purpose as purpose                   -- 用途
 from jh_uav_info a
          left join dws_et_uav_info_source FOR SYSTEM_TIME AS OF a.proctime as b   -- 设备表 关联无人机
                    on a.uavInfo.sn = b.id;
+
+
+
+
+
+
+
+
+
+
+-- -- 写入无人机数据表
+insert into dwd_et_uav_jh_info
+select
+    uavInfo.id as id,
+    uavInfo.type as type,
+    uavInfo.typeName as type_name,
+    uavInfo.fullName as full_name,
+    uavInfo.sn as sn,
+    uavInfo.uavModelName as uav_model_name,
+    uavInfo.uavCompanyName as uav_company_name,
+    uavInfo.gmtRegister as gmt_register,
+    uavInfo.areaCode as area_code,
+    uavInfo.address as address,
+    uavInfo.username as username,
+    uavInfo.cardCode as card_code,
+    uavInfo.phone as phone,
+    uavInfo.`delete` as deleted,
+    uavInfo.gmtCreate as gmt_create,
+    from_unixtime(unix_timestamp())  as update_time
+from jh_uav_info
+where uavInfo.id is not null;
+
+-- -- 写入白名单数据表
+insert into dwd_et_uav_jh_white_info
+select
+    whiteInfo.id as id,
+    whiteInfo.sn as sn,
+    whiteInfo.uavModelName as uav_model_name,
+    whiteInfo.maxHeight as max_height,
+    whiteInfo.engineType as engine_type,
+    whiteInfo.companyName as company_name,
+    whiteInfo.listStatus as list_status,
+    whiteInfo.listType as list_type,
+    whiteInfo.gmtExpire as gmt_expire,
+    whiteInfo.`delete` as deleted,
+    whiteInfo.gmtCreate as gmt_create,
+    from_unixtime(unix_timestamp())  as update_time
+from jh_uav_info
+where whiteInfo.id is not null;
+
+-- -- 写入用户数据表
+insert into dwd_et_uav_jh_user_info
+select
+    userInfo.id as id,
+    userInfo.username as username,
+    userInfo.userTypeName as user_type_name,
+    userInfo.cardTypeName as card_type_name,
+    userInfo.phone as phone,
+    userInfo.cardCode as card_code,
+    userInfo.areaCode as area_code,
+    userInfo.realName as real_name,
+    userInfo.gmtRegister as gmt_register,
+    userInfo.fullName as full_name,
+    userInfo.residence as residence,
+    userInfo.listStatus as list_status,
+    userInfo.`delete` as deleted,
+    userInfo.gmtCreate as gmt_create,
+    from_unixtime(unix_timestamp())  as update_time
+from jh_uav_info
+where userInfo.id is not null;
+
 
 
 
@@ -306,6 +483,7 @@ from jh_uav_info
 where userInfo.id is not null;
 
 
+
 insert into dws_rl_uav_pilot
 select
     uavInfo.sn as uav_id , -- 无人机的id-sn号
@@ -313,6 +491,9 @@ select
     from_unixtime(unix_timestamp())  as update_time  -- 更新时间
 from jh_uav_info
 where userInfo.id is not null;
+
+
+
 
 end;
 

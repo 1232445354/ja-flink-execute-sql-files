@@ -16,7 +16,7 @@ execute_with_retry() {
   local max_lon=$7
 
   while true; do
-     sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$min_lon" "$max_lon"
+    sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$min_lon" "$max_lon"
     if [ $? -eq 0 ]; then
       echo -e "执行成功\n"
       break

@@ -125,12 +125,11 @@ create table jh_uav_data_kafka (
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
       -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0', -- 1747102253000
+      -- 'scan.startup.timestamp-millis' = '1761237002000', -- 1747102253000
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
-
 
 
 
@@ -259,7 +258,7 @@ select
         cast(operatorLatitude as double)   as control_station_latitude,
         cast(null as double)               as control_station_height,
         targetName                         as target_name,
-        targetAltitude                     as altitude,
+        if(targetAltitude is not null, targetAltitude + 29,targetAltitude)  as altitude,
         targetDistance                     as distance_from_station,
         targetSpeed                        as speed_ms,
         if(targetFrequency = '',cast(null as double),cast(targetFrequency as double)) as target_frequency_khz,

@@ -1,8 +1,12 @@
 #!/bin/bash
 
 table_name=${1}
-start_time=${2}
-src_code=${3}
+time_column=${2}
+start_time=${3}
+end_time=${4}
+type=${5}
+min_lon=${6}
+max_lon=${7}
 
 DIR=$(cd `dirname $0`; pwd)
 
@@ -14,7 +18,8 @@ select
   *
 from doris_idc.sa.${table_name}
 where merge_time = '${start_time}'
-  and src_code = ${src_code};
+  and longitude >= ${min_lon}
+  and longitude < ${max_lon};
 "
 
 mysql -h${host} \
