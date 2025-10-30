@@ -26,23 +26,22 @@ execute_with_retry() {
   fi
 }
 
-
-start_time=$(date "+%Y-%m-%d 00:00:00")
+# 前一天的时间
+start_time=$(date -d "yesterday" "+%Y-%m-%d 00:00:00")
 end_time=$(date "+%Y-%m-%d 00:00:00")
-echo "start_time = [${start_time}],end_time = [${end_time}]"
+echo "start_time = [${start_time}],end_time = [${end_time}]" # 昨天0点、今天0点
 start_time_ymd=$(date -d "yesterday" "+%Y%m%d")
 start_time_y=$(date -d "yesterday" "+%Y")
 
 # 将时间格式转换为 Unix 时间戳
-for item in "${array_list_month[@]}"
+for item in "${array_list_day[@]}"
 do
     # 切分元素为多个值
     table_name=$(echo $item | awk '{print $1}')
     time_column=$(echo $item | awk '{print $2}')
     parallelism=$(echo $item | awk '{print $3}')
     echo -e "...........${table_name}............."
-    execute_with_retry "$table_name" "$time_column" "$start_time" "$end_time" "month" "$start_time_y" "$start_time_ymd" "$parallelism"
-    sleep 2s
+    execute_with_retry "$table_name" "$time_column" "$start_time" "$end_time" "day" "$start_time_y" "$start_time_ymd" "$parallelism"
 done
 
 

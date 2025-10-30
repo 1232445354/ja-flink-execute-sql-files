@@ -52,19 +52,17 @@ PROPERTIES (
 
 
 if [ "$type" = "day" ]; then
-  echo "${sql_day}"
-#  mysql -h${host} \
-#  -P${port} \
-#  -u${username} \
-#  -p${password} \
-#  -e "${sql_day}"
+  mysql -h${host} \
+  -P${port} \
+  -u${username} \
+  -p${password} \
+  -e "${sql_day}"
 elif [ "$type" = "month" ]; then
-  echo "${sql_month}"
-#  mysql -h${host} \
-#  -P${port} \
-#  -u${username} \
-#  -p${password} \
-#  -e "${sql_month}"
+  mysql -h${host} \
+  -P${port} \
+  -u${username} \
+  -p${password} \
+  -e "${sql_month}"
 fi
 
 

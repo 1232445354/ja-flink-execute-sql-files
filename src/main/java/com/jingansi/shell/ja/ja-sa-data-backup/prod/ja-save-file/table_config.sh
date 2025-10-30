@@ -22,7 +22,7 @@ array_list_day=(
 "dwd_fr24_aircraft_list_rt acquire_time 4"                      # f24单独表
 "dws_vessel_bhv_track_rt acquire_time 4"                        # 船舶轨迹表
 "dwd_bhv_aircraft_combine_rt acquire_time 6"                    # 飞机轨迹表
-"dwd_weather_indices_all weather_time 1"                        # 气象数据表
+"dwd_weather_indices_all weather_time 4"                        # 气象数据表
 )
 
 

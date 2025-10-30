@@ -42,6 +42,7 @@ do
     parallelism=$(echo $item | awk '{print $3}')
     echo -e "...........${table_name}............."
     execute_with_retry "$table_name" "$time_column" "$start_time" "$end_time" "day" "$start_time_y" "$start_time_ymd" "$parallelism"
+    sleep 2s
 done
 
 
