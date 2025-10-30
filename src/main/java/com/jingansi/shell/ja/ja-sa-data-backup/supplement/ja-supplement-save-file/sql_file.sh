@@ -7,7 +7,7 @@ end_time=${4}
 type=${5}
 start_time_y=${6}
 start_time_ymd=${7}
-parallelism=$8
+parallelism=${8}
 
 DIR=$(cd `dirname $0`; pwd)
 source ${DIR}/config.sh
@@ -18,11 +18,12 @@ sql_day="
 EXPORT TABLE ${table_name}
 where ${time_column} >= '${start_time}'
   and ${time_column} < '${end_time}'
-TO \"s3://${S3_BUCKET}/${table_name}/${start_time_y}/${start_time_ymd}/\"
+TO \"s3://${S3_BUCKET}/${table_name}/total_his/${start_time_y}/${start_time_ymd}/\"
 PROPERTIES (
 	\"format\" = \"${S3_FORMAT}\",
 	\"max_file_size\"=\"${S3_MAX_FILE_SIZE}\",
-  \"parallelism\"=\"${parallelism}\"
+  \"parallelism\"=\"${parallelism}\",
+  \"data_consistency\"=\"partition\"
 ) WITH S3 (
   \"s3.endpoint\" = \"${S3_ENDPOINT}\",
   \"s3.secret_key\"=\"${S3_SECRET}\",

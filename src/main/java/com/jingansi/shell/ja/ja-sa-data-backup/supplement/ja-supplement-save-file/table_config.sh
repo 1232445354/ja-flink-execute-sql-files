@@ -2,7 +2,7 @@
 
 # 按天的数据文件
 array_list_day=(
-"dwd_bhv_satellite_rt update_time 1"                            # 卫星全量数据
+#"dwd_bhv_satellite_rt update_time 1"                            # 卫星全量数据
 #"dws_bhv_satellite_list_fd today_time 1"                        # 卫星按天聚合表
 #"dwd_bhv_satellite_sense_info update_time 1"                    # 遥感融合表数据
 #"dwd_bhv_landsat_sense_list update_time 1"                      # landsat单独的遥感图
@@ -11,7 +11,7 @@ array_list_day=(
 #"dws_flight_segment_rt start_time 1"                            # 飞机航段表 - 自己计算的
 #"dws_bhv_airport_weather_info acquire_time 1"                   # 机场天气表
 #"dws_airport_liveatc_audio_files update_time 1"                 # 机场ATC音频文件表
-#"dws_bhv_aircraft_last_location_fd merge_time 2"                # 飞机天聚合
+"dws_bhv_aircraft_last_location_fd merge_time 4"                 # 飞机天聚合
 #"dws_bhv_vessel_last_location_fd merge_time 2"                  # 船舶天聚合
 #"dws_bhv_aircraft_last_location_dh merge_time 2"                # 飞机按小时聚合表
 #"dws_bhv_vessel_last_location_dh merge_time 2"                  # 船舶按小时聚合表

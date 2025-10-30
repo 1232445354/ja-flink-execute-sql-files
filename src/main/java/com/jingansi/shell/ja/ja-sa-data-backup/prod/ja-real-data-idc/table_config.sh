@@ -37,6 +37,7 @@ declare -a table_infos=(
 
 # 表名称、时间字段、同一个表不同时间之间的间隔、每次同步几小时(s)
 arrayList=(
+"dws_vessel_bhv_track_rt acquire_time 5 1800"             # 30 minute
 "dws_bhv_aircraft_last_location_dh merge_time 3 14400"                # 4 hour   飞机按小时聚合表
 "dws_bhv_vessel_last_location_dh merge_time 3 14400"                  # 4 hour    船舶按小时聚合表
 "dwd_vessel_list_all_rt acquire_timestamp_format 5 7200"              # 2 hour    marinetraffic单独表

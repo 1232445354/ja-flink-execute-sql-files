@@ -15,7 +15,7 @@ execute_with_retry() {
   local type=$5
   local start_time_y=$6
   local start_time_ymd=$7
-  lcoal parallelism=$8
+  local parallelism=$8
 
   sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$start_time_y" "$start_time_ymd" "$parallelism"
   if [ $? -eq 0 ]; then
@@ -27,13 +27,13 @@ execute_with_retry() {
 }
 
 # 前一天的时间
-start_time=$(date -d "yesterday" "+%Y-%m-%d 00:00:00")
-end_time=$(date "+%Y-%m-%d 00:00:00")
-echo "start_time = [${start_time}],end_time = [${end_time}]" # 昨天0点、今天0点
-start_time_ymd=$(date -d "yesterday" "+%Y%m%d")
-start_time_y=$(date -d "yesterday" "+%Y")
+start_time="2023-05-01 00:00:00"
+end_time="2023-07-01 00:00:00"
+echo "start_time = [${start_time}],end_time = [${end_time}]"
 
-# 将时间格式转换为 Unix 时间戳
+current_start=$(date -d "$start_time" +%Y-%m-01)
+end_date=$(date -d "$end_time" +%Y-%m-01)
+
 for item in "${array_list_day[@]}"
 do
     # 切分元素为多个值
@@ -41,7 +41,18 @@ do
     time_column=$(echo $item | awk '{print $2}')
     parallelism=$(echo $item | awk '{print $3}')
     echo -e "...........${table_name}............."
-    execute_with_retry "$table_name" "$time_column" "$start_time" "$end_time" "day" "$start_time_y" "$start_time_ymd" "$parallelism"
+
+    while [[ "$current_start" < "$end_date" ]]; do
+        current_end=$(date -d "$current_start +1 month" +%Y-%m-01)
+        start_time="$current_start 00:00:00"
+        end_time="$current_end 00:00:00"
+        start_time_y=$(date -d "$start_time" +%Y)
+        start_time_ymd=$(date -d "$start_time" +%Y%m%d)
+        echo "时间段:start_time $start_time - end_time $end_time"
+        execute_with_retry "$table_name" "$time_column" "$start_time" "$end_time" "day" "$start_time_y" "$start_time_ymd" "$parallelism"
+        current_start="$current_end"
+        sleep 2s
+    done
 done
 
 
