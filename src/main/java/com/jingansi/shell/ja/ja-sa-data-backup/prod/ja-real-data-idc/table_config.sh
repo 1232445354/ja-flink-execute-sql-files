@@ -42,6 +42,5 @@ arrayList=(
 "dws_bhv_vessel_last_location_dh merge_time 3 14400"                  # 4 hour    船舶按小时聚合表
 "dwd_vessel_list_all_rt acquire_timestamp_format 5 7200"              # 2 hour    marinetraffic单独表
 "dwd_vt_vessel_all_info acquire_timestamp_format 5 3600"              # 1 hour    vt单独表
-"dwd_ais_landbased_vessel_list acquire_time 5 14400"                  # 4 hour    lb单独表
-"dwd_fr24_aircraft_list_rt acquire_time 5 3600"                       # 1 hour    f24单独表
+"dwd_fr24_grpc_aircraft_list_rt acquire_time 5 3600"                       # 1 hour    f24单独表
 )

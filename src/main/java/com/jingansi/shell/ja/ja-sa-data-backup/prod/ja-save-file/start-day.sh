@@ -15,7 +15,7 @@ execute_with_retry() {
   local type=$5
   local start_time_y=$6
   local start_time_ymd=$7
-  lcoal parallelism=$8
+  local parallelism=$8
 
   sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$start_time_y" "$start_time_ymd" "$parallelism"
   if [ $? -eq 0 ]; then
