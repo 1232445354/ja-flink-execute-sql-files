@@ -5,6 +5,11 @@ source ${DIR}/config.sh
 source ${DIR}/table_config.sh
 echo -e "开始备份idc-态势数据...$(date "+%Y-%m-%d %H:%M:%S")"
 
+catalog_name="doris_idc_track"
+echo -e "开始重新创建catalog:${catalog_name}..\n"
+sh "${DIR}/catalog.sh" "$catalog_name"
+
+
 # 定义一个执行 SQL 脚本的函数
 execute_with_retry() {
   local table_name=$1
@@ -16,7 +21,7 @@ execute_with_retry() {
   local max_lon=$7
 
   while true; do
-    sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$min_lon" "$max_lon"
+    sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$catalog_name" "$min_lon" "$max_lon"
     if [ $? -eq 0 ]; then
       echo -e "执行成功\n"
       break

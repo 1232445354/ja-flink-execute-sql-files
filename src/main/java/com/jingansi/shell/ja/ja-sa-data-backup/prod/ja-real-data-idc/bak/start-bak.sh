@@ -5,11 +5,6 @@ source ${DIR}/config.sh
 source ${DIR}/table_config.sh
 echo -e "开始备份idc-态势数据...$(date "+%Y-%m-%d %H:%M:%S")"
 
-catalog_name="doris_idc"
-echo -e "开始重新创建catalog:${catalog_name}..\n"
-sh "${DIR}/catalog.sh" "$catalog_name"
-
-
 # 定义一个执行 SQL 脚本的函数
 execute_with_retry() {
   local table_name=$1
@@ -20,24 +15,13 @@ execute_with_retry() {
   local min_lon=$6
   local max_lon=$7
 
-  local max_retries=10
-  local retry_count=0
-
   while true; do
-    local output
-    output=$(sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$catalog_name" "$min_lon" "$max_lon" 2>&1)
-    local exit_code=$?
-    if [ $exit_code -eq 0 ] && ! echo "$output" | grep -q "Query timeout"; then
+    sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$min_lon" "$max_lon"
+    if [ $? -eq 0 ]; then
       echo -e "执行成功\n"
       break
     else
-      retry_count=$((retry_count + 1))
-        echo -e "执行失败（尝试 $retry_count/$max_retries），重试中...\n"
-        echo "错误信息: $output"
-        if [ $retry_count -ge $max_retries ]; then
-          echo -e "达到最大重试次数，退出\n"
-          return 1
-        fi
+      echo -e "执行失败，重试中...\n"
       sleep 5s
     fi
   done
@@ -63,25 +47,41 @@ echo -e "---------------------------------------\n"
 
 
 echo -e "同步船舶、飞机按天聚合数据......\n"
-minLong=-180
-maxLong=180
-step=5
+aircraft_longitude_ranges=(
+    "-180 -120"
+    "-120 105"
+    "-105 -85"
+    "-85 -70"
+    "-70 180"
+)
+
+vessel_longitude_ranges=(
+      "-180 20"
+      "20 110"
+      "110 120"
+      "120 180"
+)
 
 merge_start_time=$(date -d "${start_time}" "+%Y-%m-%d 00:00:00")
 merge_end_time=$(date -d "${end_time}" "+%Y-%m-%d 00:00:00")
-
 for table_info in "${table_infos[@]}"; do
   IFS=' ' read -r table_name time_column <<< "$table_info"
   echo -e ".................${table_name}.................\n"
-
-  for ((current = minLong; current <= maxLong - step; current += step)); do
-      current_min=$current
-      current_max=$((current + step))
-      echo -e "${start_time} + ${end_time} 范围: [$current_min, $current_max]"
-      execute_with_retry "$table_name" "$time_column" "$merge_start_time" "$merge_end_time" "merge" "$current_min" "$current_max"
-      sleep 2s
-  done
-
+  if [ "$table_name" = "dws_bhv_aircraft_last_location_fd" ]; then
+    for range in "${aircraft_longitude_ranges[@]}"; do
+      min_lon=$(echo $range | cut -d' ' -f1)
+      max_lon=$(echo $range | cut -d' ' -f2)
+      echo -e "$merge_start_time + ${merge_end_time} + min_lon:max_lon->{$min_lon,$max_lon}"
+      execute_with_retry "$table_name" "$time_column" "$merge_start_time" "$merge_end_time" "merge" "${min_lon}" "${max_lon}"
+    done
+  else
+    for range in "${vessel_longitude_ranges[@]}"; do
+      min_lon=$(echo $range | cut -d' ' -f1)
+      max_lon=$(echo $range | cut -d' ' -f2)
+      echo -e "$merge_start_time + ${merge_end_time} + min_lon:max_lon->{$min_lon,$max_lon}"
+      execute_with_retry "$table_name" "$time_column" "$merge_start_time" "$merge_end_time" "merge" "${min_lon}" "${max_lon}"
+    done
+  fi
 done
 echo -e "聚合表同步完成"
 echo -e "---------------------------------------\n"
