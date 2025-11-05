@@ -46,6 +46,31 @@ do
 done
 
 
+# 将时间格式转换为 Unix 时间戳
+for item in "${array_list_time_day[@]}"
+do
+    # 切分元素为多个值
+    table_name=$(echo $item | awk '{print $1}')
+    time_column=$(echo $item | awk '{print $2}')
+    parallelism=$(echo $item | awk '{print $3}')
+    echo -e "...........${table_name}............."
+
+    start_timestamp=$(date -d "$start_time" +"%s")
+    end_timestamp=$(date -d "$end_time" +"%s")
+    current_timestamp=$start_timestamp
+    while [ $current_timestamp -lt $end_timestamp ];
+    do
+        # 将当前时间戳转换为可读时间格式
+        pre_start_time=$(date -d "@$current_timestamp" +"%Y-%m-%d %H:%M:%S")
+        current_timestamp=$((current_timestamp + 3600))
+        next_end_time=$(date -d "@$current_timestamp" +"%Y-%m-%d %H:%M:%S")
+
+        echo -e "${pre_start_time} + ${next_end_time}"
+        execute_with_retry "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "day" "$start_time_y" "$start_time_ymd" "$parallelism"
+        sleep 2s
+    done
+done
+
 echo -e "+++++++++++++++++++++++++++++++++++++++++++++++"
 echo -e "执行SUCCESS--------$(date "+%Y-%m-%d %H:%M:%S")"
 echo -e "+++++++++++++++++++++++++++++++++++++++++++++++"
