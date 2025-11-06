@@ -11,22 +11,22 @@ array_list_day=(
 "dws_flight_segment_rt start_time 1"                            # 飞机航段表 - 自己计算的
 "dws_bhv_airport_weather_info acquire_time 1"                   # 机场天气表
 "dws_airport_liveatc_audio_files update_time 1"                 # 机场ATC音频文件表
-"dws_bhv_aircraft_last_location_fd merge_time 2"                # 飞机天聚合
-"dws_bhv_vessel_last_location_fd merge_time 2"                  # 船舶天聚合
-"dws_bhv_aircraft_last_location_dh merge_time 2"                # 飞机按小时聚合表
+"dws_bhv_aircraft_last_location_fd merge_time 2"                # 飞机天聚合 8907800
+"dws_bhv_vessel_last_location_fd merge_time 1"                  # 船舶天聚合 2860932
+"dws_bhv_aircraft_last_location_dh merge_time 1"                # 飞机按小时聚合表 2629326
 "dws_bhv_vessel_last_location_dh merge_time 2"                  # 船舶按小时聚合表
 "dwd_vessel_list_all_rt acquire_timestamp_format 2"             # marinetraffic单独表
-"dwd_adsbexchange_aircraft_list_rt acquire_timestamp_format 6"  # adsbexchange单独表
+"dwd_adsbexchange_aircraft_list_rt acquire_timestamp_format 4"  # adsbexchange单独表
 "dwd_vt_vessel_all_info acquire_timestamp_format 4"             # vt单独表
-"dwd_ais_landbased_vessel_list acquire_time 1"                  # lb单独表
-"dwd_fr24_grpc_aircraft_list_rt acquire_time 4"                      # f24单独表
-"dws_vessel_bhv_track_rt acquire_time 4"                        # 船舶轨迹表
-"dwd_weather_indices_all weather_time 4"                        # 气象数据表
+#"dwd_ais_landbased_vessel_list acquire_time 1"                  # lb单独表
+"dwd_fr24_grpc_aircraft_list_rt acquire_time 4"                 # f24单独表
 )
 
 # 按天 + 按小时
 array_list_time_day=(
+"dws_vessel_bhv_track_rt acquire_time 1"                        # 船舶轨迹表
 "dwd_bhv_aircraft_combine_rt acquire_time 1"                    # 飞机轨迹表
+"dwd_weather_indices_all weather_time 1"                        # 气象数据表
 )
 
 # 按月的数据文件
