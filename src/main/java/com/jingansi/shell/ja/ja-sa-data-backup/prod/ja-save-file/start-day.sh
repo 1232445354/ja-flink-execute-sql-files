@@ -42,7 +42,7 @@ do
     parallelism=$(echo $item | awk '{print $3}')
     echo -e "...........${table_name}............."
     execute_with_retry "$table_name" "$time_column" "$start_time" "$end_time" "day" "$start_time_y" "$start_time_ymd" "$parallelism"
-    sleep 2s
+    sleep 30s
 done
 
 
@@ -53,6 +53,7 @@ do
     table_name=$(echo $item | awk '{print $1}')
     time_column=$(echo $item | awk '{print $2}')
     parallelism=$(echo $item | awk '{print $3}')
+    interval_time=$(echo $item | awk '{print $4}')
     echo -e "...........${table_name}............."
 
     start_timestamp=$(date -d "$start_time" +"%s")
@@ -62,13 +63,14 @@ do
     do
         # 将当前时间戳转换为可读时间格式
         pre_start_time=$(date -d "@$current_timestamp" +"%Y-%m-%d %H:%M:%S")
-        current_timestamp=$((current_timestamp + 3600))
+        current_timestamp=$((current_timestamp + ${interval_time}))
         next_end_time=$(date -d "@$current_timestamp" +"%Y-%m-%d %H:%M:%S")
 
         echo -e "${pre_start_time} + ${next_end_time}"
         execute_with_retry "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "day" "$start_time_y" "$start_time_ymd" "$parallelism"
-        sleep 2s
+        sleep 10s
     done
+    sleep 300s
 done
 
 echo -e "+++++++++++++++++++++++++++++++++++++++++++++++"

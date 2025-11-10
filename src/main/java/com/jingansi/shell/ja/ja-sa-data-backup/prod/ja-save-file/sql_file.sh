@@ -15,7 +15,7 @@ source ${DIR}/config.sh
 # day
 sql_day="
 
-EXPORT TABLE ${table_name}
+EXPORT TABLE sa.${table_name}
 where ${time_column} >= '${start_time}'
   and ${time_column} < '${end_time}'
 TO \"s3://${S3_BUCKET}/${table_name}/${start_time_y}/${start_time_ymd}/\"
@@ -35,7 +35,7 @@ PROPERTIES (
 
 sql_month="
 
-EXPORT TABLE ${table_name}
+EXPORT TABLE sa.${table_name}
 TO \"s3://${S3_BUCKET}/${table_name}/${start_time_y}/${start_time_ymd}/\"
 PROPERTIES (
 	\"format\" = \"${S3_FORMAT}\",
