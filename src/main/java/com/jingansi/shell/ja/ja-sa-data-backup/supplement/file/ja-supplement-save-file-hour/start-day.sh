@@ -1,0 +1,62 @@
+#!/bin/bash
+
+DIR=$(cd `dirname $0`; pwd)
+source ${DIR}/config.sh
+source ${DIR}/table_config.sh
+echo -e "将态势数据save minio file...$(date "+%Y-%m-%d %H:%M:%S")"
+
+
+# 定义一个执行 SQL 脚本的函数
+execute_with_retry() {
+  local table_name=$1
+  local time_column=$2
+  local pre_start_time=$3
+  local next_end_time=$4
+  local type=$5
+  local start_time_y=$6
+  local start_time_ymd=$7
+  local parallelism=$8
+
+  sh "${DIR}/sql_file.sh" "$table_name" "$time_column" "$pre_start_time" "$next_end_time" "$type" "$start_time_y" "$start_time_ymd" "$parallelism"
+  if [ $? -eq 0 ]; then
+    echo -e "执行成功\n"
+  else
+    echo -e "执行失败，重试中...\n"
+    sleep 5s
+  fi
+}
+
+# 前一天的时间
+start_time="2023-05-01 00:00:00"
+end_time="2023-07-01 00:00:00"
+echo "start_time = [${start_time}],end_time = [${end_time}]"
+
+current_start=$(date -d "$start_time" +%Y-%m-01)
+end_date=$(date -d "$end_time" +%Y-%m-01)
+
+for item in "${array_list_day[@]}"
+do
+    # 切分元素为多个值
+    table_name=$(echo $item | awk '{print $1}')
+    time_column=$(echo $item | awk '{print $2}')
+    parallelism=$(echo $item | awk '{print $3}')
+    echo -e "...........${table_name}............."
+
+    while [[ "$current_start" < "$end_date" ]]; do
+        current_end=$(date -d "$current_start +1 month" +%Y-%m-01)
+        start_time="$current_start 00:00:00"
+        end_time="$current_end 00:00:00"
+        start_time_y=$(date -d "$start_time" +%Y)
+        start_time_ymd=$(date -d "$start_time" +%Y%m%d)
+        echo "时间段:start_time $start_time - end_time $end_time"
+        execute_with_retry "$table_name" "$time_column" "$start_time" "$end_time" "day" "$start_time_y" "$start_time_ymd" "$parallelism"
+        current_start="$current_end"
+        sleep 2s
+    done
+done
+
+
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++"
+echo -e "执行SUCCESS--------$(date "+%Y-%m-%d %H:%M:%S")"
+echo -e "+++++++++++++++++++++++++++++++++++++++++++++++"
+
