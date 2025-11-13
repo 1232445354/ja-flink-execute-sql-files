@@ -5,9 +5,9 @@ DIR=$(cd `dirname $0`; pwd)
 source ${DIR}/config.sh
 # 船舶、飞机天聚合
 sql="
-drop catalog ${catalog_name};
+drop catalog if exists ${catalog_name};
 
-CREATE CATALOG ${catalog_name} PROPERTIES (
+CREATE CATALOG if not exists ${catalog_name} PROPERTIES (
 \"user\" = \"root\",
 \"use_meta_cache\" = \"false\",
 \"type\" = \"jdbc\",
