@@ -2,7 +2,7 @@
 -- author:      write your name here
 -- create time: 2024/12/2 19:42:10
 -- description: 截图拍照、属性、轨迹、雷达、振动仪
--- version:ja-chingchi-icos3.0-rt-v250923-xiaoshan 新增拍照数据类型、轨迹表加字段
+-- version:ja-chingchi-icos3.0-rt-v250922-xiaoshan 拍照视频数据根据来源分类处理
 --********************************************************************--
 
 set 'pipeline.name' = 'ja-chingchi-icos3.0-rt';
@@ -35,92 +35,88 @@ create table iot_device_message_kafka_01 (
 
     -- 手动拍照截图数据
                                              `data`  row(
-      pictureUrl       string, -- 拍照数据上报-图片url
-      width            int   , -- 拍照数据上报-宽度
-      height           int    -- 拍照数据上报-高度
-  ),
+                                                 pictureUrl       string, -- 拍照数据上报-图片url
+                                                 width            int   , -- 拍照数据上报-宽度
+                                                 height           int    -- 拍照数据上报-高度
+                                                 ),
 
                                              message  row(
-      tid                     string, -- 当前请求的事务唯一ID
-      bid                     string, -- 长连接整个业务的ID
-      version                 string, -- 版本
-      `timestamp`             bigint, -- 时间戳
-      `method`                string, -- 服务&事件标识
-      productKey              string, -- 产品编码
-      deviceId                string, -- 设备编码
-      `data` row(
-          -- 媒体拍照数据
-          photoUrl            string, -- 媒体上报的拍照图片url
-          height              double,
-          isCapture           bigint, -- 筛选过滤字段
+                                                 tid                     string, -- 当前请求的事务唯一ID
+                                                 bid                     string, -- 长连接整个业务的ID
+                                                 version                 string, -- 版本
+                                                 `timestamp`             bigint, -- 时间戳
+                                                 `method`                string, -- 服务&事件标识
+                                                 productKey              string, -- 产品编码
+                                                 deviceId                string, -- 设备编码
+                                                 `data` row(
+                                                 -- 媒体拍照数据
+                                                 photoUrl            string, -- 媒体上报的拍照图片url
+                                                 height              double,
+                                                 isCapture           bigint, -- 筛选过滤字段
 
-          -- 视频数据
-          videoId             string,
-          videoUrl            string,
-          createTime          string,
-          taskId              string,
-          expectedFileCount   double,
-          flightType          double,
-          uploadedFileCount   double,
+                                                 -- 视频数据
+                                                 videoId             string,
+                                                 videoUrl            string,
+                                                 createTime          string,
+                                                 taskId              string,
+                                                 expectedFileCount   double,
+                                                 flightType          double,
+                                                 uploadedFileCount   double,
 
-          -- 执法仪轨迹
-          longitude           double, -- 经度
-          latitude            double, -- 纬度
-          attitudeHead        double, -- 无人机机头朝向
-          gimbalHead          double, -- 无人机云台朝向
-          altitude            double, -- 海拔
-          -- taskId              string, -- 当前执行的航线，*机场无人机特有
-          taskWaylineId       string, -- 当前执行航线的模版uuid，*机场无人机特有
-          taskCurrentWaylineStatus string, -- 当前执行航线的状态，上云透传，*机场无人机特有
-          taskCurrentWaylineIndex int, -- 当前执行航线任务所在序号，*机场无人机特有
-          -- height              double, -- 跟海拔差不多的字段，一起给前段，回溯轨迹需要海拔，3维
+                                                 -- 执法仪轨迹
+                                                 longitude           double, -- 经度
+                                                 latitude            double, -- 纬度
+                                                 attitudeHead        double, -- 无人机机头朝向
+                                                 gimbalHead          double, -- 无人机云台朝向
+                                                 altitude            double, -- 海拔
+                                                 -- height              double, -- 跟海拔差不多的字段，一起给前段，回溯轨迹需要海拔，3维
 
-          -- 密集数据统计
-         statisticalInterval  bigint, --
-         resolution           bigint, --
-         densityMap array<
-            row(
-                h3Code         string, -- h3code
-                averageDensity bigint  -- 表示该地区的过去一段时间的平均人数
-            )
-        >,
+                                                 -- 密集数据统计
+                                                 statisticalInterval  bigint, --
+                                                 resolution           bigint, --
+                                                 densityMap array<
+                                                 row(
+                                                 h3Code         string, -- h3code
+                                                 averageDensity bigint  -- 表示该地区的过去一段时间的平均人数
+                                                 )
+                                                 >,
 
-          -- 雷达、振动仪检测数据
-          targets array<
-            row(
-                targetId         string   ,-- -目标id
-                xDistance        double   ,-- x距离
-                yDistance        double   ,-- y距离
-                speed            double   ,-- 速度
-                targetPitch      double   ,-- 俯仰角
-                targetAltitude   double   ,-- 目标海拔高度
-                status           string   ,-- 0 目标跟踪 1 目标丢失 2 跟踪终止
-                targetLongitude  double   ,-- 目标经度
-                targetLatitude   double   , -- 目标纬度
-                distance         double   , -- 上报距离
-                targetYaw        double   , -- 水平角度
-                utc_time         bigint   , -- 雷达检测数据上报时间戳
-                tracked_times    double   , -- 已跟踪次数
-                loss_times       double   , -- 连续丢失次数
-                sourceType       string   , -- 数据来源类型：M300、RADAR
-                targetType       string   , -- 目标类型,信火一体时候的 ，天朗项目-也有，目标识别类型
+                                                 -- 雷达、振动仪检测数据
+                                                 targets array<
+                                                 row(
+                                                 targetId         string   ,-- -目标id
+                                                 xDistance        double   ,-- x距离
+                                                 yDistance        double   ,-- y距离
+                                                 speed            double   ,-- 速度
+                                                 targetPitch      double   ,-- 俯仰角
+                                                 targetAltitude   double   ,-- 目标海拔高度
+                                                 status           string   ,-- 0 目标跟踪 1 目标丢失 2 跟踪终止
+                                                 targetLongitude  double   ,-- 目标经度
+                                                 targetLatitude   double   , -- 目标纬度
+                                                 distance         double   , -- 上报距离
+                                                 targetYaw        double   , -- 水平角度
+                                                 utc_time         bigint   , -- 雷达检测数据上报时间戳
+                                                 tracked_times    double   , -- 已跟踪次数
+                                                 loss_times       double   , -- 连续丢失次数
+                                                 sourceType       string   , -- 数据来源类型：M300、RADAR
+                                                 targetType       string   , -- 目标类型,信火一体时候的 ，天朗项目-也有，目标识别类型
 
-                -- 振动仪数据
-                objectLabel          string, -- 大类型
-                targetCredibility    double,
-                `time`               string,
+                                                 -- 振动仪数据
+                                                 objectLabel          string, -- 大类型
+                                                 targetCredibility    double,
+                                                 `time`               string,
 
-                -- 天朗设备
-                RCS               bigint, -- 目标RCS
-                radialDistance    double, -- 目标位置信息
-                targetState       bigint, -- 目标状态，
-                `timestamp`       bigint, -- 录取时间信息（基日）
-                timestampBase     bigint, -- 录取时间信息（时间）
-                uploadMode        string
-            )
-          >
-      )
-  )
+                                                 -- 天朗设备
+                                                 RCS               bigint, -- 目标RCS
+                                                 radialDistance    double, -- 目标位置信息
+                                                 targetState       bigint, -- 目标状态，
+                                                 `timestamp`       bigint, -- 录取时间信息（基日）
+                                                 timestampBase     bigint, -- 录取时间信息（时间）
+                                                 uploadMode        string
+                                                 )
+                                                 >
+                                                 )
+                                                 )
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
@@ -148,15 +144,15 @@ create table iot_device_message_kafka_02 (
                                              bid           string     comment '长连接整个业务的ID',
                                              `method`      string     comment '服务&事件标识',
                                              message  row(
-      tid                     string, -- 当前请求的事务唯一ID
-      bid                     string, -- 长连接整个业务的ID
-      version                 string, -- 版本
-      `timestamp`             bigint, -- 时间戳
-      `method`                string, -- 服务&事件标识
-      productKey              string, -- 产品编码
-      deviceId                string, -- 设备编码
-      `data`                  string  -- 属性数据
-  ),
+                                                 tid                     string, -- 当前请求的事务唯一ID
+                                                 bid                     string, -- 长连接整个业务的ID
+                                                 version                 string, -- 版本
+                                                 `timestamp`             bigint, -- 时间戳
+                                                 `method`                string, -- 服务&事件标识
+                                                 productKey              string, -- 产品编码
+                                                 deviceId                string, -- 设备编码
+                                                 `data`                  string  -- 属性数据
+                                                 ),
                                              operator      string   -- 操作人员
 ) WITH (
       'connector' = 'kafka',
@@ -199,10 +195,10 @@ create table file_upload_callback_sink_kafka (
                                                  event    string,
                                                  `time`   bigint,
                                                  `data`   row<
-    fileType   string,
+                                                     fileType   string,
                                                  filePath   string,
                                                  ext  row <
-      longitude           double,
+                                                     longitude           double,
                                                  latitude            double,
                                                  height              double,
                                                  createTime          string,
@@ -211,7 +207,7 @@ create table file_upload_callback_sink_kafka (
                                                  flightType          double,
                                                  uploadedFileCount   double
                                                      >
-  >
+                                                     >
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_DEVICE_EVENT',
@@ -233,7 +229,6 @@ create table device_media_datasource_temp (
                                               start_time                     timestamp     comment '开始时间',
                                               end_time                       timestamp     comment '结束时间',
                                               url                            string        comment '原图/视频 url',
-                                              photo_type                     string        comment '照片类型',
                                               longitude                      double        comment '经度',
                                               latitude                       double        comment '纬度',
                                               width                          int           comment '图片宽度',
@@ -268,7 +263,6 @@ create table device_media_datasource (
                                          start_time                     timestamp     comment '开始时间',
                                          end_time                       timestamp     comment '结束时间',
                                          url                            string        comment '原图/视频 url',
-                                         photo_type                     string        comment '照片类型',
                                          longitude                      double        comment '经度',
                                          latitude                       double        comment '纬度',
                                          width                          int           comment '图片宽度',
@@ -357,10 +351,6 @@ create table dwd_device_track_rt (
                                      height                    double              comment '跟海拔差不多的一个高度，用于回溯轨迹3维',
                                      lng_02                    DECIMAL(30,18)      comment '经度—高德坐标系、火星坐标系',
                                      lat_02                    DECIMAL(30,18)      comment '纬度—高德坐标系、火星坐标系',
-                                     task_id	                string              comment '当前执行的航线，*机场无人机特有',
-                                     task_wayline_id	        string              comment '当前执行航线的模版uuid，*机场无人机特有',
-                                     task_current_wayline_status string            comment '当前执行航线的状态，上云透传，*机场无人机特有',
-                                     task_current_wayline_index  int               comment '当前执行航线任务所在序号，*机场无人机特有',
                                      username                  string              comment '设备用户',
                                      group_id                  string              comment '组织id',
                                      product_key               string              comment '产品key',
@@ -496,6 +486,7 @@ create table iot_device (
                             primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
@@ -516,6 +507,7 @@ create table device (
                         primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
@@ -536,6 +528,7 @@ create table enum_target_name (
                                   primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
@@ -578,6 +571,7 @@ create table action_item (
                              primary key (id) NOT ENFORCED
 )with (
      'connector' = 'jdbc',
+     -- 'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos-v3?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/chingchi-icos?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
      'username' = 'root',
      'password' = 'jingansi110',
@@ -623,10 +617,6 @@ select
     message.`data`.gimbalHead    as gimbal_head,
     message.`data`.height        as uav_height,
     message.`data`.altitude      as altitude,
-    message.`data`.taskId        as task_id,
-    message.`data`.taskWaylineId  as task_wayline_id,
-    message.`data`.taskCurrentWaylineStatus as task_current_wayline_status,
-    message.`data`.taskCurrentWaylineIndex as task_current_wayline_index,
 
     -- 密集检测
     message.`data`.statisticalInterval      as statistical_interval,
@@ -682,12 +672,6 @@ select
     to_timestamp(coalesce(t1.create_time,from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss')),'yyyy-MM-dd HH:mm:ss') as start_time,
     to_timestamp(coalesce(t1.create_time,from_unixtime(t1.acquire_timestamp/1000,'yyyy-MM-dd HH:mm:ss')),'yyyy-MM-dd HH:mm:ss') as end_time,
     coalesce(picture_url,photo_url,video_url) as url,
-    case when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'_V') >0 then '可见光'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'_W') >0 then '广角'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'_Z') >0 then '变焦'
-         when `method` = 'event.mediaFileUpload.info' and instr(photo_url,'_T') >0 then '红外'
-        end as photo_type,
-
     t1.longitude,
     t1.latitude,
     t1.width,
@@ -713,15 +697,15 @@ select
                    if(expected_file_count is null,'',concat('"expected_file_count":',cast(expected_file_count as string),',')),
                    if(flight_type is null,'',concat('"flight_type":',cast(flight_type as string),',')),
                    if(uploaded_file_count is null,'',concat('"uploaded_file_count":',cast(uploaded_file_count as string)))
-                         )),
+               )),
            '}'
-    ) as extends
+        ) as extends
 from (
          select
              *
          from tmp_source_kafka_02
          where (
-             (`method` = 'platform.capture.post' and picture_url is not null)  -- 截图
+                 (`method` = 'platform.capture.post' and picture_url is not null)  -- 截图
                  or (`method` = 'event.mediaFileUpload.info' and photo_url is not null and is_capture is null and split_index(photo_url,'.',1) <> 'MP4') -- 拍照数据过滤截图的，如果是截图（is_capture=1）
                  or (`method` = 'event.videoMediaFileUpload.info' and video_url is not null) -- 视频
              )
@@ -730,7 +714,6 @@ from (
          left join action_item FOR SYSTEM_TIME AS OF t1.proctime as t2
                    on t1.device_id = t2.device_id
                        and 'PROCESSING' = t2.status;
-
 -- and ('PENDING' = t2.status or 'PROCESSING' = t2.status);
 
 
@@ -765,7 +748,7 @@ from (
          left join action_item FOR SYSTEM_TIME AS OF t1.proctime as t3
                    on t1.device_id = t3.device_id
                        and 'PROCESSING' = t3.status
--- and ('PENDING' = t3.status or 'PROCESSING' = t3.status)
+     -- and ('PENDING' = t3.status or 'PROCESSING' = t3.status)
 where t2.h3Code is not null;
 
 
@@ -900,10 +883,6 @@ select
     uav_height as height,
     longitude,
     latitude,
-    task_id,
-    task_wayline_id,
-    task_current_wayline_status,
-    task_current_wayline_index,
     username,
     group_id as group_id,
     device_type_join as device_type,
@@ -974,7 +953,6 @@ select
     t2.start_time,
     t2.end_time,
     if(type = 'PICTURE',t2.url,concat('/',t2.url)) as url, -- 视频的数据需要加/拼接在开头
-    t2.photo_type,
     t2.longitude,
     t2.latitude,
     t2.width,
@@ -1013,10 +991,6 @@ select
     height,
     longitude   as lng_02     ,
     latitude    as lat_02     ,
-    task_id,
-    task_wayline_id,
-    task_current_wayline_status,
-    task_current_wayline_index,
     username                  ,
     group_id                  ,
     product_key               ,
@@ -1037,7 +1011,7 @@ select
             type,
             if (`method` in ('platform.capture.post','event.videoMediaFileUpload.info'),concat('/',url),url),
             extends
-    ) as data1
+        ) as data1
 from tmp_image_01
 where `method` = 'platform.capture.post'  -- 截图 或者 （拍照 &视频）不是fh_sync开头的
    or instr(url,'fh_sync') = 0;
@@ -1055,7 +1029,6 @@ select
     start_time,
     end_time,
     if (`method` in ('platform.capture.post','event.videoMediaFileUpload.info'),concat('/',url),url) as url,   -- 截图 视频 拼接
-    photo_type,
     longitude,
     latitude,
     width,
@@ -1081,7 +1054,6 @@ select
     start_time,
     end_time,
     url,
-    photo_type,
     longitude,
     latitude,
     width,
@@ -1115,7 +1087,6 @@ select
     start_time,
     end_time,
     url,
-    photo_type,
     longitude,
     latitude,
     width,
