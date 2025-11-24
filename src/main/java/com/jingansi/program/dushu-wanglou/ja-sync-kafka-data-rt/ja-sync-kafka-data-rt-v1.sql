@@ -1,5 +1,3 @@
-
-
 --********************************************************************--
 -- author:      write your name here
 -- create time: 2025/7/18 19:49:41
@@ -9,7 +7,7 @@ set 'pipeline.name' = 'ja-sync-kafka-data-rt';
 
 
 CREATE TABLE OPEN_API_DEVICE_EVENT (
-    line STRING
+                                       line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_DEVICE_EVENT',
@@ -25,7 +23,7 @@ CREATE TABLE OPEN_API_DEVICE_EVENT (
 
 
 CREATE TABLE OPEN_API_ACTION_ITEM_RECORD_EVENT (
-    line STRING
+                                                   line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_ACTION_ITEM_RECORD_EVENT',
@@ -41,7 +39,7 @@ CREATE TABLE OPEN_API_ACTION_ITEM_RECORD_EVENT (
 
 
 CREATE TABLE OPEN_API_ACTION_EVENTS_EVENT (
-    line STRING
+                                              line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_ACTION_EVENTS_EVENT',
@@ -139,7 +137,7 @@ create table iot_device (
 
 
 CREATE TABLE OPEN_API_DEVICE_EVENT_90046 (
-    line STRING
+                                             line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_DEVICE_EVENT_90046',
@@ -151,7 +149,7 @@ CREATE TABLE OPEN_API_DEVICE_EVENT_90046 (
 
 
 CREATE TABLE OPEN_API_ACTION_ITEM_RECORD_EVENT_90046 (
-    line STRING
+                                                         line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_ACTION_ITEM_RECORD_EVENT_90046',
@@ -163,7 +161,7 @@ CREATE TABLE OPEN_API_ACTION_ITEM_RECORD_EVENT_90046 (
 
 
 CREATE TABLE OPEN_API_ACTION_EVENTS_EVENT_90046 (
-    line STRING
+                                                    line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_ACTION_EVENTS_EVENT_90046',
@@ -174,7 +172,7 @@ CREATE TABLE OPEN_API_ACTION_EVENTS_EVENT_90046 (
       );
 
 CREATE TABLE OPEN_API_ACTION_EVENTS_EVENT_ZH (
-    line STRING
+                                                 line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_ACTION_EVENTS_EVENT_ZH',
@@ -185,7 +183,7 @@ CREATE TABLE OPEN_API_ACTION_EVENTS_EVENT_ZH (
       );
 
 CREATE TABLE OPEN_API_DEVICE_EVENT_ZH (
-    line STRING
+                                          line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_DEVICE_EVENT_ZH',
@@ -197,7 +195,7 @@ CREATE TABLE OPEN_API_DEVICE_EVENT_ZH (
 
 
 CREATE TABLE OPEN_API_ACTION_ITEM_RECORD_EVENT_ZH  (
-    line STRING
+                                                       line STRING
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'OPEN_API_ACTION_ITEM_RECORD_EVENT_ZH ',
@@ -206,6 +204,41 @@ CREATE TABLE OPEN_API_ACTION_ITEM_RECORD_EVENT_ZH  (
       'format' = 'raw',
       'raw.charset' = 'UTF-8'
       );
+
+CREATE TABLE OPEN_API_ACTION_EVENTS_EVENT_LH (
+                                                 line STRING
+) WITH (
+      'connector' = 'kafka',
+      'topic' = 'OPEN_API_ACTION_EVENTS_EVENT_LH',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-sync-kafka-data-rt',
+      'format' = 'raw',
+      'raw.charset' = 'UTF-8'
+      );
+
+CREATE TABLE OPEN_API_DEVICE_EVENT_LH (
+                                          line STRING
+) WITH (
+      'connector' = 'kafka',
+      'topic' = 'OPEN_API_DEVICE_EVENT_LH',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-sync-kafka-data-rt',
+      'format' = 'raw',
+      'raw.charset' = 'UTF-8'
+      );
+
+
+CREATE TABLE OPEN_API_ACTION_ITEM_RECORD_EVENT_LH  (
+                                                       line STRING
+) WITH (
+      'connector' = 'kafka',
+      'topic' = 'OPEN_API_ACTION_ITEM_RECORD_EVENT_LH ',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'ja-sync-kafka-data-rt',
+      'format' = 'raw',
+      'raw.charset' = 'UTF-8'
+      );
+
 
 create view tmp_01 as
 select
@@ -521,6 +554,151 @@ where t3.group_id='90037'
    or t13.group_id='90037'
    or t14.group_id='90037'
    or t14.group_parent_id='90037'
+;
+
+insert into OPEN_API_DEVICE_EVENT_LH
+select
+    line
+from tmp_01 t1
+         left join iot_device FOR SYSTEM_TIME AS OF t1.proctime as t2        -- 关联父子设备表,取出父设备ID
+                   on t1.device_id=t2.device_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t3        -- 关联父子设备表,取出父设备ID
+                   on t2.org_code=t3.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t4        -- 关联父子设备表,取出父设备ID
+                   on t3.group_parent_id=t4.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t5        -- 关联父子设备表,取出父设备ID
+                   on t4.group_parent_id=t5.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t6        -- 关联父子设备表,取出父设备ID
+                   on t5.group_parent_id=t6.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t7        -- 关联父子设备表,取出父设备ID
+                   on t6.group_parent_id=t7.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t8        -- 关联父子设备表,取出父设备ID
+                   on t7.group_parent_id=t8.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t9        -- 关联父子设备表,取出父设备ID
+                   on t8.group_parent_id=t9.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t10        -- 关联父子设备表,取出父设备ID
+                   on t9.group_parent_id=t10.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t11        -- 关联父子设备表,取出父设备ID
+                   on t10.group_parent_id=t11.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t12        -- 关联父子设备表,取出父设备ID
+                   on t11.group_parent_id=t12.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t13        -- 关联父子设备表,取出父设备ID
+                   on t12.group_parent_id=t13.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t14        -- 关联父子设备表,取出父设备ID
+                   on t13.group_parent_id=t14.group_id
+where t2.org_code='90049'
+   or t3.group_id='90049'
+   or t4.group_id='90049'
+   or t5.group_id='90049'
+   or t6.group_id='90049'
+   or t7.group_id='90049'
+   or t8.group_id='90049'
+   or t9.group_id='90049'
+   or t10.group_id='90049'
+   or t11.group_id='90049'
+   or t12.group_id='90049'
+   or t13.group_id='90049'
+   or t14.group_id='90049'
+   or t14.group_parent_id='90049'
+;
+
+
+
+
+
+insert into OPEN_API_ACTION_ITEM_RECORD_EVENT_LH
+select
+    line
+from tmp_02 t1
+         left join action_item FOR SYSTEM_TIME AS OF t1.proctime as t2        -- 关联父子设备表,取出父设备ID
+                   on t1.actionItemId=t2.id
+         left join `users` FOR SYSTEM_TIME AS OF t1.proctime as u        -- 关联父子设备表,取出父设备ID
+                   on t2.gmt_create_by=u.username
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t3        -- 关联父子设备表,取出父设备ID
+                   on u.group_id=t3.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t4        -- 关联父子设备表,取出父设备ID
+                   on t3.group_parent_id=t4.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t5        -- 关联父子设备表,取出父设备ID
+                   on t4.group_parent_id=t5.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t6        -- 关联父子设备表,取出父设备ID
+                   on t5.group_parent_id=t6.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t7        -- 关联父子设备表,取出父设备ID
+                   on t6.group_parent_id=t7.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t8        -- 关联父子设备表,取出父设备ID
+                   on t7.group_parent_id=t8.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t9        -- 关联父子设备表,取出父设备ID
+                   on t8.group_parent_id=t9.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t10        -- 关联父子设备表,取出父设备ID
+                   on t9.group_parent_id=t10.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t11        -- 关联父子设备表,取出父设备ID
+                   on t10.group_parent_id=t11.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t12        -- 关联父子设备表,取出父设备ID
+                   on t11.group_parent_id=t12.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t13        -- 关联父子设备表,取出父设备ID
+                   on t12.group_parent_id=t13.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t14        -- 关联父子设备表,取出父设备ID
+                   on t13.group_parent_id=t14.group_id
+where t3.group_id='90049'
+   or t4.group_id='90049'
+   or t5.group_id='90049'
+   or t6.group_id='90049'
+   or t7.group_id='90049'
+   or t8.group_id='90049'
+   or t9.group_id='90049'
+   or t10.group_id='90049'
+   or t11.group_id='90049'
+   or t12.group_id='90049'
+   or t13.group_id='90049'
+   or t14.group_id='90049'
+   or t14.group_parent_id='90049'
+;
+
+
+insert into OPEN_API_ACTION_EVENTS_EVENT_LH
+select
+    line
+from tmp_03 t1
+         left join action_item FOR SYSTEM_TIME AS OF t1.proctime as t2        -- 关联父子设备表,取出父设备ID
+                   on t1.actionItemId=t2.id
+         left join `users` FOR SYSTEM_TIME AS OF t1.proctime as u        -- 关联父子设备表,取出父设备ID
+                   on t2.gmt_create_by=u.username
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t3        -- 关联父子设备表,取出父设备ID
+                   on u.group_id=t3.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t4        -- 关联父子设备表,取出父设备ID
+                   on t3.group_parent_id=t4.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t5        -- 关联父子设备表,取出父设备ID
+                   on t4.group_parent_id=t5.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t6        -- 关联父子设备表,取出父设备ID
+                   on t5.group_parent_id=t6.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t7        -- 关联父子设备表,取出父设备ID
+                   on t6.group_parent_id=t7.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t8        -- 关联父子设备表,取出父设备ID
+                   on t7.group_parent_id=t8.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t9        -- 关联父子设备表,取出父设备ID
+                   on t8.group_parent_id=t9.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t10        -- 关联父子设备表,取出父设备ID
+                   on t9.group_parent_id=t10.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t11        -- 关联父子设备表,取出父设备ID
+                   on t10.group_parent_id=t11.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t12        -- 关联父子设备表,取出父设备ID
+                   on t11.group_parent_id=t12.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t13        -- 关联父子设备表,取出父设备ID
+                   on t12.group_parent_id=t13.group_id
+         left join `groups` FOR SYSTEM_TIME AS OF t1.proctime as t14        -- 关联父子设备表,取出父设备ID
+                   on t13.group_parent_id=t14.group_id
+where t3.group_id='90049'
+   or t4.group_id='90049'
+   or t5.group_id='90049'
+   or t6.group_id='90049'
+   or t7.group_id='90049'
+   or t8.group_id='90049'
+   or t9.group_id='90049'
+   or t10.group_id='90049'
+   or t11.group_id='90049'
+   or t12.group_id='90049'
+   or t13.group_id='90049'
+   or t14.group_id='90049'
+   or t14.group_parent_id='90049'
 ;
 
 end;

@@ -1,8 +1,7 @@
-
 --********************************************************************--
 -- author:      yibo@jingan-inc.com
 -- create time: 2024/3/8 09:33:33
--- description: 饿了么数据存储、内部新版本测试的，现在已经是正式的了
+-- description: 新增商家数据存储
 -- version：ja-hunger-project-v251013
 --********************************************************************--
 set 'pipeline.name' = 'ja-hunger-project';
@@ -15,8 +14,8 @@ SET 'table.planner' = 'blink';
 -- SET 'sql-client.display.max-column-width' = '200';
 
 -- -- checkpoint的时间和位置
--- SET 'execution.checkpointing.interval' = '300000';
--- SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-hunger-project' ;
+SET 'execution.checkpointing.interval' = '300000';
+SET 'state.checkpoints.dir' = 's3://ja-flink/flink-checkpoints/ja-hunger-project' ;
 
 
 
@@ -38,27 +37,27 @@ create table test_infer_result (
                                    image_path              string,                        -- 大图图片存储路径
                                    frame_tensor_list       string,                        -- 输出基于帧的特征向量
                                    object_list             array<
-                                       row(
-                                       object_id           bigint,                -- 目标ID
-                                       object_label        string,                -- 目标类型(cat,dog,mouse,smoke,naked)
-                                       infer_id            int,                   -- 推理算子ID
-                                       class_id            int,
-                                       bbox_left           int,                   -- 左上角坐标
-                                       bbox_top            int,                   -- 左上角坐标
-                                       bbox_width          int,                   -- 目标宽度
-                                       bbox_height         int,                   -- 目标高度
-                                       confidence          decimal(20,18),        -- 目标置信度
-                                       image_path          string,                 -- 检测目标截取图片存储地址
-                                       gender              bigint                 -- 性别，只有当object——label为person才有值
-                                       )
-                                       >,
+        row(
+                object_id           bigint,                -- 目标ID
+                object_label        string,                -- 目标类型(cat,dog,mouse,smoke,naked)
+                infer_id            int,                   -- 推理算子ID
+                class_id            int,
+                bbox_left           int,                   -- 左上角坐标
+                bbox_top            int,                   -- 左上角坐标
+                bbox_width          int,                   -- 目标宽度
+                bbox_height         int,                   -- 目标高度
+                confidence          decimal(20,18),        -- 目标置信度
+                image_path          string,                 -- 检测目标截取图片存储地址
+                gender              bigint                 -- 性别，只有当object——label为person才有值
+            )
+    >,
                                    user_meta
                                                            row(
-                                       dateTime             string,
-                                       id                   string,    -- 摄像头id
-                                       imageUrl             string,
-                                       name                 string
-                                       )
+              dateTime             string,
+              id                   string,    -- 摄像头id
+              imageUrl             string,
+              name                 string
+          )
     -- rowtime as to_timestamp_ltz(ntp_timestamp,3),
     -- watermark for rowtime as rowtime - interval '5' second
 ) WITH (
@@ -78,9 +77,9 @@ create table test_infer_result (
       'topic' =  'ja_infer_result2',
       'properties.bootstrap.servers' = '172.22.219.30:9092',
       'properties.group.id' = 'test-infer-result-rt1',
-      'scan.startup.mode' = 'latest-offset',
-      -- 'scan.startup.mode' = 'timestamp',
-      -- 'scan.startup.timestamp-millis' = '0',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '1760373899000',
       'format' = 'json',
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true',
