@@ -28,7 +28,7 @@ SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/jh-uav-attr';
 create table jh_uav_info (
 
                              userInfo row<
-                                 gmtRegister          string,
+		gmtRegister          string,
                              cardCode             string,
                              phone                string,
                              `delete`               boolean,
@@ -44,7 +44,7 @@ create table jh_uav_info (
                              residence            string
                                  >,
                              uavInfo row<
-                                 username             string,
+        username             string,
                              type                 int,
                              gmtRegister          string,
                              cardCode             string,
@@ -61,7 +61,7 @@ create table jh_uav_info (
                              gmtCreate            string
                                  >,
                              whiteInfo row<
-                                 phone                string,
+		phone                string,
                              gmtExpire            string,
                              listType             int,
                              `delete`               int,
@@ -91,6 +91,55 @@ create table jh_uav_info (
       'json.fail-on-missing-field' = 'false',
       'json.ignore-parse-errors' = 'true'
       );
+
+
+
+-- 黑飞告警信息
+create table jh_black_uav_data(
+
+                                  msgId                string,
+                                  data row<
+		XTDM                 string,
+                                  SFDZ                 string,
+                                  `UAV-SN`             string,
+                                  XZB                  string,
+                                  XQDW                 string,
+                                  BJR                  string,
+                                  SFNM                 int,
+                                  JQID                 string,
+                                  BJHM                 string,
+                                  SJXQ                 string,
+                                  JQJB                 string,
+                                  BJRSFZ               string,
+                                  SCBJSJ               string,
+                                  SSXQDM               string,
+                                  BJRXB                string,
+                                  LXDH                 string,
+                                  AY                   string,
+                                  YZB                  string,
+                                  LXDZ                 string,
+                                  ZJHM                 string,
+                                  `UAV-REASON`         string
+                                      >,
+                                  dataCmds             string,
+                                  version              string,
+                                  applicationName      string,
+                                  dataTime             string
+
+) with (
+      'connector' = 'kafka',
+      'topic' = 'jh-black-uav-data',
+      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.group.id' = 'uav_merge_target2',
+      -- 'scan.startup.mode' = 'group-offsets',
+      -- 'scan.startup.mode' = 'latest-offset',
+      'scan.startup.mode' = 'timestamp',
+      'scan.startup.timestamp-millis' = '0',  -- 1745564415000
+      'format' = 'json',
+      'json.fail-on-missing-field' = 'false',
+      'json.ignore-parse-errors' = 'true'
+      );
+
 
 
 -- 无人机实体表来源
@@ -335,6 +384,53 @@ create table `dwd_et_uav_jh_user_info` (
       'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
       );
 
+-- 无人机告警表
+create table `dwd_evt_uav_police_report` (
+                                             jqid varchar(30) COMMENT '报警ID，唯一',
+                                             xtdm varchar(30) COMMENT 'BRANCH_ZAZD',
+                                             sfdz varchar(200) COMMENT '事发地址',
+                                             scbjsj string COMMENT '首次报警时间',
+                                             bjr varchar(50) COMMENT '报警人',
+                                             zjhm varchar(20) COMMENT '主叫号码',
+                                             sjxq varchar(1000) COMMENT '事件详情',
+                                             bjhm varchar(20) COMMENT '被叫号码',
+                                             xzb DOUBLE COMMENT 'X坐标',
+                                             yzb DOUBLE COMMENT 'Y坐标',
+                                             bjrxb varchar(10) COMMENT '报警人性别',
+                                             lxdh varchar(20) COMMENT '联系电话',
+                                             lxdz varchar(200) COMMENT '联系地址',
+                                             xqdw varchar(20) COMMENT '辖区单位代码',
+                                             ay varchar(20)  COMMENT '案由代码',
+                                             jqjb varchar(20)  COMMENT '警情级别',
+                                             bjrsfz varchar(20)  COMMENT '报警人身份号码',
+                                             sfnm int  COMMENT '是否匿名',
+                                             ssxqdm varchar(20)  COMMENT '所属辖区代码',
+                                             uav_reason varchar(1000)  COMMENT '警情原因',
+                                             uav_sn varchar(30) COMMENT '无人机SN号',
+                                             data_cmds int comment '数据类型',
+                                             data_time string comment '数据时间',
+                                             msg_id varchar(30)  comment '消息 id',
+                                             version double comment '版本',
+                                             update_time string comment '更新时间'
+) with (
+      'connector' = 'doris',
+      'fenodes' = '135.100.11.132:30030',
+      -- 'fenodes' = '172.21.30.245:8030',
+      'table.identifier' = 'sa.dwd_evt_uav_police_report',
+      'username' = 'root',
+      'password' = 'Jingansi@110',
+      'doris.request.tablet.size'='5',
+      'doris.request.read.timeout.ms'='30000',
+      'sink.batch.size'='3000',
+      'sink.batch.interval'='2s',
+      'sink.properties.escape_delimiters' = 'true',
+      'sink.properties.column_separator' = '\x01',	 -- 列分隔符
+      'sink.properties.line_delimiter' = '\x02'		 -- 行分隔符
+      );
+
+
+
+
 
 
 begin statement set;
@@ -355,7 +451,7 @@ select
     concat(
             ifnull(coalesce(whiteInfo.uavModelName,uavInfo.uavModelName,b.model),''),' ',
             ifnull(coalesce(uavInfo.sn,whiteInfo.sn),'')
-        )         as search_content,
+    )         as search_content,
     from_unixtime(unix_timestamp()) as update_time,
     b.category as category                 , -- 类别
     coalesce(uavInfo.cardCode,userInfo.cardCode) as card_code                , -- 所有人身份证号/统一信用代码
@@ -477,7 +573,7 @@ select
     concat(
             nullif(coalesce(userInfo.fullName,uavInfo.fullName,whiteInfo.fullName,uavInfo.username,userInfo.username),''),' ',
             nullif(coalesce(uavInfo.cardCode,userInfo.cardCode),'')
-        ) as search_content,
+    ) as search_content,
     from_unixtime(unix_timestamp()) as update_time
 from jh_uav_info
 where userInfo.id is not null;
@@ -491,6 +587,38 @@ select
     from_unixtime(unix_timestamp())  as update_time  -- 更新时间
 from jh_uav_info
 where userInfo.id is not null;
+
+
+insert into dwd_evt_uav_police_report
+select
+    data.JQID as jqid,
+    data.XTDM as xtdm,
+    data.SFDZ as sfdz,
+    data.SCBJSJ as scbjsj,
+    data.BJR as bjr,
+    data.ZJHM as zjhm,
+    data.SJXQ as sjxq,
+    data.BJHM as bjhm,
+    cast(data.XZB as double) as xzb,
+    cast(data.YZB as double) as yzb,
+    data.BJRXB as bjrxb,
+    data.LXDH as lxdh,
+    data.LXDZ as lxdz,
+    data.XQDW as xqdw,
+    data.AY as ay,
+    data.JQJB as jqjb,
+    data.BJRSFZ as bjrsfz,
+    data.SFNM as sfnm,
+    data.SSXQDM as ssxqdm,
+    data.`UAV-REASON` as uav_reason,
+    data.`UAV-SN` as uav_sn,
+    cast(dataCmds as int)data_cmds, -- 数据类型
+    from_unixtime(cast(dataTime as bigint)/1000) as data_time , -- 数据时间
+    msgId as msg_id , -- 消息 id
+    cast(version as double) as version , -- 版本
+    from_unixtime(unix_timestamp())  as update_time
+from jh_black_uav_data;
+
 
 
 

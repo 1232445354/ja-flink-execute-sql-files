@@ -7,7 +7,7 @@ echo -e "开始备份idc-态势数据...$(date "+%Y-%m-%d %H:%M:%S")"
 
 catalog_name="doris_idc"
 echo -e "开始重新创建catalog:${catalog_name}..\n"
-sh "${DIR}/catalog.sh" "$catalog_name"
+#sh "${DIR}/catalog.sh" "$catalog_name"
 
 
 # 定义一个执行 SQL 脚本的函数

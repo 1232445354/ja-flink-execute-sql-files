@@ -29,60 +29,60 @@ SET 'state.checkpoints.dir' = 's3://flink/flink-checkpoints/ja-uav-jinghang-othe
 
 -- 设备检测数据上报 （Source：kafka）
 create table jh_uav_data_kafka (
-    `data`   array<
-        row (
-        id                       string,
-        deviceId                 double,
-        device   row(
-        actionScope          double,
-        agentId              string,
-        areaCode             string,
-        disable              int,
-        disposalScope        int,
-        id                   double,
-        longitude            string,
-        latitude             string,
-        lightScope           int,
-        name                 string,
-        online               int,
-        radarScope           int,
-        sentinelScope        int,
-        spectrumScope        int,
-        supportHeartbeat     int,
-        type                 int
-        ),
+                                   `data`   array<
+      row (
+          id                       string,
+          deviceId                 double,
+          device   row(
+              actionScope          double,
+              agentId              string,
+              areaCode             string,
+              disable              int,
+              disposalScope        int,
+              id                   double,
+              longitude            string,
+              latitude             string,
+              lightScope           int,
+              name                 string,
+              online               int,
+              radarScope           int,
+              sentinelScope        int,
+              spectrumScope        int,
+              supportHeartbeat     int,
+              type                 int
+          ),
         subDeviceId                int,
         subDevice   row (
-        calibratedDirection  int,
-        `delete`             int,
-        deviceId             double,
-        disable              int,
-        frequencies          string,
-        gmtCreate            string,
-        height               double,
-        id                   double,
-        model                string,
-        name                 string,
-        online               int,
-        remark               string,
-        `running`            int,
-        sn                   string,
-        spec                 int,
-        supportHeartbeat     int,
-        type                 int,
-        uniqueId             string
+              calibratedDirection  int,
+              `delete`             int,
+              deviceId             double,
+              disable              int,
+              frequencies          string,
+              gmtCreate            string,
+              height               double,
+              id                   double,
+              model                string,
+              name                 string,
+              online               int,
+              remark               string,
+              `running`            int,
+              sn                   string,
+              spec                 int,
+              supportHeartbeat     int,
+              type                 int,
+              uniqueId             string
         ),
-        targetSn                     string,
-        target    row(
-        listStatus             int,
-        listType               int,
-        sn                     string,
-        uavUser row(
-        companyName        string,
-        fullName           string,
-        phone              string
-        )
-        ),
+      targetSn                     string,
+      target    row(
+            listStatus             int,
+            listType               int,
+            sn                     string,
+            uavUser row(
+                companyName        string,
+                fullName           string,
+                phone              string
+            )
+          ),
         deviceDetectType           int,
         deviceLongitude            string,
         deviceLatitude             string,
@@ -114,8 +114,8 @@ create table jh_uav_data_kafka (
         homeAddress                string,
         noFlyZoneId                int,
         gmtDetect                  string
-        )
-        >
+      )
+    >
 
 ) WITH (
       'connector' = 'kafka',
@@ -233,50 +233,50 @@ create table rid_m30_aoa(
 -- 展开数组筛选数据，整理字段
 create view temp_01 as
 select
-        UNIX_TIMESTAMP(gmtDetect,'yyyy-MM-dd HH:mm:ss') * 1000 as  acquire_timestamp,
-        cast(null as varchar)              as product_key,
-        id                                 as device_id,
-        cast(null as varchar)              as device_name,
-        gmtDetect                          as acquire_time,
-        cast(null as varchar)              as `method`,
-        '阵地'                              as src_code,
-        targetSn                           as src_pk,
-        cast(null as varchar)              as rid_devid,
-        cast(null as bigint)               as msgtype,
-        cast(null as varchar)              as recvtype,
-        cast(null as varchar)              as mac,
-        cast(null as bigint)               as rssi,
-        cast(targetLongitude as double)    as longitude,
-        cast(targetLatitude as double)     as latitude,
-        cast(null as double)               as location_alit,
-        targetYawAngle                     as ew,
-        targetSpeed                        as speed_h,
-        cast(null as double)               as speed_v,
-        targetHeight                       as height,
-        cast(null as double)               as height_type,
-        cast(operatorLongitude as double)  as control_station_longitude,
-        cast(operatorLatitude as double)   as control_station_latitude,
-        cast(null as double)               as control_station_height,
-        targetName                         as target_name,
-        if(targetAltitude is not null, targetAltitude + 29,targetAltitude)  as altitude,
-        targetDistance                     as distance_from_station,
-        targetSpeed                        as speed_ms,
-        if(targetFrequency = '',cast(null as double),cast(targetFrequency as double)) as target_frequency_khz,
-        cast(null as double)               as target_bandwidth_khz,
-        cast(null as double)               as target_signal_strength_db,
-        cast(null as int)                  as target_type,
-        target.listStatus                  as target_list_status,          --  名单状态1是白名单 2是黑名单 4是民众注册无人机
-        target.listType                    as target_list_type,            --  名单类型3是政务无人机 2是低空经济无人机 5是重点关注
-        target.uavUser.companyName         as user_company_name,           --  持有单位
-        target.uavUser.fullName            as user_full_name,              --  持有者姓名
-        target.uavUser.phone               as user_phone,                  -- 持有者手机号
-        targetDirection                    as target_direction,            --  无人机方位（对于发现设备）
-        targetAreaCode                     as target_area_code,            --  无人机飞行地区行政编码
-        targetRegistered                   as target_registered,           --  无人机是否报备1是已报备
-        targetFlyReportStatus              as target_fly_report_status,    --  无人机报备状态1是未报备 2 是已报备 3 超出报备区域范围 4 是不符合报备飞行时间5 是超出报备区域范围 6是 飞行海拔高度超过120米
-        cast(homeLongitude as double)      as home_longitude,              --  无人机返航点经度
-        cast(homeLatitude as double)       as home_latitude,               --  无人机返航点纬度
-        noFlyZoneId                        as no_fly_zone_id              --  无人机是否飞入禁飞区0是未飞入
+    UNIX_TIMESTAMP(gmtDetect,'yyyy-MM-dd HH:mm:ss') * 1000 as  acquire_timestamp,
+    cast(null as varchar)              as product_key,
+    id                                 as device_id,
+    cast(null as varchar)              as device_name,
+    gmtDetect                          as acquire_time,
+    cast(null as varchar)              as `method`,
+    '阵地'                              as src_code,
+    targetSn                           as src_pk,
+    cast(null as varchar)              as rid_devid,
+    cast(null as bigint)               as msgtype,
+    cast(null as varchar)              as recvtype,
+    cast(null as varchar)              as mac,
+    cast(null as bigint)               as rssi,
+    cast(targetLongitude as double)    as longitude,
+    cast(targetLatitude as double)     as latitude,
+    cast(null as double)               as location_alit,
+    targetYawAngle                     as ew,
+    targetSpeed                        as speed_h,
+    cast(null as double)               as speed_v,
+    targetHeight                       as height,
+    cast(null as double)               as height_type,
+    cast(operatorLongitude as double)  as control_station_longitude,
+    cast(operatorLatitude as double)   as control_station_latitude,
+    cast(null as double)               as control_station_height,
+    targetName                         as target_name,
+    if(targetAltitude is not null, targetAltitude + 29,targetAltitude)  as altitude,
+    targetDistance                     as distance_from_station,
+    targetSpeed                        as speed_ms,
+    if(targetFrequency = '',cast(null as double),cast(targetFrequency as double)) as target_frequency_khz,
+    cast(null as double)               as target_bandwidth_khz,
+    cast(null as double)               as target_signal_strength_db,
+    cast(null as int)                  as target_type,
+    target.listStatus                  as target_list_status,          --  名单状态1是白名单 2是黑名单 4是民众注册无人机
+    target.listType                    as target_list_type,            --  名单类型3是政务无人机 2是低空经济无人机 5是重点关注
+    target.uavUser.companyName         as user_company_name,           --  持有单位
+    target.uavUser.fullName            as user_full_name,              --  持有者姓名
+    target.uavUser.phone               as user_phone,                  -- 持有者手机号
+    targetDirection                    as target_direction,            --  无人机方位（对于发现设备）
+    targetAreaCode                     as target_area_code,            --  无人机飞行地区行政编码
+    targetRegistered                   as target_registered,           --  无人机是否报备1是已报备
+    targetFlyReportStatus              as target_fly_report_status,    --  无人机报备状态1是未报备 2 是已报备 3 超出报备区域范围 4 是不符合报备飞行时间5 是超出报备区域范围 6是 飞行海拔高度超过120米
+    cast(homeLongitude as double)      as home_longitude,              --  无人机返航点经度
+    cast(homeLatitude as double)       as home_latitude,               --  无人机返航点纬度
+    noFlyZoneId                        as no_fly_zone_id              --  无人机是否飞入禁飞区0是未飞入
 from jh_uav_data_kafka as t1
          cross join unnest (`data`) as t2 (
                                            id,

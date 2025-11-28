@@ -50,15 +50,15 @@ create table iot_device_message_kafka_01 (
                                              deviceId             string,    -- 设备id，rid设备id
                                              productKey           string,    -- 产品key
                                              message row<
-                                                 bid                  string,
+		bid                  string,
                                              tid                  string,
                                              version              string,
                                              `timestamp`          bigint,
                                              `method`             string,
 
                                              `data` row<
-                                                 -- RID的数据字段
-                                                 devid                string,  -- RID设备编号 设备的唯一标识
+            -- RID的数据字段
+            devid                string,  -- RID设备编号 设备的唯一标识
                                              msgtype              bigint,  -- 消息类型
                                              recvmac              string,  -- 采集到的无人机MAC地址
                                              recvtype             string,  -- 无人机数据类型
@@ -69,12 +69,12 @@ create table iot_device_message_kafka_01 (
                                              openAlarm            bigint,  -- 是否告警、开箱 1:true，0:false
                                              outpowerAlarm        bigint,  -- 是否有电量 1:true，0:false
                                              basic_info row<
-                                                 basic_uaid           string, -- UAVID 无人机序列号
+				basic_uaid           string, -- UAVID 无人机序列号
                                              basic_idtype         bigint,
                                              basic_uatype         bigint -- UA 类型     1：设备序列号 2：由 CAA 提供的 UAS 实名登记号 3：UTM 任务 ID （3-0 位，UA 类型）
                                                  >,
                                              location_info row<
-                                                 location_speed_v     double, -- 垂直速度
+				location_speed_v     double, -- 垂直速度
                                              location_hori_acc    double, -- 水平精度
                                              location_vert_acc    double, -- 垂直精度
                                              location_speed_multi double, -- 保留字
@@ -90,7 +90,7 @@ create table iot_device_message_kafka_01 (
                                              location_direc       double -- 保留字
                                                  >,
                                              system_info row<
-                                                 alit                 double, -- 控制站高度
+                alit                 double, -- 控制站高度
                                              sys_classification   double, -- 保留字
                                              sys_area_count       double, -- 运行区域计数
                                              sys_category         double, -- 保留字
@@ -129,39 +129,39 @@ create table iot_device_message_kafka_01 (
 
     -- 雷达、检测数据
                                              targets array<
-                                                 row(
-                                                 targetId         string   ,-- -目标id
-                                                 xDistance        double   ,-- x距离
-                                                 yDistance        double   ,-- y距离
-                                                 speed            double   ,-- 速度
-                                                 targetPitch      double   ,-- 俯仰角
-                                                 targetAltitude   double   ,-- 目标海拔高度
-                                                 status           string   ,-- 0 目标跟踪 1 目标丢失 2 跟踪终止
-                                                 targetLongitude  double   ,-- 目标经度
-                                                 targetLatitude   double   , -- 目标纬度
-                                                 distance         double   , -- 上报距离
-                                                 targetYaw        double   , -- 水平角度
-                                                 utc_time         bigint   , -- 雷达检测数据上报时间戳
-                                                 tracked_times    double   , -- 已跟踪次数
-                                                 loss_times       double   , -- 连续丢失次数
-                                                 targetType       bigint   , -- 目标类型,天朗项目-也有，目标识别类型
+              row(
+                targetId         string   ,-- -目标id
+                xDistance        double   ,-- x距离
+                yDistance        double   ,-- y距离
+                speed            double   ,-- 速度
+                targetPitch      double   ,-- 俯仰角
+                targetAltitude   double   ,-- 目标海拔高度
+                status           string   ,-- 0 目标跟踪 1 目标丢失 2 跟踪终止
+                targetLongitude  double   ,-- 目标经度
+                targetLatitude   double   , -- 目标纬度
+                distance         double   , -- 上报距离
+                targetYaw        double   , -- 水平角度
+                utc_time         bigint   , -- 雷达检测数据上报时间戳
+                tracked_times    double   , -- 已跟踪次数
+                loss_times       double   , -- 连续丢失次数
+                targetType       bigint   , -- 目标类型,天朗项目-也有，目标识别类型
 
-                                                 -- 天朗设备
-                                                 RCS               bigint, -- 目标RCS
-                                                 radialDistance    double, -- 目标位置信息
-                                                 targetState       bigint, -- 目标状态，
-                                                 `timestamp`       bigint, -- 录取时间信息（基日）
-                                                 timestampBase     bigint, -- 录取时间信息（时间）
-                                                 uploadMode        string
-                                                 )
-                                                 >
-                                                 >
-                                                 >
+                -- 天朗设备
+                RCS               bigint, -- 目标RCS
+                radialDistance    double, -- 目标位置信息
+                targetState       bigint, -- 目标状态，
+                `timestamp`       bigint, -- 录取时间信息（基日）
+                timestampBase     bigint, -- 录取时间信息（时间）
+                uploadMode        string
+            )
+          >
+      >
+  >
 
 ) WITH (
       'connector' = 'kafka',
       'topic' = 'iot-device-message',
-      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+      'properties.bootstrap.servers' = '135.100.11.110:30090',
       'properties.group.id' = 'iot-rid-data6',
       -- 'scan.startup.mode' = 'group-offsets',
       'scan.startup.mode' = 'latest-offset',
@@ -177,6 +177,7 @@ create table iot_device_message_kafka_01 (
 -- 整合rid、aoa、雷达的数据 写入
 -- 在进行读取做数据融合生成id
 create table rid_m30_aoa(
+                            id                        string  comment 'id',
                             acquire_timestamp         bigint,
                             product_key               string,
                             device_id                 string,
@@ -224,7 +225,7 @@ create table rid_m30_aoa(
                             user_phone                string        --  持有者手机号
 ) with (
       'connector' = 'kafka',
-      'topic' = 'rid-m30-aoa',
+      'topic' = 'uav_merge_target',
       'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
       'properties.group.id' = 'uav_merge_target1',
       -- 'key.format' = 'json',
@@ -254,7 +255,7 @@ create table device (
                         PRIMARY KEY (id) NOT ENFORCED
 ) with (
       'connector' = 'jdbc',
-      'url' = 'jdbc:mysql://mysql57-mysql.base.svc.cluster.local:3306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
+      'url' = 'jdbc:mysql://135.100.11.110:31306/dushu?useSSL=false&characterEncoding=UTF-8&serverTimezone=GMT%2B8&autoReconnect=true',
       'driver' = 'com.mysql.cj.jdbc.Driver',
       'username' = 'root',
       'password' = 'jingansi110',
@@ -266,60 +267,60 @@ create table device (
 
 
 
--- 写入中转的kafka-topic
-create table uav_merge_target(
-                                 id                            string  comment 'id',
-                                 device_id                     string  comment '数据来源的设备id',
-                                 acquire_time          		string  comment '采集时间',
-                                 src_code              		string  comment '数据类型 RID、AOA、RADAR',
-                                 src_pk                        string  comment '自己网站的目标id',
-                                 device_name                   string  comment '设备名称',
-                                 rid_devid             		string  comment 'rid设备的id-飞机上报的',
-                                 msgtype               		bigint  comment '消息类型',
-                                 recvtype              		string  comment '无人机数据类型,示例:2.4G',
-                                 mac                   		string  comment 'rid设备MAC地址',
-                                 rssi                  		bigint  comment '信号强度',
-                                 longitude             		double  comment '探测到的无人机经度',
-                                 latitude              		double  comment '探测到的无人机纬度',
-                                 location_alit         		double  comment '气压高度',
-                                 ew                    		double  comment 'rid航迹角,aoa监测站识别的目标方向角',
-                                 speed_h               		double  comment '水平速度',
-                                 speed_v               		double  comment '垂直速度',
-                                 height                		double  comment '距地高度',
-                                 height_type           		double  comment '高度类型',
-                                 control_station_longitude  	double  comment '控制无人机人员经度',
-                                 control_station_latitude   	double  comment '控制无人机人员纬度',
-                                 control_station_height 	   	double 	comment '控制站高度',
-                                 target_name             		string  comment 'aoa-目标名称',
-                                 altitude                		double  comment 'aoa-无人机所在海拔高度',
-                                 distance_from_station   		double  comment 'aoa-无人机距离监测站的距离',
-                                 speed_ms                  	double  comment 'aoa-无人机飞行速度 (m/s)',
-                                 target_frequency_khz    		double  comment 'aoa-目标使用频率 (k_hz)',
-                                 target_bandwidth_khz		    double  comment 'aoa-目标带宽 (k_hz)',
-                                 target_signal_strength_db		double  comment 'aoa-目标信号强度 (d_b)',
-                                 target_type                   bigint,
-                                 target_list_status            int,          --  名单状态1是白名单 2是黑名单 4是民众注册无人机
-                                 target_list_type              int,          --  名单类型3是政务无人机 2是低空经济无人机 5是重点关注
-                                 user_company_name             string,       --  持有单位
-                                 user_full_name                string,       --  持有者姓名
-                                 target_direction              double,       --  无人机方位（对于发现设备）
-                                 target_area_code              string,       --  无人机飞行地区行政编码
-                                 target_registered             int,          --  无人机是否报备1是已报备
-                                 target_fly_report_status      int,          --  无人机报备状态1是未报备 2 是已报备 3 超出报备区域范围 4 是不符合报备飞行时间5 是超出报备区域范围 6是 飞行海拔高度超过120米
-                                 home_longitude                double,       --  无人机返航点经度
-                                 home_latitude                 double,       --  无人机返航点纬度
-                                 no_fly_zone_id                int,          --  无人机是否飞入禁飞区0是未飞入
-                                 user_phone                    string,        --  持有者手机号
-                                 update_time                	string  comment '更新时间'
-) with (
-      'connector' = 'kafka',
-      'topic' = 'uav_merge_target',
-      'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
-      'properties.group.id' = 'uav_merge_target1',
-      'key.format' = 'json',
-      'key.fields' = 'id',
-      'format' = 'json'
-      );
+-- -- 写入中转的kafka-topic , 先写入在融合生成id，但是现在不用融合，直接使用自己的id，所以这里可以不用
+-- create table uav_merge_target(
+--   id                            string  comment 'id',
+--   device_id                     string  comment '数据来源的设备id',
+--   acquire_time          		string  comment '采集时间',
+--   src_code              		string  comment '数据类型 RID、AOA、RADAR',
+--   src_pk                        string  comment '自己网站的目标id',
+--   device_name                   string  comment '设备名称',
+--   rid_devid             		string  comment 'rid设备的id-飞机上报的',
+--   msgtype               		bigint  comment '消息类型',
+--   recvtype              		string  comment '无人机数据类型,示例:2.4G',
+--   mac                   		string  comment 'rid设备MAC地址',
+--   rssi                  		bigint  comment '信号强度',
+--   longitude             		double  comment '探测到的无人机经度',
+--   latitude              		double  comment '探测到的无人机纬度',
+--   location_alit         		double  comment '气压高度',
+--   ew                    		double  comment 'rid航迹角,aoa监测站识别的目标方向角',
+--   speed_h               		double  comment '水平速度',
+--   speed_v               		double  comment '垂直速度',
+--   height                		double  comment '距地高度',
+--   height_type           		double  comment '高度类型',
+--   control_station_longitude  	double  comment '控制无人机人员经度',
+--   control_station_latitude   	double  comment '控制无人机人员纬度',
+--   control_station_height 	   	double 	comment '控制站高度',
+--   target_name             		string  comment 'aoa-目标名称',
+--   altitude                		double  comment 'aoa-无人机所在海拔高度',
+--   distance_from_station   		double  comment 'aoa-无人机距离监测站的距离',
+--   speed_ms                  	double  comment 'aoa-无人机飞行速度 (m/s)',
+--   target_frequency_khz    		double  comment 'aoa-目标使用频率 (k_hz)',
+--   target_bandwidth_khz		    double  comment 'aoa-目标带宽 (k_hz)',
+--   target_signal_strength_db		double  comment 'aoa-目标信号强度 (d_b)',
+--   target_type                   bigint,
+--   target_list_status            int,          --  名单状态1是白名单 2是黑名单 4是民众注册无人机
+--   target_list_type              int,          --  名单类型3是政务无人机 2是低空经济无人机 5是重点关注
+--   user_company_name             string,       --  持有单位
+--   user_full_name                string,       --  持有者姓名
+--   target_direction              double,       --  无人机方位（对于发现设备）
+--   target_area_code              string,       --  无人机飞行地区行政编码
+--   target_registered             int,          --  无人机是否报备1是已报备
+--   target_fly_report_status      int,          --  无人机报备状态1是未报备 2 是已报备 3 超出报备区域范围 4 是不符合报备飞行时间5 是超出报备区域范围 6是 飞行海拔高度超过120米
+--   home_longitude                double,       --  无人机返航点经度
+--   home_latitude                 double,       --  无人机返航点纬度
+--   no_fly_zone_id                int,          --  无人机是否飞入禁飞区0是未飞入
+--   user_phone                    string,        --  持有者手机号
+--   update_time                	string  comment '更新时间'
+-- ) with (
+--     'connector' = 'kafka',
+--     'topic' = 'uav_merge_target',
+--     'properties.bootstrap.servers' = 'kafka.base.svc.cluster.local:9092',
+--     'properties.group.id' = 'uav_merge_target1',
+--     'key.format' = 'json',
+--     'key.fields' = 'id',
+--     'format' = 'json'
+--   );
 
 
 -----------------------
@@ -567,14 +568,14 @@ where `method` in('event.ridMessage.info','event.aoaMessage.info')
 
 
 
--- get_id( 原网站的id、经度、纬度、时间戳毫秒,数据来源类型) as res_str,
--- 雷达、RID、AOA数据union一起,并且调用函数获取融合的id
-create view temp05 as
-select
-    *,
-    concat(src_pk,';',src_code,';1;1;',cast(longitude as varchar),';',cast(latitude as varchar)) as id
-    -- get_id(src_pk,longitude,latitude,acquire_timestamp,src_code) as id
-from rid_m30_aoa as t1;
+-- -- get_id( 原网站的id、经度、纬度、时间戳毫秒,数据来源类型) as res_str,
+-- -- 雷达、RID、AOA数据union一起,并且调用函数获取融合的id
+-- create view temp05 as
+-- select
+--   *,
+--   concat(src_pk,';',src_code,';1;1;',cast(longitude as varchar),';',cast(latitude as varchar)) as id
+--   -- get_id(src_pk,longitude,latitude,acquire_timestamp,src_code) as id
+-- from rid_m30_aoa as t1;
 
 
 
@@ -591,59 +592,66 @@ begin statement set;
 -- temp03（雷达数据）， temp04（RID，AOA数据）
 insert into rid_m30_aoa
 
-select * from temp03
-union all
-select * from temp04;
-
-
--- 融合数据写入中转的kafka-topic
-insert into uav_merge_target
 select
-    id,
-    device_id,
-    acquire_time                   ,
-    src_code                       ,
-    src_pk                	     ,
-    device_name,
-    rid_devid                      ,
-    msgtype                        ,
-    recvtype                       ,
-    mac                            ,
-    rssi                           ,
-    longitude                      ,
-    latitude                       ,
-    location_alit                  ,
-    ew                             ,
-    speed_h                        ,
-    speed_v                        ,
-    height                         ,
-    height_type                    ,
-    control_station_longitude      ,
-    control_station_latitude       ,
-    control_station_height 	     ,
-    target_name             	     ,
-    altitude                	     ,
-    distance_from_station   	     ,
-    speed_ms                       ,
-    target_frequency_khz    	     ,
-    target_bandwidth_khz		     ,
-    target_signal_strength_db	     ,
-    target_type,
+    concat(src_pk,';',src_code,';1;1;',cast(longitude as varchar),';',cast(latitude as varchar)) as id,
+    *
+from (
+         select * from temp03
+         union all
+         select * from temp04
+     ) as t1;
 
-    target_list_status,
-    target_list_type,
-    user_company_name,
-    user_full_name,
-    target_direction,
-    target_area_code,
-    target_registered,
-    target_fly_report_status,
-    home_longitude,
-    home_latitude,
-    no_fly_zone_id,
-    user_phone,
-    from_unixtime(unix_timestamp()) as update_time
-from temp05;
+
+
+
+-- -- 融合数据写入中转的kafka-topic
+-- insert into uav_merge_target
+-- select
+--   id,
+--   device_id,
+--   acquire_time                   ,
+--   src_code                       ,
+--   src_pk                	     ,
+--   device_name,
+--   rid_devid                      ,
+--   msgtype                        ,
+--   recvtype                       ,
+--   mac                            ,
+--   rssi                           ,
+--   longitude                      ,
+--   latitude                       ,
+--   location_alit                  ,
+--   ew                             ,
+--   speed_h                        ,
+--   speed_v                        ,
+--   height                         ,
+--   height_type                    ,
+--   control_station_longitude      ,
+--   control_station_latitude       ,
+--   control_station_height 	     ,
+--   target_name             	     ,
+--   altitude                	     ,
+--   distance_from_station   	     ,
+--   speed_ms                       ,
+--   target_frequency_khz    	     ,
+--   target_bandwidth_khz		     ,
+--   target_signal_strength_db	     ,
+--   target_type,
+
+--   target_list_status,
+--   target_list_type,
+--   user_company_name,
+--   user_full_name,
+--   target_direction,
+--   target_area_code,
+--   target_registered,
+--   target_fly_report_status,
+--   home_longitude,
+--   home_latitude,
+--   no_fly_zone_id,
+--   user_phone,
+--   from_unixtime(unix_timestamp()) as update_time
+-- from temp05;
 
 
 end;
