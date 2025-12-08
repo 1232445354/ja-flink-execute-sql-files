@@ -26,12 +26,14 @@ execute_with_retry() {
   fi
 }
 
-
+#start_time="2025-12-01 00:00:00"
 start_time=$(date "+%Y-%m-%d 00:00:00")
 end_time=$(date "+%Y-%m-%d 00:00:00")
 echo "start_time = [${start_time}],end_time = [${end_time}]"
-start_time_ymd=$(date -d "yesterday" "+%Y%m%d")
-start_time_y=$(date -d "yesterday" "+%Y")
+start_time_ymd=$(echo "${start_time:0:10}" | tr -d '-')
+start_time_y=$(echo "${start_time:0:4}" | tr -d '-')
+echo "start_time_y -> ${start_time_y}"
+echo "start_time_ymd -> ${start_time_ymd}"
 
 # 将时间格式转换为 Unix 时间戳
 for item in "${array_list_month[@]}"

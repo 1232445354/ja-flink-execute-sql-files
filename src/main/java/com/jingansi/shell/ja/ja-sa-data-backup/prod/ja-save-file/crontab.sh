@@ -6,5 +6,5 @@
 
 
 # 按月执行
-1 0 1 * * sh /data1/bigdata/apps/ja-sa-data-backup/ja-save-file/start-month.sh > /data1/bigdata/apps/ja-sa-data-backup/ja-save-file/root-month.log
+1 1 1 * * sh /data1/bigdata/apps/ja-sa-data-backup/ja-save-file/start-month.sh > /data1/bigdata/apps/ja-sa-data-backup/ja-save-file/root-month.log
 
