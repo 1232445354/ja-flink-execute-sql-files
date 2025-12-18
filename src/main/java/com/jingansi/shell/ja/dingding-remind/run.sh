@@ -68,7 +68,7 @@ read_data() {
 
 read_data "$CONFIG_DUTY" "$VALUE_DUTY" "duty" 4
 
-read_data "$CONFIG_WEEK" "$VALUE_WEEK" "week" 16
+read_data "$CONFIG_WEEK" "$VALUE_WEEK" "week" 18
 
 
 IFS=' ' read -ra duty_line <<< "$duty_res"
